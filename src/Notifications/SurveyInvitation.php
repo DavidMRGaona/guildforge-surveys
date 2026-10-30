@@ -6,15 +6,17 @@ namespace Modules\Surveys\Notifications;
 
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Invites someone to answer a survey, when it opens or as a reminder before it closes.
- * Accounts get the survey page; guests get their own single-use link.
+ * Accounts get the survey page; guests get their own single-use link. The queued job is
+ * encrypted: a guest's link and address never sit in clear in the queue or failed jobs.
  */
-final class SurveyInvitation extends Notification implements ShouldQueue
+final class SurveyInvitation extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 

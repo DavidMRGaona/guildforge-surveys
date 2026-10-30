@@ -27,6 +27,7 @@ use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
+use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
@@ -111,6 +112,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CloseDueSurveysCommand::class,
+                SendSurveyRemindersCommand::class,
             ]);
         }
     }
@@ -122,6 +124,11 @@ final class SurveysServiceProvider extends ModuleServiceProvider
             $schedule->command('surveys:close-due')
                 ->everyFiveMinutes()
                 ->withoutOverlapping(10);
+
+            // Reminds who has not answered, once per survey, when its reminder time comes
+            $schedule->command('surveys:send-reminders')
+                ->hourly()
+                ->withoutOverlapping(30);
         });
     }
 

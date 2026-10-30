@@ -8,6 +8,7 @@ use App\Application\Surveys\DTOs\SurveyAudienceDTO;
 use App\Application\Surveys\DTOs\SurveyGuestDTO;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
@@ -59,6 +60,11 @@ final class SurveyInvitationsTest extends ModuleTestCase
                 && str_contains((string) $message->subject, 'Mesa *especial* [beta]')
                 && $message->actionUrl === $mail->url;
         });
+    }
+
+    public function test_the_queued_mail_is_encrypted_because_it_carries_the_guest_link(): void
+    {
+        $this->assertContains(ShouldBeEncrypted::class, class_implements(SurveyInvitation::class));
     }
 
     public function test_sending_again_mails_nobody_twice(): void

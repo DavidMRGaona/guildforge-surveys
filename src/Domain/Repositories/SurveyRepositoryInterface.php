@@ -28,6 +28,18 @@ interface SurveyRepositoryInterface
     public function hasResponses(SurveyId $id): bool;
 
     /**
+     * Open surveys with a reminder not sent yet whose reminder time has come.
+     *
+     * @return list<Survey>
+     */
+    public function findDueForReminder(DateTimeImmutable $now): array;
+
+    /**
+     * Marks the survey's reminder as sent; false when another run already did.
+     */
+    public function claimReminder(SurveyId $id, DateTimeImmutable $now): bool;
+
+    /**
      * Every survey about one subject (a subject may have several).
      *
      * @return list<Survey>

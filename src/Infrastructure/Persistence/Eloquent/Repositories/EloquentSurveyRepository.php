@@ -83,6 +83,30 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             ->all());
     }
 
+    public function findDueForReminder(DateTimeImmutable $now): array
+    {
+        $candidates = SurveyModel::query()
+            ->where('status', SurveyStatus::Open->value)
+            ->whereNotNull('reminder_hours_before')
+            ->whereNull('reminder_sent_at')
+            ->where('closes_at', '>', $this->timezone->toStorage($now))
+            ->get()
+            ->map(fn (SurveyModel $model): Survey => $this->toEntity($model))
+            ->all();
+
+        // The window depends on each survey's hours, so it is checked here, portable across databases
+        return array_values(array_filter(
+            $candidates,
+            static fn (Survey $survey): bool => $survey->closesAt() instanceof DateTimeImmutable
+                && $survey->closesAt()->modify("-{$survey->reminderHoursBefore()} hours") <= $now,
+        ));
+    }
+
+    public function claimReminder(SurveyId $id, DateTimeImmutable $now): bool
+    {
+        return SurveyModel::query()->whereKey($id->value)->whereNull('reminder_sent_at')->update(['reminder_sent_at' => $this->timezone->toStorage($now)]) === 1;
+    }
+
     public function hasResponses(SurveyId $id): bool
     {
         return SurveyResponseModel::query()->where('survey_id', $id->value)->exists();
