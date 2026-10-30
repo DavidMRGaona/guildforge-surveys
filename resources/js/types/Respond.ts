@@ -1,24 +1,77 @@
 /**
- * Respond TypeScript types for the Surveys module.
- * Keys match RespondResponseDTO::toArray().
+ * Props of the survey response page (RespondController) and the shapes of a definition,
+ * as SurveyDefinition::toArray() sends it.
  */
+export type QuestionType =
+    | 'short_text'
+    | 'paragraph'
+    | 'single_choice'
+    | 'multiple_choice'
+    | 'dropdown'
+    | 'linear_scale'
+    | 'star_rating'
+    | 'date'
+    | 'time'
+    | 'grid';
 
-export interface Respond {
+export interface SurveyOption {
     id: string;
-    name: string;
-    created_at: string;
-    updated_at: string;
+    label: string;
 }
 
-export interface RespondFormData {
-    name: string;
+export interface SurveyQuestion {
+    id: string;
+    key: string | null;
+    type: QuestionType;
+    title: string;
+    help: string | null;
+    required: boolean;
+    options: SurveyOption[];
+    allow_other: boolean;
+    scale: { min: number; max: number; min_label: string | null; max_label: string | null } | null;
+    stars: number | null;
+    grid: { rows: SurveyOption[]; columns: SurveyOption[] } | null;
 }
 
-// Props RespondController (module:make-controller --resource) sends
-export interface RespondListProps {
-    responds: Respond[];
+export interface SurveySection {
+    id: string;
+    title: string | null;
+    description: string | null;
+    questions: SurveyQuestion[];
 }
 
-export interface RespondShowProps {
-    respond: Respond;
+export interface SurveyDefinition {
+    sections: SurveySection[];
 }
+
+export type RespondState = 'open' | 'answered' | 'closed' | 'not_invited';
+
+export interface RespondSurvey {
+    id: string;
+    kind: 'form' | 'poll';
+    title: string;
+    description: string | null;
+    anonymous: boolean;
+    closesAt: string | null;
+}
+
+export interface RespondProps {
+    state: RespondState;
+    result: 'submitted' | null;
+    survey?: RespondSurvey;
+    definition?: SurveyDefinition;
+    submitUrl?: string;
+}
+
+/** What one question holds while it is being answered. */
+export interface AnswerDraft {
+    text: string;
+    choice: string;
+    choices: string[];
+    other: string;
+    number: number | null;
+    cells: Record<string, string>;
+}
+
+/** Option id that stands for "Other", as Submission::OTHER on the server. */
+export const OTHER = '__other__';
