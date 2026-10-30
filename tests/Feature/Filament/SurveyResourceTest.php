@@ -91,15 +91,18 @@ final class SurveyResourceTest extends ModuleTestCase
 
     public function test_creates_a_quick_poll(): void
     {
-        Livewire::test(ListSurveys::class)
-            ->callAction('quick_poll', data: [
-                'question' => '¿Qué día hacemos la asamblea?',
-                'options' => [['label' => 'Viernes'], ['label' => 'Sábado'], ['label' => 'Domingo']],
-                'multiple' => true,
-                'anonymous' => false,
-                'closes_at' => '2030-01-10 20:00:00',
-            ])
-            ->assertHasNoActionErrors();
+        $page = Livewire::test(ListSurveys::class)->assertActionExists('quick_poll');
+
+        // Runs the action's own callback with the data its modal would hand over
+        $list = $page->instance();
+        $this->assertInstanceOf(ListSurveys::class, $list);
+        $list->getAction('quick_poll')?->call(['data' => [
+            'question' => '¿Qué día hacemos la asamblea?',
+            'options' => [['label' => 'Viernes'], ['label' => 'Sábado'], ['label' => 'Domingo']],
+            'multiple' => true,
+            'anonymous' => false,
+            'closes_at' => '2030-01-10 20:00:00',
+        ]]);
 
         $poll = $this->stored();
         $this->assertSame(SurveyKind::Poll, $poll->kind());

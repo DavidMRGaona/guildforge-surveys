@@ -117,6 +117,19 @@ return [
         ],
     ],
 
+    'actions' => [
+        'open' => 'Abrir',
+        'open_description' => 'La encuesta empieza a aceptar respuestas y su audiencia queda fijada.',
+        'open_done' => 'Encuesta abierta',
+        'open_failed' => 'No se puede abrir: su fecha de cierre ya ha pasado o ya no es un borrador.',
+        'close' => 'Cerrar',
+        'close_description' => 'La encuesta deja de aceptar respuestas. No se puede volver a abrir.',
+        'close_done' => 'Encuesta cerrada',
+        'close_failed' => 'No se puede cerrar: la encuesta no está abierta.',
+        'delete_description' => 'Se borran la encuesta y todas sus respuestas. No se puede deshacer.',
+        'delete_confirmation' => 'Entiendo que se borrarán todas las respuestas para siempre',
+    ],
+
     'quick_poll' => [
         'action' => 'Sondeo rápido',
         'heading' => 'Nuevo sondeo rápido',

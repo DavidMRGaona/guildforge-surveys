@@ -26,6 +26,7 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Forms\DefinitionEditor;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
@@ -191,6 +192,9 @@ final class SurveyResource extends BaseResource
             ])
             ->recordActions([
                 EditAction::make(),
+                SurveyActions::open(),
+                SurveyActions::close(),
+                SurveyActions::delete(),
             ]);
     }
 

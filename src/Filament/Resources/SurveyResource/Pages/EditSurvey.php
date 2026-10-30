@@ -13,6 +13,7 @@ use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Concerns\HandlesDefinitionErrors;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
@@ -23,6 +24,15 @@ final class EditSurvey extends EditRecord
     use HandlesDefinitionErrors;
 
     protected static string $resource = SurveyResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            SurveyActions::open()->after(fn () => $this->refreshFormData(['status'])),
+            SurveyActions::close()->after(fn () => $this->refreshFormData(['status'])),
+            SurveyActions::delete(),
+        ];
+    }
 
     /**
      * @param  array<string, mixed>  $data
