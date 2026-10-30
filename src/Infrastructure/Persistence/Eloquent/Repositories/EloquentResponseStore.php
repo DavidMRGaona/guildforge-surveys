@@ -32,6 +32,19 @@ final class EloquentResponseStore implements ResponseStoreInterface
         return $recipient?->guest_name;
     }
 
+    public function hasParticipated(SurveyId $surveyId, ?string $userId, ?string $tokenHash): bool
+    {
+        if ($userId === null && $tokenHash === null) {
+            return false;
+        }
+
+        return SurveyParticipationModel::query()
+            ->where('survey_id', $surveyId->value)
+            ->when($userId !== null, static fn ($query) => $query->where('user_id', $userId))
+            ->when($userId === null, static fn ($query) => $query->where('token_hash', $tokenHash))
+            ->exists();
+    }
+
     public function record(
         SurveyId $surveyId,
         ?string $participantUserId,

@@ -18,7 +18,10 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Widgets\Widget;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
@@ -86,6 +89,18 @@ final class SurveysServiceProvider extends ModuleServiceProvider
 
         $this->registerCommands();
         $this->registerSchedule();
+        $this->registerRateLimiters();
+    }
+
+    /**
+     * Answering pages are open to guests: limit them per IP address.
+     */
+    private function registerRateLimiters(): void
+    {
+        RateLimiter::for('surveys-responses', static fn (Request $request): array => [
+            Limit::perMinute(20)->by('surveys-responses-minute:'.$request->ip()),
+            Limit::perHour(200)->by('surveys-responses-hour:'.$request->ip()),
+        ]);
     }
 
     private function registerCommands(): void

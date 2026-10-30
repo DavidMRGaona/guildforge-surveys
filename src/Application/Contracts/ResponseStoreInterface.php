@@ -20,6 +20,11 @@ interface ResponseStoreInterface
     public function guestName(SurveyId $surveyId, string $tokenHash): ?string;
 
     /**
+     * Whether this account or guest link has already answered: only participations are read.
+     */
+    public function hasParticipated(SurveyId $surveyId, ?string $userId, ?string $tokenHash): bool;
+
+    /**
      * Stores the participation ("already answered") and the response with its values, all or
      * nothing. Nothing links one to the other.
      *
