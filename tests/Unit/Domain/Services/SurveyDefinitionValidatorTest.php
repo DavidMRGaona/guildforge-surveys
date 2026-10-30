@@ -35,7 +35,7 @@ final class SurveyDefinitionValidatorTest extends TestCase
     #[DataProvider('brokenForms')]
     public function test_reports_each_broken_rule(callable $break, string $path, string $messageKey): void
     {
-        $violations = $this->validator->validate(SurveyDefinition::fromArray($break(self::data())), SurveyKind::Form);
+        $violations = $this->validator->validate(SurveyDefinition::fromArray($break($this->data())), SurveyKind::Form);
 
         $this->assertContainsEquals(new DefinitionViolation($path, $messageKey), $violations);
     }
@@ -82,7 +82,7 @@ final class SurveyDefinitionValidatorTest extends TestCase
 
     public function test_keyed_question_cannot_change_type(): void
     {
-        $changed = SurveyDefinition::fromArray(self::set(self::data(), [1, 0, 'type'], 'star_rating'));
+        $changed = SurveyDefinition::fromArray(self::set($this->data(), [1, 0, 'type'], 'star_rating'));
 
         foreach ([false, true] as $hasResponses) {
             $this->assertContainsEquals(
@@ -94,7 +94,7 @@ final class SurveyDefinitionValidatorTest extends TestCase
 
     public function test_without_responses_anything_but_keyed_types_may_change(): void
     {
-        $data = self::set(self::data(), [0, 1, 'type'], 'short_text');
+        $data = self::set($this->data(), [0, 1, 'type'], 'short_text');
         $data = self::set($data, [0, 2, 'title'], 'Otra pregunta');
         unset($data['sections'][0]['questions'][3]);
         $data['sections'][0]['questions'] = array_values($data['sections'][0]['questions']);
@@ -110,7 +110,7 @@ final class SurveyDefinitionValidatorTest extends TestCase
     {
         $this->assertContainsEquals(
             new DefinitionViolation('sections', 'locked_by_responses'),
-            $this->validator->validateChange($this->definition(), SurveyDefinition::fromArray($change(self::data())), hasResponses: true),
+            $this->validator->validateChange($this->definition(), SurveyDefinition::fromArray($change($this->data())), hasResponses: true),
         );
     }
 
@@ -136,7 +136,7 @@ final class SurveyDefinitionValidatorTest extends TestCase
 
     public function test_with_responses_help_texts_may_change(): void
     {
-        $changed = SurveyDefinition::fromArray(self::set(self::data(), [0, 2, 'help'], 'Elige la que más te guste'));
+        $changed = SurveyDefinition::fromArray(self::set($this->data(), [0, 2, 'help'], 'Elige la que más te guste'));
 
         $this->assertSame([], $this->validator->validateChange($this->definition(), $changed, hasResponses: true));
     }
@@ -147,25 +147,25 @@ final class SurveyDefinitionValidatorTest extends TestCase
 
         $this->expectException(InvalidSurveyDefinitionException::class);
 
-        $this->validator->assertChangeAllowed($this->definition(), SurveyDefinition::fromArray(self::set(self::data(), [0, 2, 'title'], 'Otra')), hasResponses: true);
+        $this->validator->assertChangeAllowed($this->definition(), SurveyDefinition::fromArray(self::set($this->data(), [0, 2, 'title'], 'Otra')), hasResponses: true);
     }
 
     private function definition(): SurveyDefinition
     {
-        return SurveyDefinition::fromArray(self::data());
+        return SurveyDefinition::fromArray($this->data());
     }
 
     /**
      * @return array<string, mixed>
      */
-    private static function data(): array
+    private function data(): array
     {
         return SurveyDefinitionTest::everyTypeDefinition();
     }
 
     private function poll(string $type, bool $allowOther = false): SurveyDefinition
     {
-        $data = self::data();
+        $data = $this->data();
         $question = $data['sections'][0]['questions'][2];
         $question['type'] = $type;
         $question['allow_other'] = $allowOther;
