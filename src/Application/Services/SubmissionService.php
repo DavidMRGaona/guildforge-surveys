@@ -23,6 +23,16 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
  */
 final readonly class SubmissionService
 {
+    public const string STATE_OPEN = 'open';
+
+    public const string STATE_ANSWERED = 'answered';
+
+    public const string STATE_CLOSED = 'closed';
+
+    public const string STATE_NOT_INVITED = 'not_invited';
+
+    public const string STATE_NOT_FOUND = 'not_found';
+
     public function __construct(
         private SurveyRepositoryInterface $surveys,
         private ResponseStoreInterface $responses,
@@ -63,6 +73,29 @@ final readonly class SubmissionService
             responseGuestName: $named ? $guestName : null,
             values: $submission->values,
         );
+    }
+
+    /**
+     * What the respondent finds when opening the survey, decided as submit() would.
+     */
+    public function stateFor(SurveyId $id, Respondent $respondent): string
+    {
+        $survey = $this->surveys->find($id);
+        if (! $survey instanceof Survey) {
+            return self::STATE_NOT_FOUND;
+        }
+
+        try {
+            [$userId, $tokenHash] = $this->identify($survey, $respondent);
+        } catch (NotInvitedException) {
+            return self::STATE_NOT_INVITED;
+        }
+
+        if ($this->responses->hasParticipated($id, $userId, $tokenHash)) {
+            return self::STATE_ANSWERED;
+        }
+
+        return $survey->isAcceptingResponses(now()->toDateTimeImmutable()) ? self::STATE_OPEN : self::STATE_CLOSED;
     }
 
     /**

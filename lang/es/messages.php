@@ -58,4 +58,24 @@ return [
         'closing_date' => 'El cierre de una encuesta abierta no puede quedar en el pasado, y una encuesta cerrada no se reprograma.',
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
     ],
+
+    'response' => [
+        'title' => 'Encuesta',
+        'already_answered' => 'Ya has respondido esta encuesta.',
+        'closed' => 'La encuesta está cerrada.',
+        'not_invited' => 'No puedes responder esta encuesta.',
+    ],
+
+    'submission_errors' => [
+        'required' => 'Esta pregunta es obligatoria.',
+        'invalid_option' => 'Elige una de las opciones.',
+        'too_many_options' => 'Elige solo una opción.',
+        'duplicate_option' => 'Has marcado la misma opción dos veces.',
+        'other_required' => 'Escribe tu respuesta en «Otra».',
+        'out_of_range' => 'El valor está fuera de la escala.',
+        'invalid_date' => 'Escribe una fecha válida.',
+        'invalid_time' => 'Escribe una hora válida.',
+        'grid_incomplete' => 'Responde todas las filas.',
+        'too_long' => 'La respuesta es demasiado larga.',
+    ],
 ];
