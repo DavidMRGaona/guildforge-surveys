@@ -22,7 +22,9 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Inertia\Inertia;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\PendingSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
@@ -32,6 +34,7 @@ use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentPendingSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentResponseStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRecipientStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRepository;
@@ -73,6 +76,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(AudienceResolverInterface::class, EloquentAudienceResolver::class);
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
         $this->app->bind(SurveyNotifierInterface::class, SurveyInvitationSender::class);
+        $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
     }
 
     /**
@@ -94,6 +98,29 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->registerCommands();
         $this->registerSchedule();
         $this->registerRateLimiters();
+        $this->sharePendingSurveys();
+    }
+
+    /**
+     * The profile's "Encuestas pendientes" tab: only computed on the profile page.
+     */
+    private function sharePendingSurveys(): void
+    {
+        $pending = static function (): ?array {
+            $user = auth()->user();
+            if (request()->route()?->getName() !== 'profile.show' || $user === null) {
+                return null;
+            }
+
+            return app(PendingSurveysQueryInterface::class)->forUser((string) $user->getAuthIdentifier(), now()->toDateTimeImmutable());
+        };
+
+        Inertia::share('profilePendingSurveys', $pending);
+        Inertia::share('profilePendingSurveysTotal', static function () use ($pending): ?int {
+            $surveys = $pending();
+
+            return $surveys === null ? null : count($surveys);
+        });
     }
 
     /**
@@ -282,7 +309,21 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      */
     public function registerSlots(): array
     {
-        return [];
+        return [
+            new SlotRegistrationDTO(
+                slot: 'profile-sections',
+                component: 'components/profile/ProfilePendingSurveysSection.vue',
+                module: $this->moduleName(),
+                order: 40,
+                dataKeys: ['profilePendingSurveys'],
+                profileTab: [
+                    'tabId' => 'surveys',
+                    'icon' => 'pencil-square',
+                    'labelKey' => 'surveys.profile.tab_label',
+                    'badgeKey' => 'profilePendingSurveysTotal',
+                ],
+            ),
+        ];
     }
 
     /**

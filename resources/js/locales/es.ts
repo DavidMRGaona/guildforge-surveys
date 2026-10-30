@@ -1,6 +1,14 @@
 export default {
     surveys: {
         title: 'Encuestas',
+        profile: {
+            tab_label: 'Encuestas',
+            title: 'Encuestas pendientes',
+            empty_title: 'No tienes encuestas pendientes',
+            empty_description:
+                'Cuando te envíen una encuesta, aparecerá aquí hasta que la respondas.',
+            answer: 'Responder',
+        },
         respond: {
             required: 'Obligatoria',
             required_hint: 'Las preguntas marcadas con * son obligatorias.',
