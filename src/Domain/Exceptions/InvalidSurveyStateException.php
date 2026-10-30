@@ -37,4 +37,19 @@ final class InvalidSurveyStateException extends DomainException
     {
         return new self("Survey {$surveyId} already has responses: its anonymity can no longer change.");
     }
+
+    public static function lockedByResponses(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} already has responses: its content can no longer change.");
+    }
+
+    public static function audienceFixed(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} is no longer a draft: its audience is fixed.");
+    }
+
+    public static function alreadyClosed(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} is closed.");
+    }
 }

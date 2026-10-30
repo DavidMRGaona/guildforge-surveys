@@ -25,21 +25,21 @@ final class Survey
     public function __construct(
         private readonly SurveyId $id,
         private readonly SurveyKind $kind,
-        private readonly string $title,
-        private readonly ?string $description,
+        private string $title,
+        private ?string $description,
         private SurveyDefinition $definition,
         private bool $anonymous,
-        private readonly ResultsSettings $results,
-        private readonly AudienceType $audienceType,
-        private readonly array $audienceRoles = [],
-        private readonly bool $publicLinkEnabled = false,
+        private ResultsSettings $results,
+        private AudienceType $audienceType,
+        private array $audienceRoles = [],
+        private bool $publicLinkEnabled = false,
         private readonly ?SurveyTemplateId $templateId = null,
         private readonly ?SubjectSnapshot $subject = null,
         private SurveyStatus $status = SurveyStatus::Draft,
         private ?DateTimeImmutable $opensAt = null,
-        private readonly ?DateTimeImmutable $closesAt = null,
+        private ?DateTimeImmutable $closesAt = null,
         private ?DateTimeImmutable $closedAt = null,
-        private readonly ?int $reminderHoursBefore = null,
+        private ?int $reminderHoursBefore = null,
         private readonly ?string $createdBy = null,
     ) {}
 
@@ -75,6 +75,71 @@ final class Survey
     {
         return $this->status === SurveyStatus::Open
             && (! $this->closesAt instanceof DateTimeImmutable || $now < $this->closesAt);
+    }
+
+    /**
+     * Title and description are content too: once there are responses they stay as answered.
+     */
+    public function editDetails(string $title, ?string $description, bool $hasResponses): void
+    {
+        if ($title === $this->title && $description === $this->description) {
+            return;
+        }
+
+        if ($hasResponses) {
+            throw InvalidSurveyStateException::lockedByResponses($this->id->value);
+        }
+
+        $this->title = $title;
+        $this->description = $description;
+    }
+
+    /**
+     * Who the survey goes to is fixed when it opens.
+     *
+     * @param  list<string>  $roles  only kept for AudienceType::Roles
+     */
+    public function changeAudience(AudienceType $type, array $roles, bool $publicLinkEnabled): void
+    {
+        $roles = $type === AudienceType::Roles ? $roles : [];
+        if ($type === $this->audienceType && $roles === $this->audienceRoles && $publicLinkEnabled === $this->publicLinkEnabled) {
+            return;
+        }
+
+        if ($this->status !== SurveyStatus::Draft) {
+            throw InvalidSurveyStateException::audienceFixed($this->id->value);
+        }
+
+        $this->audienceType = $type;
+        $this->audienceRoles = $roles;
+        $this->publicLinkEnabled = $publicLinkEnabled;
+    }
+
+    /**
+     * The closing date and the reminder may move until the survey closes, never into the past
+     * of an open survey.
+     */
+    public function reschedule(?DateTimeImmutable $closesAt, ?int $reminderHoursBefore, DateTimeImmutable $now): void
+    {
+        if ($closesAt == $this->closesAt && $reminderHoursBefore === $this->reminderHoursBefore) {
+            return;
+        }
+
+        if ($this->status === SurveyStatus::Closed) {
+            throw InvalidSurveyStateException::alreadyClosed($this->id->value);
+        }
+
+        if ($this->status === SurveyStatus::Open && $closesAt instanceof DateTimeImmutable && $closesAt <= $now) {
+            throw InvalidSurveyStateException::closingDateInThePast($this->id->value);
+        }
+
+        $this->closesAt = $closesAt;
+        $this->reminderHoursBefore = $reminderHoursBefore;
+    }
+
+    public function changeResults(ResultsSettings $results): void
+    {
+        $this->results = $results;
     }
 
     /**
