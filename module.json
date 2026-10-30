@@ -1,14 +1,14 @@
 {
     "name": "surveys",
     "displayName": "Encuestas",
-    "version": "1.0.0",
+    "version": "0.0.0",
     "repository": "DavidMRGaona/guildforge-surveys",
     "namespace": "Modules\\Surveys",
     "provider": "SurveysServiceProvider",
     "description": "Encuestas y sondeos para la asociación",
     "author": "GuildForge",
     "requires": {
-        "core": "^3.27",
+        "core": "^3.28",
         "php": ">=8.5",
         "laravel": ">=13.0",
         "filament": "^5.0"
