@@ -78,7 +78,15 @@ final class SubmissionValidator
     private function checkChoices(Question $question, array $values): ?string
     {
         $optionIds = $this->ids($question->options);
+        $seen = [];
         foreach ($values as $value) {
+            // Each option counts once per response, "Other" included
+            $choice = $value->isOther() ? Submission::OTHER : (string) $value->optionId;
+            if (isset($seen[$choice])) {
+                return 'duplicate_option';
+            }
+            $seen[$choice] = true;
+
             if ($value->isOther()) {
                 if (! $question->allowOther) {
                     return 'invalid_option';

@@ -63,6 +63,8 @@ final class SubmissionValidatorTest extends TestCase
         yield 'two options on single choice' => [['q-dropdown' => ['o-1', 'o-2']], 'q-dropdown', 'too_many_options'];
         yield 'other without text' => [['q-single' => ['option' => SubmissionValidator::OTHER, 'other' => ' ']], 'q-single', 'other_required'];
         yield 'other where not offered' => [['q-multiple' => ['options' => ['o-1', SubmissionValidator::OTHER], 'other' => 'Tres']], 'q-multiple', 'invalid_option'];
+        yield 'repeated option' => [['q-multiple' => ['o-1', 'o-1']], 'q-multiple', 'duplicate_option'];
+        yield 'repeated other' => [['q-single' => ['options' => [SubmissionValidator::OTHER, SubmissionValidator::OTHER], 'other' => 'Tres']], 'q-single', 'too_many_options'];
         yield 'scale above max' => [['q-scale' => 6], 'q-scale', 'out_of_range'];
         yield 'scale below min' => [['q-scale' => '0'], 'q-scale', 'out_of_range'];
         yield 'six stars of five' => [['q-stars' => 6], 'q-stars', 'out_of_range'];
