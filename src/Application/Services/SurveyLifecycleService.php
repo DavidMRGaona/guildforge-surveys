@@ -9,6 +9,7 @@ use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
 use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
@@ -34,6 +35,7 @@ final readonly class SurveyLifecycleService
         private AudienceResolverInterface $audiences,
         private SurveyRecipientStoreInterface $recipients,
         private SurveySubjectSourceRegistryInterface $sources,
+        private SurveyNotifierInterface $notifier,
     ) {}
 
     /**
@@ -75,11 +77,11 @@ final readonly class SurveyLifecycleService
     }
 
     /**
-     * Opens the survey and fixes its audience: whoever joins later does not get it.
+     * Opens the survey, fixes its audience (whoever joins later does not get it) and mails it.
      *
      * @throws InvalidSurveyStateException
      */
-    public function open(SurveyId $id, ?DateTimeImmutable $now = null): OpenedSurveyDTO
+    public function open(SurveyId $id, ?DateTimeImmutable $now = null, bool $notify = true): OpenedSurveyDTO
     {
         $survey = $this->surveys->findOrFail($id);
         $audience = $this->audiences->resolve($survey);
@@ -92,8 +94,12 @@ final readonly class SurveyLifecycleService
 
         DB::transaction(function () use ($survey, $audience, $guestTokens): void {
             $this->surveys->save($survey);
-            $this->recipients->fix($survey->id(), $audience, array_map(static fn (string $token): string => hash('sha256', $token), $guestTokens));
+            $this->recipients->fix($survey->id(), $audience, $guestTokens);
         });
+
+        if ($notify) {
+            $this->notifier->notifyOpened($survey->id());
+        }
 
         return new OpenedSurveyDTO($survey->id(), $guestTokens, $survey->publicToken());
     }

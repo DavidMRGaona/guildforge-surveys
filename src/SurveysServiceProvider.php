@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
+use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
@@ -35,6 +36,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSur
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRepository;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
+use Modules\Surveys\Infrastructure\Services\SurveyInvitationSender;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
 use Modules\Surveys\Policies\SurveyPolicy;
 use Modules\Surveys\Policies\SurveyTemplatePolicy;
@@ -69,6 +71,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(SurveyRecipientStoreInterface::class, EloquentSurveyRecipientStore::class);
         $this->app->bind(AudienceResolverInterface::class, EloquentAudienceResolver::class);
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
+        $this->app->bind(SurveyNotifierInterface::class, SurveyInvitationSender::class);
     }
 
     /**
