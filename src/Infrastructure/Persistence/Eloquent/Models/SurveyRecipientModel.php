@@ -11,8 +11,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * Someone a survey was sent to, fixed when it opened: an account or a guest. A guest's
- * email address is encrypted and cleared when the survey closes; their link is only kept
- * as a hash.
+ * email address and link token are encrypted and cleared when the survey closes; lookups
+ * use the token's hash.
  *
  * @property string $id
  * @property string $survey_id
@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $guest_reference
  * @property string|null $guest_name
  * @property string|null $guest_email
+ * @property string|null $token
  * @property string|null $token_hash
  * @property Carbon|null $notified_at
  * @property Carbon|null $reminded_at
@@ -40,7 +41,7 @@ final class SurveyRecipientModel extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['id', 'survey_id', 'user_id', 'guest_reference', 'guest_name', 'guest_email', 'token_hash', 'notified_at', 'reminded_at'];
+    protected $fillable = ['id', 'survey_id', 'user_id', 'guest_reference', 'guest_name', 'guest_email', 'token', 'token_hash', 'notified_at', 'reminded_at'];
 
     /**
      * @return array<string, string>
@@ -49,6 +50,7 @@ final class SurveyRecipientModel extends Model
     {
         return [
             'guest_email' => 'encrypted',
+            'token' => 'encrypted',
             'notified_at' => 'datetime',
             'reminded_at' => 'datetime',
         ];

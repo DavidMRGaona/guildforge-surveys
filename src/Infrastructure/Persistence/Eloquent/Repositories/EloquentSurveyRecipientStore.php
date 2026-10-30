@@ -11,7 +11,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyRecipientMo
 
 final class EloquentSurveyRecipientStore implements SurveyRecipientStoreInterface
 {
-    public function fix(SurveyId $surveyId, SurveyAudienceDTO $audience, array $guestTokenHashes): void
+    public function fix(SurveyId $surveyId, SurveyAudienceDTO $audience, array $guestTokens): void
     {
         foreach ($audience->userIds as $userId) {
             SurveyRecipientModel::query()->create(['survey_id' => $surveyId->value, 'user_id' => $userId]);
@@ -23,7 +23,8 @@ final class EloquentSurveyRecipientStore implements SurveyRecipientStoreInterfac
                 'guest_reference' => $guest->reference,
                 'guest_name' => $guest->displayName,
                 'guest_email' => $guest->email,
-                'token_hash' => $guestTokenHashes[$guest->reference] ?? null,
+                'token' => $guestTokens[$guest->reference] ?? null,
+                'token_hash' => isset($guestTokens[$guest->reference]) ? hash('sha256', $guestTokens[$guest->reference]) : null,
             ]);
         }
     }
@@ -32,7 +33,7 @@ final class EloquentSurveyRecipientStore implements SurveyRecipientStoreInterfac
     {
         SurveyRecipientModel::query()
             ->where('survey_id', $surveyId->value)
-            ->whereNotNull('guest_email')
-            ->update(['guest_email' => null]);
+            ->where(static fn ($query) => $query->whereNotNull('guest_email')->orWhereNotNull('token'))
+            ->update(['guest_email' => null, 'token' => null]);
     }
 }

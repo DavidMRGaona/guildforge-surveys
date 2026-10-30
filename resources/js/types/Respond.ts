@@ -75,3 +75,11 @@ export interface AnswerDraft {
 
 /** Option id that stands for "Other", as Submission::OTHER on the server. */
 export const OTHER = '__other__';
+
+/** A survey still to answer, as the profile's pending surveys tab gets it. */
+export interface PendingSurvey {
+    id: string;
+    title: string;
+    closesAt: string | null;
+    url: string;
+}
