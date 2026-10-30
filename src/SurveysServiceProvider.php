@@ -18,9 +18,11 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Widgets\Widget;
+use Illuminate\Console\Scheduling\Schedule;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
+use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
@@ -81,6 +83,28 @@ final class SurveysServiceProvider extends ModuleServiceProvider
 
         // Register domain event listeners
         // $this->registerEventListeners();
+
+        $this->registerCommands();
+        $this->registerSchedule();
+    }
+
+    private function registerCommands(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                CloseDueSurveysCommand::class,
+            ]);
+        }
+    }
+
+    private function registerSchedule(): void
+    {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            // Closes surveys whose date has passed and forgets their guests' email addresses
+            $schedule->command('surveys:close-due')
+                ->everyFiveMinutes()
+                ->withoutOverlapping(10);
+        });
     }
 
     // ============================================================
