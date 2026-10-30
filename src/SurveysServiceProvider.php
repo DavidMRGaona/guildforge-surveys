@@ -19,11 +19,13 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Widgets\Widget;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentResponseStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRecipientStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRepository;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
@@ -61,6 +63,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(SurveyTemplateRepositoryInterface::class, EloquentSurveyTemplateRepository::class);
         $this->app->bind(SurveyRecipientStoreInterface::class, EloquentSurveyRecipientStore::class);
         $this->app->bind(AudienceResolverInterface::class, EloquentAudienceResolver::class);
+        $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
     }
 
     /**
