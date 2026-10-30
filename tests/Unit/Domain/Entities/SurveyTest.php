@@ -175,6 +175,7 @@ final class SurveyTest extends TestCase
         $survey = $this->survey();
         $survey->open($this->now);
         $survey->close($this->now);
+        $survey->reschedule(null, reminderHoursBefore: null, now: $this->now);
 
         $this->expectException(InvalidSurveyStateException::class);
 

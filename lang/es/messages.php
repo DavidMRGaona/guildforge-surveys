@@ -51,4 +51,11 @@ return [
         'type_locked' => 'Esta pregunta tiene clave estable: no puede cambiar de tipo. Crea una pregunta nueva con otra clave.',
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
     ],
+
+    'state_errors' => [
+        'anonymity' => 'Una encuesta anónima nunca deja de serlo, y una nominal con respuestas ya no puede pasar a anónima.',
+        'audience_fixed' => 'La audiencia se fija al abrir la encuesta: ya no se puede cambiar.',
+        'closing_date' => 'El cierre de una encuesta abierta no puede quedar en el pasado, y una encuesta cerrada no se reprograma.',
+        'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
+    ],
 ];

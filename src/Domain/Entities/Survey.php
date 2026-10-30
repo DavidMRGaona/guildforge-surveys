@@ -121,6 +121,10 @@ final class Survey
      */
     public function reschedule(?DateTimeImmutable $closesAt, ?int $reminderHoursBefore, DateTimeImmutable $now): void
     {
+        if ($closesAt == $this->closesAt && $reminderHoursBefore === $this->reminderHoursBefore) {
+            return;
+        }
+
         if ($this->status === SurveyStatus::Closed) {
             throw InvalidSurveyStateException::alreadyClosed($this->id->value);
         }

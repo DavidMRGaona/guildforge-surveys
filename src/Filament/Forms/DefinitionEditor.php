@@ -21,7 +21,8 @@ use Modules\Surveys\Domain\Enums\QuestionType;
 /**
  * The survey content editor: sections (Repeater) holding questions (Builder, one block per
  * question type). Its state is converted by DefinitionFormState and validated by the domain;
- * the rules here only guide whoever fills it.
+ * the rules here only guide whoever fills it. Fields locked by responses are still sent
+ * (dehydrated): the definition needs them whole, and the domain rejects any change to them.
  */
 final class DefinitionEditor
 {
@@ -38,11 +39,13 @@ final class DefinitionEditor
                 TextInput::make('title')
                     ->label(__('surveys::filament.definition.section_title'))
                     ->maxLength(255)
-                    ->disabled($contentLocked),
+                    ->disabled($contentLocked)
+                    ->dehydrated(),
                 Textarea::make('description')
                     ->label(__('surveys::filament.definition.section_description'))
                     ->rows(2)
-                    ->disabled($contentLocked),
+                    ->disabled($contentLocked)
+                    ->dehydrated(),
                 Builder::make('questions')
                     ->label(__('surveys::filament.definition.questions'))
                     ->blocks(array_map(
@@ -79,14 +82,16 @@ final class DefinitionEditor
                 ->label(__('surveys::filament.definition.question_title'))
                 ->required()
                 ->maxLength(500)
-                ->disabled($locked),
+                ->disabled($locked)
+                ->dehydrated(),
             Textarea::make('help')
                 ->label(__('surveys::filament.definition.help'))
                 ->rows(2),
             Toggle::make('required')
                 ->label(__('surveys::filament.definition.required'))
                 ->default(false)
-                ->disabled($locked),
+                ->disabled($locked)
+                ->dehydrated(),
         ];
 
         if ($withKeys) {
@@ -113,7 +118,8 @@ final class DefinitionEditor
                 Toggle::make('allow_other')
                     ->label(__('surveys::filament.definition.allow_other'))
                     ->default(false)
-                    ->disabled($locked),
+                    ->disabled($locked)
+                    ->dehydrated(),
             ];
         }
 
@@ -125,21 +131,25 @@ final class DefinitionEditor
                         ->options([0 => '0', 1 => '1'])
                         ->default(1)
                         ->required()
-                        ->disabled($locked),
+                        ->disabled($locked)
+                        ->dehydrated(),
                     Select::make('scale_max')
                         ->label(__('surveys::filament.definition.scale_max'))
                         ->options(array_combine(range(2, 10), array_map(strval(...), range(2, 10))))
                         ->default(5)
                         ->required()
-                        ->disabled($locked),
+                        ->disabled($locked)
+                        ->dehydrated(),
                     TextInput::make('scale_min_label')
                         ->label(__('surveys::filament.definition.scale_min_label'))
                         ->maxLength(100)
-                        ->disabled($locked),
+                        ->disabled($locked)
+                        ->dehydrated(),
                     TextInput::make('scale_max_label')
                         ->label(__('surveys::filament.definition.scale_max_label'))
                         ->maxLength(100)
-                        ->disabled($locked),
+                        ->disabled($locked)
+                        ->dehydrated(),
                 ]),
             ],
             QuestionType::StarRating => [
@@ -148,7 +158,8 @@ final class DefinitionEditor
                     ->options(array_combine(range(3, 10), array_map(strval(...), range(3, 10))))
                     ->default(5)
                     ->required()
-                    ->disabled($locked),
+                    ->disabled($locked)
+                    ->dehydrated(),
             ],
             QuestionType::Grid => [
                 Grid::make(2)->schema([
@@ -170,7 +181,8 @@ final class DefinitionEditor
                     ->hiddenLabel()
                     ->required()
                     ->maxLength(255)
-                    ->disabled($locked),
+                    ->disabled($locked)
+                    ->dehydrated(),
             ])
             ->minItems($minItems)
             ->defaultItems($minItems)
