@@ -125,6 +125,72 @@ final class SurveyTest extends TestCase
         $this->survey()->replaceDefinition(new SurveyDefinition([]), hasResponses: false, validator: new SurveyDefinitionValidator);
     }
 
+    public function test_details_change_only_without_responses(): void
+    {
+        $survey = $this->survey();
+        $survey->editDetails('Nuevo título', 'Nueva descripción', hasResponses: false);
+        $this->assertSame('Nuevo título', $survey->title());
+
+        $survey->editDetails('Nuevo título', 'Nueva descripción', hasResponses: true);
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->editDetails('Otro título', 'Nueva descripción', hasResponses: true);
+    }
+
+    public function test_the_audience_is_fixed_once_open(): void
+    {
+        $survey = $this->survey();
+        $survey->changeAudience(AudienceType::Roles, ['socios-de-ejemplo'], publicLinkEnabled: true);
+        $this->assertSame(['socios-de-ejemplo'], $survey->audienceRoles());
+        $this->assertTrue($survey->isPublicLinkEnabled());
+
+        $survey->changeAudience(AudienceType::AllUsers, ['ignorado'], publicLinkEnabled: true);
+        $this->assertSame([], $survey->audienceRoles());
+
+        $survey->open($this->now);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->changeAudience(AudienceType::AssociationMembers, [], publicLinkEnabled: true);
+    }
+
+    public function test_an_open_survey_can_be_rescheduled_but_not_into_the_past(): void
+    {
+        $survey = $this->survey(closesAt: $this->now->modify('+1 day'));
+        $survey->open($this->now);
+
+        $survey->reschedule($this->now->modify('+3 days'), reminderHoursBefore: 24, now: $this->now);
+        $this->assertEquals($this->now->modify('+3 days'), $survey->closesAt());
+        $this->assertSame(24, $survey->reminderHoursBefore());
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->reschedule($this->now->modify('-1 minute'), reminderHoursBefore: null, now: $this->now);
+    }
+
+    public function test_a_closed_survey_cannot_be_rescheduled(): void
+    {
+        $survey = $this->survey();
+        $survey->open($this->now);
+        $survey->close($this->now);
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->reschedule($this->now->modify('+1 day'), reminderHoursBefore: null, now: $this->now);
+    }
+
+    public function test_results_settings_can_change_at_any_time(): void
+    {
+        $survey = $this->survey();
+        $survey->open($this->now);
+
+        $survey->changeResults(new ResultsSettings(liveResults: true));
+
+        $this->assertTrue($survey->results()->liveResults);
+    }
+
     public function test_subject_snapshot_round_trips_from_the_core_dto(): void
     {
         $dto = new SurveySubjectDTO(
