@@ -55,7 +55,11 @@ final class RespondControllerTest extends ModuleTestCase
 
         $this->actingAs(UserModel::factory()->create())->get(route('surveys.respond', $id->value))
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('state', 'not_invited')->missing('definition'));
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('state', 'not_invited')
+                ->missing('survey')
+                ->missing('definition')
+                ->where('seo.title', fn (string $title): bool => ! str_contains($title, 'Valora la partida')));
     }
 
     public function test_answering_redirects_back_and_then_shows_it_answered(): void
@@ -118,7 +122,7 @@ final class RespondControllerTest extends ModuleTestCase
         $this->get(route('surveys.guest', [$id->value, str_repeat('a', 64)]))
             ->assertInertia(fn (Assert $page) => $page->where('state', 'not_invited'));
         $this->actingAs($this->player)->get(route('surveys.respond', '00000000-0000-4000-8000-000000000000'))
-            ->assertInertia(fn (Assert $page) => $page->where('state', 'not_found'));
+            ->assertInertia(fn (Assert $page) => $page->where('state', 'not_invited')->missing('survey'));
     }
 
     /**

@@ -70,7 +70,12 @@ final class RespondController extends Controller
     {
         $id = SurveyId::fromString($surveyId);
         $state = $this->submissions->stateFor($id, $respondent);
-        $survey = $state === SubmissionService::STATE_NOT_FOUND ? null : $this->surveys->find($id);
+        // An unknown survey looks like one the person may not answer: the page never tells
+        // whether a survey exists, nor its title, to someone outside its audience
+        if ($state === SubmissionService::STATE_NOT_FOUND) {
+            $state = SubmissionService::STATE_NOT_INVITED;
+        }
+        $survey = $state === SubmissionService::STATE_NOT_INVITED ? null : $this->surveys->find($id);
 
         $props = [
             'state' => $state,
@@ -81,7 +86,7 @@ final class RespondController extends Controller
             ))->toArray(),
         ];
 
-        if ($survey instanceof Survey && $state !== SubmissionService::STATE_NOT_INVITED) {
+        if ($survey instanceof Survey) {
             $props['survey'] = [
                 'id' => $survey->id()->value,
                 'kind' => $survey->kind()->value,
