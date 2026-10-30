@@ -41,9 +41,15 @@ final class Survey
         private ?DateTimeImmutable $closedAt = null,
         private ?int $reminderHoursBefore = null,
         private readonly ?string $createdBy = null,
+        private int $audienceSize = 0,
+        private ?string $publicToken = null,
     ) {}
 
-    public function open(DateTimeImmutable $now): void
+    /**
+     * @param  int  $audienceSize  people the survey goes to, fixed now: the base of the response rate
+     * @param  string|null  $publicToken  the open link's token, when the survey has one
+     */
+    public function open(DateTimeImmutable $now, int $audienceSize = 0, ?string $publicToken = null): void
     {
         if ($this->status !== SurveyStatus::Draft) {
             throw InvalidSurveyStateException::cannotOpen($this->id->value, $this->status->value);
@@ -55,6 +61,8 @@ final class Survey
 
         $this->status = SurveyStatus::Open;
         $this->opensAt = $now;
+        $this->audienceSize = $audienceSize;
+        $this->publicToken = $this->publicLinkEnabled ? $publicToken : null;
     }
 
     public function close(DateTimeImmutable $now): void
@@ -264,5 +272,15 @@ final class Survey
     public function createdBy(): ?string
     {
         return $this->createdBy;
+    }
+
+    public function audienceSize(): int
+    {
+        return $this->audienceSize;
+    }
+
+    public function publicToken(): ?string
+    {
+        return $this->publicToken;
     }
 }

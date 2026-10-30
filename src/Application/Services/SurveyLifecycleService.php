@@ -4,35 +4,118 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Application\Services;
 
+use App\Application\Surveys\DTOs\SurveySubjectDTO;
+use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use DateTimeImmutable;
+use Illuminate\Support\Facades\DB;
+use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
+use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
+use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
+use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\SurveyKind;
+use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
+use Modules\Surveys\Domain\Exceptions\SubjectNotFoundException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
- * Opens and closes surveys. Opening will also fix who the survey goes to.
+ * Creates subject surveys, opens surveys (fixing who they go to) and closes them.
  */
 final readonly class SurveyLifecycleService
 {
-    public function __construct(private SurveyRepositoryInterface $surveys) {}
+    public function __construct(
+        private SurveyRepositoryInterface $surveys,
+        private AudienceResolverInterface $audiences,
+        private SurveyRecipientStoreInterface $recipients,
+        private SurveySubjectSourceRegistryInterface $sources,
+    ) {}
 
     /**
-     * @throws InvalidSurveyStateException
+     * A draft survey about a module's record, with a snapshot of it taken now.
+     *
+     * @throws SubjectNotFoundException
+     * @throws InvalidSurveyDefinitionException
      */
-    public function open(SurveyId $id, ?DateTimeImmutable $now = null): void
-    {
-        $survey = $this->surveys->findOrFail($id);
-        $survey->open($now ?? now()->toDateTimeImmutable());
+    public function createForSubject(
+        string $sourceType,
+        string $subjectId,
+        string $title,
+        SurveyDefinition $definition,
+        bool $anonymous,
+        ?DateTimeImmutable $closesAt,
+    ): SurveyId {
+        $subject = $this->sources->source($sourceType)?->find($subjectId);
+        if (! $subject instanceof SurveySubjectDTO) {
+            throw SubjectNotFoundException::for($sourceType, $subjectId);
+        }
+
+        (new SurveyDefinitionValidator)->assertValid($definition, SurveyKind::Form);
+
+        $survey = new Survey(
+            id: SurveyId::generate(),
+            kind: SurveyKind::Form,
+            title: $title,
+            description: null,
+            definition: $definition,
+            anonymous: $anonymous,
+            results: ResultsSettings::defaultsFor(SurveyKind::Form),
+            audienceType: AudienceType::Subject,
+            subject: SubjectSnapshotFactory::fromDto($subject),
+            closesAt: $closesAt,
+        );
         $this->surveys->save($survey);
+
+        return $survey->id();
     }
 
     /**
+     * Opens the survey and fixes its audience: whoever joins later does not get it.
+     *
+     * @throws InvalidSurveyStateException
+     */
+    public function open(SurveyId $id, ?DateTimeImmutable $now = null): OpenedSurveyDTO
+    {
+        $survey = $this->surveys->findOrFail($id);
+        $audience = $this->audiences->resolve($survey);
+
+        $guestTokens = [];
+        foreach ($audience->guests as $guest) {
+            $guestTokens[$guest->reference] = $this->token();
+        }
+        $survey->open($now ?? now()->toDateTimeImmutable(), $audience->count(), $survey->isPublicLinkEnabled() ? $this->token() : null);
+
+        DB::transaction(function () use ($survey, $audience, $guestTokens): void {
+            $this->surveys->save($survey);
+            $this->recipients->fix($survey->id(), $audience, array_map(static fn (string $token): string => hash('sha256', $token), $guestTokens));
+        });
+
+        return new OpenedSurveyDTO($survey->id(), $guestTokens, $survey->publicToken());
+    }
+
+    /**
+     * Closes the survey and forgets its guests' email addresses.
+     *
      * @throws InvalidSurveyStateException
      */
     public function close(SurveyId $id, ?DateTimeImmutable $now = null): void
     {
         $survey = $this->surveys->findOrFail($id);
         $survey->close($now ?? now()->toDateTimeImmutable());
-        $this->surveys->save($survey);
+
+        DB::transaction(function () use ($survey): void {
+            $this->surveys->save($survey);
+            $this->recipients->forgetGuestEmails($survey->id());
+        });
+    }
+
+    private function token(): string
+    {
+        return bin2hex(random_bytes(32));
     }
 }

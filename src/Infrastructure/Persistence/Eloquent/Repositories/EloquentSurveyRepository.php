@@ -40,6 +40,9 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             'audience_type' => $survey->audienceType()->value,
             'audience_roles' => $survey->audienceRoles(),
             'public_link_enabled' => $survey->isPublicLinkEnabled(),
+            'public_token' => $survey->publicToken(),
+            'public_token_hash' => $survey->publicToken() === null ? null : hash('sha256', $survey->publicToken()),
+            'audience_size' => $survey->audienceSize(),
             'template_id' => $survey->templateId()?->value,
             'subject_type' => $subject?->sourceType,
             'subject_id' => $subject?->subjectId,
@@ -120,6 +123,8 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             closedAt: $this->instant($model->closed_at),
             reminderHoursBefore: $model->reminder_hours_before,
             createdBy: $model->created_by,
+            audienceSize: $model->audience_size,
+            publicToken: $model->public_token,
         );
     }
 
