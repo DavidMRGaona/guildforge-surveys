@@ -74,6 +74,10 @@ final class DefinitionFormStateTest extends TestCase
             DefinitionFormState::formPath($state, 'sections.1.questions.0.scale.min'),
         );
         $this->assertSame('sections', DefinitionFormState::formPath($state, 'sections'));
+        $this->assertSame("sections.{$sectionKeys[1]}.questions.{$scaleKey}.data.title", DefinitionFormState::formPath($state, 'sections.1.questions.0.type'));
+        $this->assertSame("sections.{$sectionKeys[0]}.questions.{$questionKeys[1]}.data.title", DefinitionFormState::formPath($state, 'sections.0.questions.1.id'));
+        $this->assertSame("sections.{$sectionKeys[0]}.questions.{$questionKeys[2]}.data.options.{$optionKeys[0]}.label", DefinitionFormState::formPath($state, 'sections.0.questions.2.options.0.id'));
+        $this->assertSame("sections.{$sectionKeys[1]}.title", DefinitionFormState::formPath($state, 'sections.1.id'));
     }
 
     public function test_fresh_ids_change_every_id_and_keep_the_keys(): void

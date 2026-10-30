@@ -17,8 +17,8 @@ final class SurveyTemplate
 {
     public function __construct(
         private readonly SurveyTemplateId $id,
-        private readonly string $name,
-        private readonly ?string $description,
+        private string $name,
+        private ?string $description,
         private readonly SurveyKind $kind,
         private SurveyDefinition $definition,
         private readonly ?string $createdBy = null,
@@ -35,6 +35,12 @@ final class SurveyTemplate
         $validator->assertChangeAllowed($this->definition, $definition, hasResponses: false);
 
         $this->definition = $definition;
+    }
+
+    public function rename(string $name, ?string $description): void
+    {
+        $this->name = $name;
+        $this->description = $description;
     }
 
     public function id(): SurveyTemplateId

@@ -83,6 +83,8 @@ final class DefinitionFormState
     /**
      * The form path of a domain path such as "sections.0.questions.2.options.1.label",
      * relative to the editor's state; as far as the state allows when an item is missing.
+     * Errors on fields the editor does not show (hidden ids, the block type) land on the
+     * item's visible title or label instead.
      *
      * @param  array<mixed>  $state
      */
@@ -97,8 +99,9 @@ final class DefinitionFormState
         }
         $path[] = $section['key'];
 
-        if (array_shift($tokens) !== 'questions') {
-            return implode('.', [...$path, ...$tokens]);
+        $next = array_shift($tokens);
+        if ($next !== 'questions') {
+            return implode('.', [...$path, $next === 'id' ? 'title' : $next, ...$tokens]);
         }
         $path[] = 'questions';
         $questions = is_array($section['item']['questions'] ?? null) ? $section['item']['questions'] : [];
@@ -110,7 +113,10 @@ final class DefinitionFormState
         $path[] = 'data';
 
         $field = implode('.', array_slice($tokens, 0, 2));
-        if (isset(self::FLATTENED[$field])) {
+        if (in_array($tokens[0] ?? null, ['id', 'type'], true)) {
+            $path[] = 'title';
+            $tokens = [];
+        } elseif (isset(self::FLATTENED[$field])) {
             $path[] = self::FLATTENED[$field];
             $tokens = array_slice($tokens, 2);
         } else {
@@ -124,6 +130,7 @@ final class DefinitionFormState
             $item = self::itemAt($list, $tokens);
             if ($item !== null) {
                 $path[] = $item['key'];
+                $tokens = $tokens === ['id'] ? ['label'] : $tokens;
             }
         }
 
