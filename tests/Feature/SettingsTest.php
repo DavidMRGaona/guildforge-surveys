@@ -48,6 +48,71 @@ final class SettingsTest extends ModuleTestCase
         $this->assertSame(7, $settings->defaultCloseDays());
     }
 
+    public function test_review_is_off_by_default(): void
+    {
+        $this->assertFalse((new SurveySettings)->reviewRequired());
+
+        config()->set('modules.settings.surveys.review_required', true);
+
+        $this->assertTrue((new SurveySettings)->reviewRequired());
+    }
+
+    public function test_subject_type_settings_fall_back_to_the_global_defaults(): void
+    {
+        config()->set('modules.settings.surveys', ['default_close_days' => '10', 'anonymous_by_default' => false]);
+
+        $type = (new SurveySettings)->forSubjectType('example-thing');
+
+        $this->assertNull($type->templateId);
+        $this->assertFalse($type->autoSend);
+        $this->assertSame(12, $type->sendDelayHours);
+        $this->assertSame(10, $type->closeDays);
+        $this->assertFalse($type->anonymous);
+    }
+
+    public function test_subject_type_settings_read_what_the_panel_saved(): void
+    {
+        config()->set('modules.settings.surveys.subject_types', [
+            'example-thing' => [
+                'template_id' => '01960000-0000-7000-8000-000000000001',
+                'auto_send' => true,
+                'send_delay_hours' => '48',
+                'close_days' => '3',
+                'anonymous' => true,
+            ],
+        ]);
+
+        $type = (new SurveySettings)->forSubjectType('example-thing');
+
+        $this->assertSame('01960000-0000-7000-8000-000000000001', $type->templateId);
+        $this->assertTrue($type->autoSend);
+        $this->assertSame(48, $type->sendDelayHours);
+        $this->assertSame(3, $type->closeDays);
+        $this->assertTrue($type->anonymous);
+    }
+
+    public function test_a_zero_delay_sends_on_end(): void
+    {
+        config()->set('modules.settings.surveys.subject_types.example-thing', ['send_delay_hours' => 0]);
+
+        $this->assertSame(0, (new SurveySettings)->forSubjectType('example-thing')->sendDelayHours);
+    }
+
+    public function test_broken_subject_type_values_fall_back(): void
+    {
+        config()->set('modules.settings.surveys.subject_types.example-thing', [
+            'template_id' => '',
+            'send_delay_hours' => '-3',
+            'close_days' => '0',
+        ]);
+
+        $type = (new SurveySettings)->forSubjectType('example-thing');
+
+        $this->assertNull($type->templateId);
+        $this->assertSame(12, $type->sendDelayHours);
+        $this->assertSame(7, $type->closeDays);
+    }
+
     public function test_the_settings_form_offers_the_three_settings(): void
     {
         $this->actingAsPanelAdmin();
