@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Domain\ValueObjects;
 
+use Modules\Surveys\Domain\Enums\ChartType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
+use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 
 /**
  * How a survey shows its results: live (before closing, which weakens anonymity), to the
@@ -24,11 +26,30 @@ final readonly class ResultsSettings
     ) {}
 
     /**
-     * Polls show their results to whoever votes, as in messaging apps; forms do not.
+     * Polls show their results live to whoever votes, as in messaging apps; forms do not.
      */
     public static function defaultsFor(SurveyKind $kind): self
     {
-        return new self(visibleToRespondents: $kind === SurveyKind::Poll);
+        $isPoll = $kind === SurveyKind::Poll;
+
+        return new self(liveResults: $isPoll, visibleToRespondents: $isPoll);
+    }
+
+    /**
+     * The chart chosen for the question, or its default when none was chosen or it does not fit.
+     */
+    public function chartTypeFor(Question $question): ChartType
+    {
+        $chosen = ChartType::tryFrom($this->chartTypes[$question->id] ?? '');
+
+        return $chosen instanceof ChartType && in_array($chosen, $question->type->chartTypes(), true)
+            ? $chosen
+            : $question->type->defaultChartType();
+    }
+
+    public function isHidden(string $questionId): bool
+    {
+        return in_array($questionId, $this->hiddenQuestionIds, true);
     }
 
     /**

@@ -83,6 +83,19 @@ final class SurveyTest extends TestCase
         $this->assertSame(SurveyStatus::Open, $survey->status());
     }
 
+    public function test_has_ended_once_closed_or_past_its_closing_date(): void
+    {
+        $survey = $this->survey(closesAt: $this->now->modify('+1 hour'));
+        $this->assertFalse($survey->hasEnded($this->now->modify('+2 hours')));
+
+        $survey->open($this->now);
+        $this->assertFalse($survey->hasEnded($this->now->modify('+59 minutes')));
+        $this->assertTrue($survey->hasEnded($this->now->modify('+1 hour')));
+
+        $survey->close($this->now->modify('+10 minutes'));
+        $this->assertTrue($survey->hasEnded($this->now->modify('+10 minutes')));
+    }
+
     public function test_an_anonymous_survey_never_becomes_named(): void
     {
         $survey = $this->survey(anonymous: true);
@@ -216,6 +229,7 @@ final class SurveyTest extends TestCase
     public function test_results_settings_default_by_kind(): void
     {
         $this->assertTrue(ResultsSettings::defaultsFor(SurveyKind::Poll)->visibleToRespondents);
+        $this->assertTrue(ResultsSettings::defaultsFor(SurveyKind::Poll)->liveResults);
         $this->assertFalse(ResultsSettings::defaultsFor(SurveyKind::Form)->visibleToRespondents);
         $this->assertFalse(ResultsSettings::defaultsFor(SurveyKind::Form)->liveResults);
 

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Infrastructure\Services;
 
+use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
+
 /**
  * The module settings: release defaults (config/settings.php) with what the panel saved on top.
  */
-final readonly class SurveySettings
+final readonly class SurveySettings implements SurveySettingsInterface
 {
     public const int DEFAULT_MIN_RESPONSES = 3;
 
