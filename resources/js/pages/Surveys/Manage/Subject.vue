@@ -79,7 +79,11 @@ function prepare(): void {
         </section>
 
         <EmptyState
-            v-if="props.surveys.length === 0 && !props.prepareUrl"
+            v-if="
+                props.surveys.length === 0 &&
+                !props.prepareUrl &&
+                props.subject.status !== 'cancelled'
+            "
             icon="document"
             :title="t('surveys.manage.empty_title')"
             :description="t('surveys.manage.empty_description')"

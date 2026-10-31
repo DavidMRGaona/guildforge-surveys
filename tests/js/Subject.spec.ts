@@ -59,6 +59,8 @@ describe('Subject', () => {
 
         expect(wrapper.text()).toContain('Se ha cancelado');
         expect(wrapper.text()).not.toContain('Preparar encuesta');
+        // Nor the promise of a survey when it ends
+        expect(wrapper.text()).not.toContain('Aún no hay encuestas');
     });
 
     it('shows the empty state when there is nothing to prepare', () => {
