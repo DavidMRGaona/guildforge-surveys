@@ -23,8 +23,9 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
  * A survey's responses as a table: one row per response, ordered by its random id, and one
- * column per question (a grid has one per row). The person only on named surveys; on anonymous
- * ones the same rules as the results page apply, the minimum per question included.
+ * column per question (a grid has one per row). Date and person only on named surveys: on an
+ * anonymous one the day could single out whoever answered it. Anonymous surveys follow the rules
+ * of the results page, the minimum per question included.
  */
 final readonly class SurveyExportTable
 {
@@ -52,10 +53,7 @@ final readonly class SurveyExportTable
 
         /** @var list<array{Question, ?Option}> $columns */
         $columns = [];
-        $headers = [__('surveys::messages.export.date')];
-        if (! $survey->isAnonymous()) {
-            $headers[] = __('surveys::messages.export.person');
-        }
+        $headers = $survey->isAnonymous() ? [] : [__('surveys::messages.export.date'), __('surveys::messages.export.person')];
 
         foreach ($survey->definition()->questions() as $question) {
             if ($question->type === QuestionType::Grid && $question->grid !== null) {
@@ -125,10 +123,11 @@ final readonly class SurveyExportTable
 
         foreach ($responses as $response) {
             $responseId = self::string($response->id ?? null);
-            $row = [self::string($response->submitted_on ?? null)];
+            $row = [];
 
             if ($named) {
                 $name = $response->user_name ?? $response->guest_name ?? null;
+                $row[] = self::string($response->submitted_on ?? null);
                 $row[] = is_string($name) ? $name : null;
             }
 

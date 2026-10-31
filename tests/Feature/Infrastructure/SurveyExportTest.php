@@ -64,7 +64,7 @@ final class SurveyExportTest extends ModuleTestCase
         $this->assertStringStartsWith('encuesta-de-ejemplo', $table->fileName);
     }
 
-    public function test_an_anonymous_survey_needs_its_results_to_be_visible_and_has_no_person(): void
+    public function test_an_anonymous_survey_needs_its_results_to_be_visible_and_has_no_person_or_date(): void
     {
         [$id] = $this->openForm(anonymous: true);
         foreach ([0, 1, 2] as $person) {
@@ -81,6 +81,8 @@ final class SurveyExportTest extends ModuleTestCase
         $table = $this->app->make(SurveyExportTable::class)->build($id);
 
         $this->assertNotContains(__('surveys::messages.export.person'), $table->headers);
+        $this->assertNotContains(__('surveys::messages.export.date'), $table->headers);
+        $this->assertSame('Pregunta q-short', $table->headers[0]);
         $this->assertCount(3, $this->rows($table));
     }
 
