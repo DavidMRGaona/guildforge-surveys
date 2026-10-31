@@ -32,4 +32,11 @@ return [
         'edit' => 'Hasta entonces puedes revisarla, enviarla ya o no enviarla.',
         'action' => 'Ver la encuesta',
     ],
+
+    'submitted_for_review' => [
+        'subject' => 'Encuesta pendiente de revisión: :title',
+        'intro' => 'La encuesta «:title» de :site ha cambiado fuera del panel y espera tu revisión antes de enviarse.',
+        'subject_line' => 'Es la encuesta de «:subject».',
+        'action' => 'Revisar la encuesta',
+    ],
 ];
