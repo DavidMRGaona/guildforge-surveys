@@ -60,6 +60,8 @@ return [
         'saved' => 'Cambios guardados.',
         'saved_and_sent_for_review' => 'Cambios guardados. La encuesta ha vuelto a revisión y no admite respuestas hasta que la aprueben.',
         'not_editable' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
+        'results_title' => 'Resultados de :title',
+        'results_saved' => 'Ajustes de los resultados guardados.',
     ],
 
     'definition_errors' => [

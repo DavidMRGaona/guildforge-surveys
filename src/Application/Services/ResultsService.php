@@ -55,6 +55,24 @@ final readonly class ResultsService
     }
 
     /**
+     * What the subject's organizer sees on the public site: the panel's rule, without the
+     * questions the survey hides from its results.
+     */
+    public function forOrganizer(SurveyId $id, ?DateTimeImmutable $now = null): SurveyResultsDTO
+    {
+        $survey = $this->surveys->findOrFail($id);
+        $responses = $this->query->responseCount($id);
+        $reason = $this->panelHiddenReason($survey, $responses, $now ?? now()->toDateTimeImmutable());
+
+        $questions = array_values(array_filter(
+            $survey->definition()->questions(),
+            static fn (Question $question): bool => ! $survey->results()->isHidden($question->id),
+        ));
+
+        return $this->build($survey, $responses, $reason, $questions, forRespondents: false);
+    }
+
+    /**
      * What the people who answer may see: only when the survey shares its results, never hidden
      * questions or free text, and the names of voters only on named polls.
      */
