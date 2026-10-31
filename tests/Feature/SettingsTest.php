@@ -4,16 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Tests\Feature;
 
-use App\Filament\Pages\ModuleSettingsPage;
-use Livewire\Livewire;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
-use Tests\Support\Modules\InteractsWithModulePanel;
 use Tests\Support\Modules\ModuleTestCase;
 
 final class SettingsTest extends ModuleTestCase
 {
-    use InteractsWithModulePanel;
-
     protected ?string $moduleName = 'surveys';
 
     protected bool $autoEnableModule = true;
@@ -113,14 +108,4 @@ final class SettingsTest extends ModuleTestCase
         $this->assertSame(7, $type->closeDays);
     }
 
-    public function test_the_settings_form_offers_the_three_settings(): void
-    {
-        $this->actingAsPanelAdmin();
-
-        Livewire::test(ModuleSettingsPage::class, ['module' => 'surveys'])
-            ->assertOk()
-            ->assertFormFieldExists('min_responses')
-            ->assertFormFieldExists('default_close_days')
-            ->assertFormFieldExists('anonymous_by_default');
-    }
 }

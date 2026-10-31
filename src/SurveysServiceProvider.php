@@ -12,11 +12,8 @@ use App\Application\Modules\DTOs\PermissionDTO;
 use App\Application\Modules\DTOs\SlotRegistrationDTO;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
 use App\Modules\ModuleServiceProvider;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Section;
 use Filament\Widgets\Widget;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
@@ -34,6 +31,7 @@ use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
+use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentPendingSurveysQuery;
@@ -377,7 +375,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      */
     public function registerFilamentPages(): array
     {
-        return [];
+        return [SurveySettingsPage::class];
     }
 
     /**
@@ -410,32 +408,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      */
     public function getSettingsSchema(): array
     {
-        return [
-            Section::make(__('surveys::messages.settings.results'))
-                ->schema([
-                    TextInput::make('min_responses')
-                        ->label(__('surveys::messages.settings.min_responses'))
-                        ->helperText(__('surveys::messages.settings.min_responses_help'))
-                        ->integer()
-                        ->minValue(0)
-                        ->required()
-                        ->default(SurveySettings::DEFAULT_MIN_RESPONSES),
-                ]),
-            Section::make(__('surveys::messages.settings.defaults'))
-                ->schema([
-                    TextInput::make('default_close_days')
-                        ->label(__('surveys::messages.settings.default_close_days'))
-                        ->helperText(__('surveys::messages.settings.default_close_days_help'))
-                        ->integer()
-                        ->minValue(1)
-                        ->required()
-                        ->suffix(__('surveys::messages.settings.days'))
-                        ->default(SurveySettings::DEFAULT_CLOSE_DAYS),
-                    Toggle::make('anonymous_by_default')
-                        ->label(__('surveys::messages.settings.anonymous_by_default'))
-                        ->helperText(__('surveys::messages.settings.anonymous_by_default_help'))
-                        ->default(true),
-                ]),
-        ];
+        // The settings live on SurveySettingsPage, open to surveys.manage instead of modules.configure
+        return [];
     }
 }
