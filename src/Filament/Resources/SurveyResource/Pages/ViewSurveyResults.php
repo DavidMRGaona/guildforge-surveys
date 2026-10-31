@@ -15,11 +15,17 @@ use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\ChartType;
+use Modules\Surveys\Domain\Exceptions\ResultsNotAvailableException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Filament\Resources\SurveyResource;
+use Modules\Surveys\Infrastructure\Export\CsvSurveyExport;
+use Modules\Surveys\Infrastructure\Export\SurveyExportTable;
+use Modules\Surveys\Infrastructure\Export\XlsxSurveyExport;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * A survey's results: the response rate, one chart or list per question, and the notice when
@@ -79,8 +85,52 @@ final class ViewSurveyResults extends Page
     protected function getHeaderActions(): array
     {
         return [
+            $this->exportAction('export_csv', 'csv'),
+            $this->exportAction('export_xlsx', 'xlsx'),
             $this->configureResultsAction(),
         ];
+    }
+
+    /**
+     * Downloads the responses. Hidden while the results are, and the table refuses on its own
+     * too, since a Livewire action can be called without its button.
+     */
+    private function exportAction(string $name, string $format): Action
+    {
+        return Action::make($name)
+            ->label(__("surveys::filament.results.{$name}"))
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('gray')
+            ->visible(fn (): bool => $this->results()->visible)
+            ->authorize(fn (): bool => auth()->user()?->can('export', $this->getRecord()) === true)
+            ->action(function () use ($format): StreamedResponse|BinaryFileResponse|null {
+                try {
+                    $table = app(SurveyExportTable::class)->build($this->surveyId());
+                } catch (ResultsNotAvailableException) {
+                    Notification::make()->danger()->title(__('surveys::filament.results.export_unavailable'))->send();
+
+                    return null;
+                }
+
+                if ($format === 'csv') {
+                    return response()->streamDownload(static function () use ($table): void {
+                        $output = fopen('php://output', 'wb');
+                        if ($output !== false) {
+                            (new CsvSurveyExport)->write($table, $output);
+                            fclose($output);
+                        }
+                    }, "{$table->fileName}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+                }
+
+                $path = tempnam(sys_get_temp_dir(), 'survey-export-');
+                if ($path === false) {
+                    return null;
+                }
+
+                (new XlsxSurveyExport)->writeToFile($table, $path);
+
+                return response()->download($path, "{$table->fileName}.xlsx")->deleteFileAfterSend();
+            });
     }
 
     private function configureResultsAction(): Action
