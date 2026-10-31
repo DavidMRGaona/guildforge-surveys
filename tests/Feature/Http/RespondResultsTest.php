@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modules\Surveys\Tests\Feature\Http;
 
 use Inertia\Testing\AssertableInertia as Assert;
+use Modules\Surveys\Application\DTOs\Respondent;
+use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
 use Tests\Support\Modules\ModuleTestCase;
 
@@ -75,12 +77,29 @@ final class RespondResultsTest extends ModuleTestCase
         [$id, $opened] = $this->openPoll(anonymous: false, publicLink: true);
         $this->assertIsString($opened->publicToken);
         $page = route('surveys.public', [$id->value, $opened->publicToken]);
+        $this->app->make(SubmissionService::class)->submit($id, Respondent::account($this->people[0]->id), ['q-1' => 'o-1']);
 
         $this->get($page)->assertInertia(fn (Assert $inertia) => $inertia->where('state', 'open')->missing('results'));
 
         $this->post(route('surveys.public.store', [$id->value, $opened->publicToken]), ['answers' => ['q-1' => 'o-2']])->assertRedirect($page);
 
-        $this->get($page)->assertInertia(fn (Assert $inertia) => $inertia->where('results.questions.0.buckets.1.count', 1));
+        // Visitors without an account never get the names of those who voted
+        $this->get($page)->assertInertia(fn (Assert $inertia) => $inertia
+            ->where('results.questions.0.buckets.1.count', 1)
+            ->where('results.questions.0.buckets.0.voters', []));
         $this->get($page)->assertInertia(fn (Assert $inertia) => $inertia->missing('results'));
+    }
+
+    public function test_voting_on_one_survey_does_not_open_the_results_of_another(): void
+    {
+        [$voted, $first] = $this->openPoll(anonymous: false, publicLink: true);
+        [$other, $second] = $this->openPoll(anonymous: false, publicLink: true);
+        $this->assertIsString($first->publicToken);
+        $this->assertIsString($second->publicToken);
+
+        $this->post(route('surveys.public.store', [$voted->value, $first->publicToken]), ['answers' => ['q-1' => 'o-1']]);
+
+        $this->get(route('surveys.public', [$other->value, $second->publicToken]))
+            ->assertInertia(fn (Assert $inertia) => $inertia->where('state', 'open')->missing('results'));
     }
 }

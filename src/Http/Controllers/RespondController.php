@@ -36,6 +36,9 @@ final class RespondController extends Controller
 {
     public const string RESULT_KEY = 'surveys.result';
 
+    /** The survey the flashed result belongs to, so it never stands for another one. */
+    public const string RESULT_SURVEY_KEY = 'surveys.result_survey';
+
     public function __construct(
         private readonly SurveyRepositoryInterface $surveys,
         private readonly SubmissionService $submissions,
@@ -112,11 +115,15 @@ final class RespondController extends Controller
         // After answering (or once it has ended) a survey may share its results; with the public
         // link there is no participation, so the confirmation of the submission stands for it
         $hasAnswered = $state === SubmissionService::STATE_ANSWERED
-            || ($state === SubmissionService::STATE_OPEN && $respondent->kind === Respondent::PUBLIC_LINK && session(self::RESULT_KEY) === 'submitted');
+            || ($state === SubmissionService::STATE_OPEN
+                && $respondent->kind === Respondent::PUBLIC_LINK
+                && session(self::RESULT_KEY) === 'submitted'
+                && session(self::RESULT_SURVEY_KEY) === $id->value);
         if ($survey instanceof Survey && ($hasAnswered || $state === SubmissionService::STATE_CLOSED)) {
             $results = $this->results->forRespondents($id);
             if ($results->visible) {
-                $props['results'] = $this->resultsPayload($results);
+                // Names of who voted are for the audience, never for a visitor with the public link
+                $props['results'] = $this->resultsPayload($results, withVoters: $respondent->kind !== Respondent::PUBLIC_LINK);
             }
         }
 
@@ -126,7 +133,7 @@ final class RespondController extends Controller
     /**
      * @return array{responses: int, questions: list<array<string, mixed>>}
      */
-    private function resultsPayload(SurveyResultsDTO $results): array
+    private function resultsPayload(SurveyResultsDTO $results, bool $withVoters): array
     {
         return [
             'responses' => $results->responses,
@@ -140,7 +147,7 @@ final class RespondController extends Controller
                     'key' => $bucket->key,
                     'label' => $bucket->label,
                     'count' => $bucket->count,
-                    'voters' => $bucket->voters,
+                    'voters' => $withVoters ? $bucket->voters : [],
                 ], $question->buckets),
                 'grid' => $question->grid instanceof GridResultDTO ? [
                     'rows' => array_map(static fn (Option $row): array => $row->toArray(), $question->grid->rows),
@@ -174,6 +181,6 @@ final class RespondController extends Controller
             return back()->withErrors(['survey' => __('surveys::messages.response.not_invited')]);
         }
 
-        return redirect($pageUrl)->with(self::RESULT_KEY, 'submitted');
+        return redirect($pageUrl)->with(self::RESULT_KEY, 'submitted')->with(self::RESULT_SURVEY_KEY, $surveyId);
     }
 }
