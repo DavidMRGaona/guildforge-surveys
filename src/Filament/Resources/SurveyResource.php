@@ -10,6 +10,7 @@ use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -23,6 +24,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
@@ -115,6 +117,21 @@ final class SurveyResource extends BaseResource
                         Toggle::make('public_link_enabled')
                             ->label(__('surveys::filament.survey.fields.public_link'))
                             ->helperText(__('surveys::filament.survey.fields.public_link_help'))
+                            ->live()
+                            ->disabled($notDraft),
+                        Radio::make('public_link_mode')
+                            ->label(__('surveys::filament.survey.fields.public_link_mode'))
+                            ->options([
+                                PublicLinkMode::VerifiedEmail->value => __('surveys::filament.survey.public_link_modes.verified_email'),
+                                PublicLinkMode::Open->value => __('surveys::filament.survey.public_link_modes.open'),
+                            ])
+                            ->descriptions([
+                                PublicLinkMode::VerifiedEmail->value => __('surveys::filament.survey.public_link_modes.verified_email_help'),
+                                PublicLinkMode::Open->value => __('surveys::filament.survey.public_link_modes.open_help'),
+                            ])
+                            ->default(PublicLinkMode::VerifiedEmail->value)
+                            ->required()
+                            ->visible(static fn (Get $get): bool => (bool) $get('public_link_enabled'))
                             ->disabled($notDraft),
                     ])
                     ->columns(2),

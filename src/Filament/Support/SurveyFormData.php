@@ -7,6 +7,7 @@ namespace Modules\Surveys\Filament\Support;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 
@@ -61,6 +62,16 @@ final class SurveyFormData
     public static function audienceType(array $data): AudienceType
     {
         return AudienceType::tryFrom(is_string($data['audience_type'] ?? null) ? $data['audience_type'] : '') ?? AudienceType::AllUsers;
+    }
+
+    /**
+     * A public link asks for an email unless the form makes it open.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function publicLinkMode(array $data): PublicLinkMode
+    {
+        return PublicLinkMode::tryFrom(is_string($data['public_link_mode'] ?? null) ? $data['public_link_mode'] : '') ?? PublicLinkMode::VerifiedEmail;
     }
 
     /**

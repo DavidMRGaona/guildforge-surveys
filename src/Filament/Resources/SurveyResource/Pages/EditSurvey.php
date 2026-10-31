@@ -72,6 +72,7 @@ final class EditSurvey extends EditRecord
                 SurveyFormData::audienceType($data),
                 SurveyFormData::audienceRoles($data),
                 (bool) ($data['public_link_enabled'] ?? $survey->isPublicLinkEnabled()),
+                array_key_exists('public_link_mode', $data) ? SurveyFormData::publicLinkMode($data) : null,
             ));
         }
         $this->onField('data.closes_at', fn () => $survey->reschedule(SurveyFormData::closesAt($data), SurveyFormData::reminderHoursBefore($data), now()->toDateTimeImmutable()));

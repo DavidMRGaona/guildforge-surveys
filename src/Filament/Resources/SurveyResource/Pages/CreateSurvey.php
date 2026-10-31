@@ -52,6 +52,7 @@ final class CreateSurvey extends CreateRecord
                 closesAt: SurveyFormData::closesAt($data),
                 reminderHoursBefore: SurveyFormData::reminderHoursBefore($data),
                 createdBy: is_string(auth()->id()) ? auth()->id() : null,
+                publicLinkMode: SurveyFormData::publicLinkMode($data),
             );
         });
 

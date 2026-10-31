@@ -9,6 +9,7 @@ use Livewire\Livewire;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
@@ -69,6 +70,38 @@ final class SurveyResourceTest extends ModuleTestCase
         $this->assertTrue($survey->isAnonymous());
         $this->assertTrue($survey->results()->liveResults);
         $this->assertCount(10, $survey->definition()->questions());
+    }
+
+    public function test_the_public_link_asks_for_an_email_unless_it_is_made_open(): void
+    {
+        $form = [
+            'title' => 'Encuesta abierta',
+            'sections' => DefinitionFormState::fromDefinition($this->definition()),
+            'anonymous' => true,
+            'audience_type' => 'all_users',
+            'closes_at' => '2030-01-10 20:00:00',
+            'public_link_enabled' => true,
+        ];
+
+        Livewire::test(CreateSurvey::class)
+            ->fillForm($form)
+            ->assertFormFieldIsVisible('public_link_mode')
+            ->assertSchemaStateSet(['public_link_mode' => PublicLinkMode::VerifiedEmail->value])
+            ->fillForm(['public_link_mode' => PublicLinkMode::Open->value])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(PublicLinkMode::Open, $this->stored()->publicLinkMode());
+        $this->assertTrue($this->stored()->isPublicLinkEnabled());
+    }
+
+    public function test_the_public_link_mode_is_fixed_once_the_survey_opens(): void
+    {
+        $survey = $this->survey();
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->fillForm(['public_link_enabled' => true])
+            ->assertFormFieldIsDisabled('public_link_mode');
     }
 
     public function test_starting_from_a_template_copies_its_questions_with_their_keys(): void
