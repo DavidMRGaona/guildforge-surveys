@@ -188,6 +188,14 @@ export default {
             submit_poll: 'Votar',
             thanks_title: '¡Gracias por responder!',
             thanks_description: 'Tus respuestas se han guardado.',
+            verify_email: {
+                intro: 'Para responder, escribe tu correo y te enviaremos un enlace personal de un solo uso. Así cada persona responde una vez.',
+                label: 'Correo electrónico',
+                submit: 'Enviar enlace',
+                sent_title: 'Revisa tu correo',
+                sent_description:
+                    'Si la dirección es válida, te llegará un correo con tu enlace para responder. Puede tardar unos minutos.',
+            },
             states: {
                 answered: 'Ya has respondido esta encuesta.',
                 closed: 'Esta encuesta está cerrada.',

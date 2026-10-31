@@ -116,4 +116,37 @@ describe('Respond', () => {
         expect(wrapper.find('form').exists()).toBe(false);
         expect(wrapper.find('[role="status"]').text()).toContain('¡Gracias por responder!');
     });
+    it('asks for an email on the verified public link instead of the questions', async () => {
+        const wrapper = mountPage({
+            state: 'verify_email',
+            definition: undefined,
+            submitUrl: undefined,
+            requestUrl: '/encuestas/survey-1/abierta/token/correo',
+        });
+
+        expect(wrapper.findAll('fieldset')).toHaveLength(0);
+        expect(wrapper.text()).toContain('te enviaremos un enlace personal');
+
+        await wrapper.find('input[type="email"]').setValue('ana@example.test');
+        await wrapper.find('form').trigger('submit');
+
+        expect(router.post).toHaveBeenCalledWith(
+            '/encuestas/survey-1/abierta/token/correo',
+            { email: 'ana@example.test' },
+            expect.objectContaining({ preserveScroll: true })
+        );
+    });
+
+    it('says the same once a link was asked for', () => {
+        const wrapper = mountPage({
+            state: 'verify_email',
+            result: 'link_sent',
+            definition: undefined,
+            submitUrl: undefined,
+            requestUrl: '/encuestas/survey-1/abierta/token/correo',
+        });
+
+        expect(wrapper.find('input[type="email"]').exists()).toBe(false);
+        expect(wrapper.text()).toContain('Si la dirección es válida');
+    });
 });

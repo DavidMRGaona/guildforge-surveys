@@ -20,11 +20,16 @@ const errors = ref<Record<string, string>>({});
 const isSubmitting = ref(false);
 
 const submitted = computed(() => props.result === 'submitted');
+const verifyingEmail = computed(() => props.state === 'verify_email');
+const linkSent = computed(() => verifyingEmail.value && props.result === 'link_sent');
+const email = ref('');
 const showForm = computed(
     () => props.state === 'open' && !submitted.value && props.definition !== undefined
 );
 const stateMessage = computed(() =>
-    props.state === 'open' || submitted.value ? null : t(`surveys.respond.states.${props.state}`)
+    props.state === 'open' || verifyingEmail.value || submitted.value
+        ? null
+        : t(`surveys.respond.states.${props.state}`)
 );
 const hasRequired = computed(
     () =>
@@ -43,6 +48,30 @@ const closesAt = computed(() => {
         timeZone: VENUE_TIMEZONE,
     }).format(new Date(props.survey.closesAt));
 });
+
+function requestLink(): void {
+    if (props.requestUrl === undefined) {
+        return;
+    }
+
+    router.post(
+        props.requestUrl,
+        { email: email.value },
+        {
+            preserveScroll: true,
+            onStart: () => {
+                isSubmitting.value = true;
+                errors.value = {};
+            },
+            onError: (received: Record<string, string>) => {
+                errors.value = received;
+            },
+            onFinish: () => {
+                isSubmitting.value = false;
+            },
+        }
+    );
+}
 
 function submit(): void {
     if (props.definition === undefined || props.submitUrl === undefined) {
@@ -76,7 +105,10 @@ function submit(): void {
             <p v-if="survey.description" class="mt-3 whitespace-pre-line text-base-secondary">
                 {{ survey.description }}
             </p>
-            <p v-if="closesAt && showForm" class="mt-3 text-sm text-base-secondary">
+            <p
+                v-if="closesAt && (showForm || verifyingEmail)"
+                class="mt-3 text-sm text-base-secondary"
+            >
                 {{ t('surveys.respond.closes_at', { date: closesAt }) }}
             </p>
         </header>
@@ -85,6 +117,52 @@ function submit(): void {
             <p class="text-lg font-semibold">{{ t('surveys.respond.thanks_title') }}</p>
             <p class="mt-1">{{ t('surveys.respond.thanks_description') }}</p>
         </div>
+
+        <div
+            v-else-if="linkSent"
+            role="status"
+            class="rounded-lg bg-success-light p-6 text-success"
+        >
+            <p class="text-lg font-semibold">{{ t('surveys.respond.verify_email.sent_title') }}</p>
+            <p class="mt-1">{{ t('surveys.respond.verify_email.sent_description') }}</p>
+        </div>
+
+        <form
+            v-else-if="verifyingEmail && requestUrl"
+            novalidate
+            class="space-y-4"
+            @submit.prevent="requestLink"
+        >
+            <p class="text-base-secondary">{{ t('surveys.respond.verify_email.intro') }}</p>
+            <div>
+                <label for="survey-email" class="block text-sm font-medium text-base-primary">
+                    {{ t('surveys.respond.verify_email.label') }}
+                </label>
+                <input
+                    id="survey-email"
+                    v-model="email"
+                    type="email"
+                    name="email"
+                    autocomplete="email"
+                    maxlength="254"
+                    required
+                    class="mt-2 block w-full rounded-md border border-neutral-300 bg-surface px-3 py-2 text-base-primary shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    :aria-invalid="errors.email ? 'true' : undefined"
+                    :aria-describedby="errors.email ? 'survey-email-error' : undefined"
+                />
+                <p
+                    v-if="errors.email"
+                    id="survey-email-error"
+                    role="alert"
+                    class="mt-2 text-sm text-error"
+                >
+                    {{ errors.email }}
+                </p>
+            </div>
+            <BaseButton type="submit" variant="primary" class="w-full" :loading="isSubmitting">
+                {{ t('surveys.respond.verify_email.submit') }}
+            </BaseButton>
+        </form>
 
         <div
             v-else-if="stateMessage"

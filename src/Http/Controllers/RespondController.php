@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Surveys\Application\DTOs\Respondent;
+use Modules\Surveys\Application\Services\PublicLinkAccessService;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Domain\Entities\Survey;
@@ -21,12 +22,14 @@ use Modules\Surveys\Domain\Exceptions\NotInvitedException;
 use Modules\Surveys\Domain\Exceptions\SurveyNotAcceptingResponsesException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Http\Requests\RequestPublicLinkRequest;
 use Modules\Surveys\Http\Support\ResultsPayload;
 
 /**
  * The page where a survey is answered: with an account, with a guest's link or with the
  * public link. Every outcome renders the same page with a state; a wrong link never fails
- * loudly. Answers are never logged.
+ * loudly. Answers are never logged. The verified public link asks for an address instead of
+ * the questions, and always answers the same, whatever happened with it.
  */
 final class RespondController extends Controller
 {
@@ -40,6 +43,7 @@ final class RespondController extends Controller
         private readonly SubmissionService $submissions,
         private readonly SeoMetadataFactoryInterface $seo,
         private readonly ResultsService $results,
+        private readonly PublicLinkAccessService $access,
     ) {}
 
     public function show(Request $request, string $survey): Response
@@ -64,7 +68,7 @@ final class RespondController extends Controller
 
     public function showPublic(string $survey, string $token): Response
     {
-        return $this->page($survey, Respondent::publicLink($token), route('surveys.public.store', [$survey, $token]));
+        return $this->page($survey, Respondent::publicLink($token), route('surveys.public.store', [$survey, $token]), route('surveys.public.request', [$survey, $token]));
     }
 
     public function storePublic(Request $request, string $survey, string $token): RedirectResponse
@@ -72,7 +76,14 @@ final class RespondController extends Controller
         return $this->submit($request, $survey, Respondent::publicLink($token), route('surveys.public', [$survey, $token]));
     }
 
-    private function page(string $surveyId, Respondent $respondent, string $submitUrl): Response
+    public function requestPublicLink(RequestPublicLinkRequest $request, string $survey, string $token): RedirectResponse
+    {
+        $this->access->requestLink(SurveyId::fromString($survey), $token, $request->email());
+
+        return redirect()->route('surveys.public', [$survey, $token])->with(self::RESULT_KEY, 'link_sent')->with(self::RESULT_SURVEY_KEY, $survey);
+    }
+
+    private function page(string $surveyId, Respondent $respondent, string $submitUrl, ?string $requestUrl = null): Response
     {
         $id = SurveyId::fromString($surveyId);
         $state = $this->submissions->stateFor($id, $respondent);
@@ -108,6 +119,10 @@ final class RespondController extends Controller
             $props['submitUrl'] = $submitUrl;
         }
 
+        if ($state === SubmissionService::STATE_VERIFY_EMAIL && $requestUrl !== null) {
+            $props['requestUrl'] = $requestUrl;
+        }
+
         // After answering (or once it has ended) a survey may share its results; with the public
         // link there is no participation, so the confirmation of the submission stands for it
         $hasAnswered = $state === SubmissionService::STATE_ANSWERED
@@ -118,8 +133,8 @@ final class RespondController extends Controller
         if ($survey instanceof Survey && ($hasAnswered || $state === SubmissionService::STATE_CLOSED)) {
             $results = $this->results->forRespondents($id);
             if ($results->visible) {
-                // Names of who voted are for the audience, never for a visitor with the public link
-                $props['results'] = ResultsPayload::forRespondents($results, withVoters: $respondent->kind !== Respondent::PUBLIC_LINK);
+                // Names of who voted are for the audience, never for whoever came through the public link
+                $props['results'] = ResultsPayload::forRespondents($results, withVoters: ! $this->submissions->comesFromPublicLink($id, $respondent));
             }
         }
 
