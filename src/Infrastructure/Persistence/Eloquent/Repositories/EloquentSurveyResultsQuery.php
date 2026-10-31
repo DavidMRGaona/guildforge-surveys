@@ -148,9 +148,6 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
     }
 
     /**
-     * @param  list<string>  $questionIds
-     */
-    /**
      * @return array<string, int>
      */
     private function answeredBy(Builder $answers): array
@@ -163,6 +160,9 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
         return $counts;
     }
 
+    /**
+     * @param  list<string>  $questionIds
+     */
     private function answers(SurveyId $surveyId, array $questionIds): Builder
     {
         return DB::table('surveys_answers as a')

@@ -25,8 +25,10 @@ final class PublicLinkVerificationMigrationTest extends ModuleTestCase
         [$withLink] = $this->openForm(anonymous: true, publicLink: true);
         $this->answer($withLink, 0);
 
-        /** @var Migration $migration */
         $migration = require __DIR__.'/../../../database/migrations/2026_11_03_000001_add_public_link_verification.php';
+        if (! $migration instanceof Migration || ! method_exists($migration, 'up') || ! method_exists($migration, 'down')) {
+            $this->fail('The migration file returns a migration.');
+        }
         $migration->down();
         $migration->up();
 
