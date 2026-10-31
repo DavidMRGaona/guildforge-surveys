@@ -43,9 +43,23 @@ final class Survey
         private readonly ?string $createdBy = null,
         private int $audienceSize = 0,
         private ?string $publicToken = null,
+        private ?int $durationDays = null,
+        private bool $unreviewedChanges = false,
+        private ?string $lastChangedBy = null,
+        private ?string $rejectionReason = null,
+        private ?string $submittedBy = null,
+        private ?DateTimeImmutable $submittedForReviewAt = null,
+        private ?string $reviewedBy = null,
+        private ?DateTimeImmutable $reviewedAt = null,
+        private ?DateTimeImmutable $scheduledSendAt = null,
+        private ?DateTimeImmutable $dismissedAt = null,
+        private readonly ?string $subjectEndKey = null,
     ) {}
 
     /**
+     * A survey with a requested duration closes that many days after it opens. Opening again
+     * after a rejection resumes it: its audience, response base and links stay as first fixed.
+     *
      * @param  int  $audienceSize  people the survey goes to, fixed now: the base of the response rate
      * @param  string|null  $publicToken  the open link's token, when the survey has one
      */
@@ -55,14 +69,165 @@ final class Survey
             throw InvalidSurveyStateException::cannotOpen($this->id->value, $this->status->value);
         }
 
+        if ($this->durationDays !== null) {
+            $this->closesAt = $now->modify("+{$this->durationDays} days");
+        }
+
         if ($this->closesAt instanceof DateTimeImmutable && $this->closesAt <= $now) {
             throw InvalidSurveyStateException::closingDateInThePast($this->id->value);
         }
 
         $this->status = SurveyStatus::Open;
-        $this->opensAt = $now;
-        $this->audienceSize = $audienceSize;
-        $this->publicToken = $this->publicLinkEnabled ? $publicToken : null;
+        $this->unreviewedChanges = false;
+        $this->scheduledSendAt = null;
+
+        if (! $this->wasOpened()) {
+            $this->opensAt = $now;
+            $this->audienceSize = $audienceSize;
+            $this->publicToken = $this->publicLinkEnabled ? $publicToken : null;
+        }
+    }
+
+    public function wasOpened(): bool
+    {
+        return $this->opensAt instanceof DateTimeImmutable;
+    }
+
+    /**
+     * Days the survey stays open, counted from when it opens (or is approved): only before it
+     * first opens. Null keeps the closing date as set.
+     */
+    public function changeDuration(?int $days): void
+    {
+        if ($days === $this->durationDays) {
+            return;
+        }
+
+        if ($this->wasOpened()) {
+            throw InvalidSurveyStateException::durationFixed($this->id->value);
+        }
+
+        if ($days !== null && $days < 1) {
+            throw InvalidSurveyStateException::invalidDuration($this->id->value);
+        }
+
+        $this->durationDays = $days;
+    }
+
+    /**
+     * Whether a title, description or definition differs from the survey's content. Dates,
+     * anonymity and results settings are not content.
+     */
+    public function contentDiffers(string $title, ?string $description, SurveyDefinition $definition): bool
+    {
+        return $title !== $this->title
+            || $description !== $this->description
+            || $definition->toArray() !== $this->definition->toArray();
+    }
+
+    /**
+     * Content changed outside the panel that no moderator has seen yet.
+     */
+    public function markUnreviewedChanges(string $userId): void
+    {
+        $this->unreviewedChanges = true;
+        $this->lastChangedBy = $userId;
+    }
+
+    /**
+     * Holds the survey until a moderator approves it: it neither goes out nor takes responses.
+     */
+    public function submitForReview(string $userId, DateTimeImmutable $now): void
+    {
+        if (! in_array($this->status, [SurveyStatus::Draft, SurveyStatus::Open, SurveyStatus::PendingReview], true)) {
+            throw InvalidSurveyStateException::cannotSubmitForReview($this->id->value, $this->status->value);
+        }
+
+        $this->status = SurveyStatus::PendingReview;
+        $this->submittedBy = $userId;
+        $this->submittedForReviewAt = $now;
+        $this->rejectionReason = null;
+    }
+
+    /**
+     * A survey that had opened goes back to taking responses, its duration counted from now; one
+     * that never opened returns to a draft, for the caller to open it.
+     */
+    public function approve(string $moderatorId, DateTimeImmutable $now): void
+    {
+        $this->assertPendingReview();
+
+        $this->reviewedBy = $moderatorId;
+        $this->reviewedAt = $now;
+        $this->unreviewedChanges = false;
+
+        if (! $this->wasOpened()) {
+            $this->status = SurveyStatus::Draft;
+
+            return;
+        }
+
+        if ($this->durationDays !== null) {
+            $this->closesAt = $now->modify("+{$this->durationDays} days");
+        }
+        $this->status = SurveyStatus::Open;
+    }
+
+    /**
+     * Back to a draft that keeps the reason, so the organizer can fix it and send it again.
+     */
+    public function reject(string $moderatorId, string $reason, DateTimeImmutable $now): void
+    {
+        $this->assertPendingReview();
+
+        if (trim($reason) === '') {
+            throw InvalidSurveyStateException::rejectionNeedsReason($this->id->value);
+        }
+
+        $this->status = SurveyStatus::Draft;
+        $this->rejectionReason = $reason;
+        $this->reviewedBy = $moderatorId;
+        $this->reviewedAt = $now;
+    }
+
+    /**
+     * When an automatically sent survey goes out: only a draft that never opened.
+     */
+    public function scheduleSending(DateTimeImmutable $at): void
+    {
+        if ($this->status !== SurveyStatus::Draft || $this->wasOpened() || $this->dismissedAt instanceof DateTimeImmutable) {
+            throw InvalidSurveyStateException::cannotSchedule($this->id->value, $this->status->value);
+        }
+
+        $this->scheduledSendAt = $at;
+    }
+
+    public function isDueForSending(DateTimeImmutable $now): bool
+    {
+        return $this->status === SurveyStatus::Draft
+            && ! $this->dismissedAt instanceof DateTimeImmutable
+            && $this->scheduledSendAt instanceof DateTimeImmutable
+            && $this->scheduledSendAt <= $now;
+    }
+
+    /**
+     * The organizer chose not to send a survey offered to them; it stays in the panel.
+     */
+    public function dismiss(DateTimeImmutable $now): void
+    {
+        if ($this->status !== SurveyStatus::Draft || $this->wasOpened()) {
+            throw InvalidSurveyStateException::cannotDismiss($this->id->value, $this->status->value);
+        }
+
+        $this->dismissedAt = $now;
+        $this->scheduledSendAt = null;
+    }
+
+    private function assertPendingReview(): void
+    {
+        if ($this->status !== SurveyStatus::PendingReview) {
+            throw InvalidSurveyStateException::notPendingReview($this->id->value, $this->status->value);
+        }
     }
 
     public function close(DateTimeImmutable $now): void
@@ -291,5 +456,60 @@ final class Survey
     public function publicToken(): ?string
     {
         return $this->publicToken;
+    }
+
+    public function durationDays(): ?int
+    {
+        return $this->durationDays;
+    }
+
+    public function hasUnreviewedChanges(): bool
+    {
+        return $this->unreviewedChanges;
+    }
+
+    public function lastChangedBy(): ?string
+    {
+        return $this->lastChangedBy;
+    }
+
+    public function rejectionReason(): ?string
+    {
+        return $this->rejectionReason;
+    }
+
+    public function submittedBy(): ?string
+    {
+        return $this->submittedBy;
+    }
+
+    public function submittedForReviewAt(): ?DateTimeImmutable
+    {
+        return $this->submittedForReviewAt;
+    }
+
+    public function reviewedBy(): ?string
+    {
+        return $this->reviewedBy;
+    }
+
+    public function reviewedAt(): ?DateTimeImmutable
+    {
+        return $this->reviewedAt;
+    }
+
+    public function scheduledSendAt(): ?DateTimeImmutable
+    {
+        return $this->scheduledSendAt;
+    }
+
+    public function dismissedAt(): ?DateTimeImmutable
+    {
+        return $this->dismissedAt;
+    }
+
+    public function subjectEndKey(): ?string
+    {
+        return $this->subjectEndKey;
     }
 }
