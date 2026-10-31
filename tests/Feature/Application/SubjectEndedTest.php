@@ -60,7 +60,7 @@ final class SubjectEndedTest extends ModuleTestCase
         $this->organizer = UserModel::factory()->create();
         $this->stranger = UserModel::factory()->create();
         $players = UserModel::factory()->count(2)->create();
-        ExampleThingSource::$audience = new SurveyAudienceDTO($players->pluck('id')->all());
+        ExampleThingSource::$audience = new SurveyAudienceDTO(array_values($players->map(static fn (UserModel $player): string => $player->id)->all()));
         ExampleThingSource::$organizerIds = [$this->organizer->id, $this->stranger->id];
         // The second organizer no longer runs the subject: the source decides live
         ExampleThingSource::$managers = [$this->organizer->id];

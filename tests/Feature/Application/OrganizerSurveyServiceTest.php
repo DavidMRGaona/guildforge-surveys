@@ -56,7 +56,7 @@ final class OrganizerSurveyServiceTest extends ModuleTestCase
         $this->organizer = UserModel::factory()->create();
         ExampleThingSource::$organizerIds = [$this->organizer->id];
         ExampleThingSource::$managers = [$this->organizer->id];
-        ExampleThingSource::$audience = new SurveyAudienceDTO(UserModel::factory()->count(2)->create()->pluck('id')->all());
+        ExampleThingSource::$audience = new SurveyAudienceDTO([UserModel::factory()->create()->id, UserModel::factory()->create()->id]);
 
         $this->service = $this->app->make(OrganizerSurveyService::class);
         $this->surveys = $this->app->make(SurveyRepositoryInterface::class);
@@ -164,7 +164,7 @@ final class OrganizerSurveyServiceTest extends ModuleTestCase
         $this->service->send($survey->id(), $this->organizer->id);
         $opened = $this->surveys->findOrFail($survey->id());
         $opened->submitForReview($this->organizer->id, $this->now);
-        $opened->reject('moderator', 'Motivo de ejemplo', $this->now);
+        $opened->reject('00000000-0000-4000-8000-0000000000aa', 'Motivo de ejemplo', $this->now);
         $this->surveys->save($opened);
 
         $this->assertSame(SendOutcome::Opened, $this->service->send($survey->id(), $this->organizer->id));

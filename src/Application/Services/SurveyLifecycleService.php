@@ -7,6 +7,7 @@ namespace Modules\Surveys\Application\Services;
 use App\Application\Surveys\DTOs\SurveySubjectDTO;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use DateTimeImmutable;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
@@ -82,6 +83,7 @@ final readonly class SurveyLifecycleService
      * subject, as a draft that lasts $durationDays once it opens. The end key keeps it unique.
      *
      * @throws SubjectNotFoundException
+     * @throws UniqueConstraintViolationException when another survey already has the end key
      */
     public function createFromTemplateForSubject(
         string $sourceType,

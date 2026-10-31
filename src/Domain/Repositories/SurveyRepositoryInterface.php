@@ -17,6 +17,14 @@ interface SurveyRepositoryInterface
     public function findOrFail(SurveyId $id): Survey;
 
     /**
+     * The surveys with these ids that exist, in the order given.
+     *
+     * @param  list<SurveyId>  $ids
+     * @return list<Survey>
+     */
+    public function findMany(array $ids): array;
+
+    /**
      * The survey with its row locked until the surrounding transaction ends.
      */
     public function findForUpdate(SurveyId $id): Survey;

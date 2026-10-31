@@ -58,7 +58,7 @@ final class SendScheduledSurveysCommandTest extends ModuleTestCase
         $this->organizer = UserModel::factory()->create();
         ExampleThingSource::$organizerIds = [$this->organizer->id];
         ExampleThingSource::$managers = [$this->organizer->id];
-        ExampleThingSource::$audience = new SurveyAudienceDTO(UserModel::factory()->count(2)->create()->pluck('id')->all());
+        ExampleThingSource::$audience = new SurveyAudienceDTO([UserModel::factory()->create()->id, UserModel::factory()->create()->id]);
 
         $this->surveys = $this->app->make(SurveyRepositoryInterface::class);
         $this->now = new DateTimeImmutable('2030-01-06T08:00:00+00:00');

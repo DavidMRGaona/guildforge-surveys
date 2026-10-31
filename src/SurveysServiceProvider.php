@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\OrganizedSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\OrganizerNotifierInterface;
 use Modules\Surveys\Application\Contracts\PendingSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
@@ -39,6 +40,7 @@ use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentOrganizedSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentPendingSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentResponseStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRecipientStore;
@@ -86,6 +88,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
         $this->app->bind(SurveyNotifierInterface::class, SurveyInvitationSender::class);
         $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
+        $this->app->bind(OrganizedSurveysQueryInterface::class, EloquentOrganizedSurveysQuery::class);
         $this->app->bind(SurveyResultsQueryInterface::class, EloquentSurveyResultsQuery::class);
         $this->app->bind(SurveySettingsInterface::class, SurveySettings::class);
         $this->app->bind(OrganizerNotifierInterface::class, OrganizerMailer::class);
@@ -122,24 +125,31 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * The profile's "Encuestas pendientes" tab: only computed on the profile page.
+     * The profile's surveys tab: what the person still has to answer and, for organizers, the
+     * surveys of what they organize. Only computed on the profile page. The badge counts both
+     * what to answer and what waits for the organizer (to send, or rejected).
      */
     private function sharePendingSurveys(): void
     {
-        $pending = static function (): ?array {
+        $userId = static function (): ?string {
             $user = auth()->user();
-            if (request()->route()?->getName() !== 'profile.show' || $user === null) {
+
+            return request()->route()?->getName() === 'profile.show' && $user !== null ? (string) $user->getAuthIdentifier() : null;
+        };
+        $pending = static fn (): ?array => ($id = $userId()) === null ? null : app(PendingSurveysQueryInterface::class)->forUser($id, now()->toDateTimeImmutable());
+        $organized = static fn (): ?array => ($id = $userId()) === null ? null : app(OrganizedSurveysQueryInterface::class)->forUser($id);
+
+        Inertia::share('profilePendingSurveys', $pending);
+        Inertia::share('profileOrganizedSurveys', $organized);
+        Inertia::share('profilePendingSurveysTotal', static function () use ($pending, $organized): ?int {
+            $toAnswer = $pending();
+            if ($toAnswer === null) {
                 return null;
             }
 
-            return app(PendingSurveysQueryInterface::class)->forUser((string) $user->getAuthIdentifier(), now()->toDateTimeImmutable());
-        };
+            $waiting = array_filter($organized() ?? [], static fn (array $survey): bool => in_array($survey['status'], ['to_send', 'rejected'], true));
 
-        Inertia::share('profilePendingSurveys', $pending);
-        Inertia::share('profilePendingSurveysTotal', static function () use ($pending): ?int {
-            $surveys = $pending();
-
-            return $surveys === null ? null : count($surveys);
+            return count($toAnswer) + count($waiting);
         });
     }
 
@@ -327,7 +337,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
                 component: 'components/profile/ProfilePendingSurveysSection.vue',
                 module: $this->moduleName(),
                 order: 40,
-                dataKeys: ['profilePendingSurveys'],
+                dataKeys: ['profilePendingSurveys', 'profileOrganizedSurveys'],
                 profileTab: [
                     'tabId' => 'surveys',
                     'icon' => 'pencil-square',
