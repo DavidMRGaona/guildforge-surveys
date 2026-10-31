@@ -108,7 +108,8 @@ final readonly class OrganizerSurveyService
     /**
      * Saves the editor's changes. Changed content is marked as unreviewed in the organizer's name;
      * an open survey changed while the review setting is on goes back to review and stops taking
-     * responses. Dates, anonymity and results settings are not content. Once someone answered,
+     * responses; while it waits for a moderator its content stays as sent. Dates, anonymity and
+     * results settings are not content. Once someone answered,
      * only help texts and the closing date may change: the check runs with the row locked, and
      * submissions lock it too, so no response slips in between.
      *
@@ -130,6 +131,11 @@ final readonly class OrganizerSurveyService
 
             $hasResponses = $this->surveys->hasResponses($id);
             $contentChanged = $survey->contentDiffers($input->title, $input->description, $input->definition);
+
+            // A moderator approves the content they saw: it never changes while it waits for them
+            if ($contentChanged && $survey->status() === SurveyStatus::PendingReview) {
+                throw new OrganizerChangeRejectedException('survey', 'pending_review');
+            }
 
             $survey->replaceDefinition($input->definition, $hasResponses, new SurveyDefinitionValidator);
             $this->onField('title', 'locked_by_responses', fn () => $survey->editDetails($input->title, $input->description, $hasResponses));

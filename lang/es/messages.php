@@ -84,6 +84,7 @@ return [
         'closing_date' => 'El cierre de una encuesta abierta no puede quedar en el pasado, y una encuesta cerrada no se reprograma.',
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
         'closed' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
+        'pending_review' => 'La encuesta está esperando revisión: su contenido no se puede cambiar hasta que la aprueben o la rechacen.',
     ],
 
     'response' => [

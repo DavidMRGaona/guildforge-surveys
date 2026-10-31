@@ -186,6 +186,34 @@ final class OrganizerSurveyEditingTest extends ModuleTestCase
         $this->service->update($survey->id(), $this->organizer->id, $this->input($survey, definition: SurveyDefinition::fromArray($data)));
     }
 
+    public function test_content_waiting_for_review_does_not_change_under_the_moderator(): void
+    {
+        config()->set('modules.settings.surveys.review_required', true);
+        $survey = $this->opened();
+        $this->service->update($survey->id(), $this->organizer->id, $this->input($survey, title: 'Enviada a revisión'));
+        $pending = $this->surveys->findOrFail($survey->id());
+
+        try {
+            $this->service->update($survey->id(), $this->organizer->id, $this->input($pending, title: 'Cambiada después'));
+            $this->fail('The change went through');
+        } catch (OrganizerChangeRejectedException $exception) {
+            $this->assertSame('pending_review', $exception->messageKey);
+        }
+
+        $this->assertSame('Enviada a revisión', $this->surveys->findOrFail($survey->id())->title());
+    }
+
+    public function test_dates_still_change_while_waiting_for_review(): void
+    {
+        config()->set('modules.settings.surveys.review_required', true);
+        $survey = $this->opened();
+        $this->service->update($survey->id(), $this->organizer->id, $this->input($survey, title: 'Enviada a revisión'));
+        $pending = $this->surveys->findOrFail($survey->id());
+
+        $this->assertSame(UpdateOutcome::Saved, $this->service->update($survey->id(), $this->organizer->id, $this->input($pending, reminderHoursBefore: 12)));
+        $this->assertSame(12, $this->surveys->findOrFail($survey->id())->reminderHoursBefore());
+    }
+
     public function test_a_closed_survey_is_not_edited(): void
     {
         $survey = $this->opened();
