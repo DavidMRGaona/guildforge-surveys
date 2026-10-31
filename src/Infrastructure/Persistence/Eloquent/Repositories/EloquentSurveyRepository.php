@@ -8,6 +8,7 @@ use App\Application\Services\TimezoneServiceInterface;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
@@ -19,6 +20,7 @@ use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyOrganizerModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
 
 final readonly class EloquentSurveyRepository implements SurveyRepositoryInterface
@@ -27,9 +29,23 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
 
     public function save(Survey $survey): void
     {
+        DB::transaction(function () use ($survey): void {
+            $model = $this->write($survey);
+
+            // The snapshot never changes: its organizers are copied once, when the survey is made
+            if ($model->wasRecentlyCreated && $survey->subject() instanceof SubjectSnapshot) {
+                foreach ($survey->subject()->organizerIds as $userId) {
+                    SurveyOrganizerModel::query()->create(['survey_id' => $model->id, 'user_id' => $userId]);
+                }
+            }
+        });
+    }
+
+    private function write(Survey $survey): SurveyModel
+    {
         $subject = $survey->subject();
 
-        SurveyModel::query()->updateOrCreate(['id' => $survey->id()->value], [
+        return SurveyModel::query()->updateOrCreate(['id' => $survey->id()->value], [
             'kind' => $survey->kind()->value,
             'title' => $survey->title(),
             'description' => $survey->description(),
@@ -52,7 +68,49 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             'closes_at' => $survey->closesAt(),
             'closed_at' => $survey->closedAt(),
             'created_by' => $survey->createdBy(),
+            'duration_days' => $survey->durationDays(),
+            'unreviewed_changes' => $survey->hasUnreviewedChanges(),
+            'last_changed_by' => $survey->lastChangedBy(),
+            'rejection_reason' => $survey->rejectionReason(),
+            'submitted_by' => $survey->submittedBy(),
+            'submitted_for_review_at' => $survey->submittedForReviewAt(),
+            'reviewed_by' => $survey->reviewedBy(),
+            'reviewed_at' => $survey->reviewedAt(),
+            'scheduled_send_at' => $survey->scheduledSendAt(),
+            'dismissed_at' => $survey->dismissedAt(),
+            'subject_end_key' => $survey->subjectEndKey(),
         ]);
+    }
+
+    public function findForUpdate(SurveyId $id): Survey
+    {
+        $model = SurveyModel::query()->whereKey($id->value)->lockForUpdate()->first()
+            ?? throw (new ModelNotFoundException)->setModel(SurveyModel::class, [$id->value]);
+
+        return $this->toEntity($model);
+    }
+
+    public function existsForSubjectEnd(string $key): bool
+    {
+        return SurveyModel::query()->where('subject_end_key', $key)->exists();
+    }
+
+    public function dueForSending(DateTimeImmutable $now): array
+    {
+        return array_values(SurveyModel::query()
+            ->where('status', SurveyStatus::Draft->value)
+            ->whereNull('dismissed_at')
+            ->whereNotNull('scheduled_send_at')
+            ->where('scheduled_send_at', '<=', $this->timezone->toStorage($now))
+            ->orderBy('scheduled_send_at')
+            ->pluck('id')
+            ->map(static fn (string $id): SurveyId => SurveyId::fromString($id))
+            ->all());
+    }
+
+    public function pendingReviewCount(): int
+    {
+        return SurveyModel::query()->where('status', SurveyStatus::PendingReview->value)->count();
     }
 
     public function find(SurveyId $id): ?Survey
@@ -149,6 +207,17 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             createdBy: $model->created_by,
             audienceSize: $model->audience_size,
             publicToken: $model->public_token,
+            durationDays: $model->duration_days,
+            unreviewedChanges: $model->unreviewed_changes,
+            lastChangedBy: $model->last_changed_by,
+            rejectionReason: $model->rejection_reason,
+            submittedBy: $model->submitted_by,
+            submittedForReviewAt: $this->instant($model->submitted_for_review_at),
+            reviewedBy: $model->reviewed_by,
+            reviewedAt: $this->instant($model->reviewed_at),
+            scheduledSendAt: $this->instant($model->scheduled_send_at),
+            dismissedAt: $this->instant($model->dismissed_at),
+            subjectEndKey: $model->subject_end_key,
         );
     }
 

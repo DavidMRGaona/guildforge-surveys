@@ -52,4 +52,39 @@ final class InvalidSurveyStateException extends DomainException
     {
         return new self("Survey {$surveyId} is closed.");
     }
+
+    public static function durationFixed(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} has opened: its duration is fixed.");
+    }
+
+    public static function invalidDuration(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} must stay open at least one day.");
+    }
+
+    public static function cannotSubmitForReview(string $surveyId, string $status): self
+    {
+        return new self("Survey {$surveyId} cannot go to review from status '{$status}'.");
+    }
+
+    public static function notPendingReview(string $surveyId, string $status): self
+    {
+        return new self("Survey {$surveyId} is not pending review (status '{$status}').");
+    }
+
+    public static function rejectionNeedsReason(string $surveyId): self
+    {
+        return new self("Rejecting survey {$surveyId} needs a reason.");
+    }
+
+    public static function cannotSchedule(string $surveyId, string $status): self
+    {
+        return new self("Survey {$surveyId} cannot be scheduled from status '{$status}'.");
+    }
+
+    public static function cannotDismiss(string $surveyId, string $status): self
+    {
+        return new self("Survey {$surveyId} cannot be dismissed from status '{$status}'.");
+    }
 }

@@ -92,6 +92,42 @@ final class SurveyDefinitionValidatorTest extends TestCase
         }
     }
 
+    public function test_a_survey_may_not_add_a_key(): void
+    {
+        $changed = SurveyDefinition::fromArray(self::set($this->data(), [0, 2, 'key'], 'mood'));
+
+        $this->assertEquals(
+            [new DefinitionViolation('sections.0.questions.2.key', 'key_not_allowed')],
+            $this->validator->validateChange($this->definition(), $changed, hasResponses: false, keysFixed: true),
+        );
+    }
+
+    public function test_a_survey_may_not_rename_a_key(): void
+    {
+        $changed = SurveyDefinition::fromArray(self::set($this->data(), [0, 0, 'key'], 'alias'));
+
+        $this->assertContainsEquals(
+            new DefinitionViolation('sections.0.questions.0.key', 'key_not_allowed'),
+            $this->validator->validateChange($this->definition(), $changed, hasResponses: false, keysFixed: true),
+        );
+    }
+
+    public function test_a_survey_may_drop_a_keyed_question(): void
+    {
+        $data = $this->data();
+        unset($data['sections'][0]['questions'][0]);
+        $data['sections'][0]['questions'] = array_values($data['sections'][0]['questions']);
+
+        $this->assertSame([], $this->validator->validateChange($this->definition(), SurveyDefinition::fromArray($data), hasResponses: false, keysFixed: true));
+    }
+
+    public function test_templates_may_add_keys(): void
+    {
+        $changed = SurveyDefinition::fromArray(self::set($this->data(), [0, 2, 'key'], 'mood'));
+
+        $this->assertSame([], $this->validator->validateChange($this->definition(), $changed, hasResponses: false));
+    }
+
     public function test_without_responses_anything_but_keyed_types_may_change(): void
     {
         $data = self::set($this->data(), [0, 1, 'type'], 'short_text');

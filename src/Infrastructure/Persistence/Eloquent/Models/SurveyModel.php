@@ -35,6 +35,17 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $closes_at
  * @property Carbon|null $closed_at
  * @property string|null $created_by
+ * @property int|null $duration_days
+ * @property bool $unreviewed_changes
+ * @property string|null $last_changed_by
+ * @property string|null $rejection_reason
+ * @property string|null $submitted_by
+ * @property Carbon|null $submitted_for_review_at
+ * @property string|null $reviewed_by
+ * @property Carbon|null $reviewed_at
+ * @property Carbon|null $scheduled_send_at
+ * @property Carbon|null $dismissed_at
+ * @property string|null $subject_end_key
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -77,6 +88,17 @@ final class SurveyModel extends Model
         'closes_at',
         'closed_at',
         'created_by',
+        'duration_days',
+        'unreviewed_changes',
+        'last_changed_by',
+        'rejection_reason',
+        'submitted_by',
+        'submitted_for_review_at',
+        'reviewed_by',
+        'reviewed_at',
+        'scheduled_send_at',
+        'dismissed_at',
+        'subject_end_key',
     ];
 
     /**
@@ -106,6 +128,12 @@ final class SurveyModel extends Model
             'opens_at' => 'datetime',
             'closes_at' => 'datetime',
             'closed_at' => 'datetime',
+            'duration_days' => 'integer',
+            'unreviewed_changes' => 'boolean',
+            'submitted_for_review_at' => 'datetime',
+            'reviewed_at' => 'datetime',
+            'scheduled_send_at' => 'datetime',
+            'dismissed_at' => 'datetime',
         ];
     }
 }

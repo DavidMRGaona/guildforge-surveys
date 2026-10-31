@@ -167,6 +167,7 @@ final class SurveyResource extends BaseResource
                     ->color(static fn (string $state): string => match ($state) {
                         SurveyStatus::Open->value => 'success',
                         SurveyStatus::Closed->value => 'gray',
+                        SurveyStatus::PendingReview->value => 'info',
                         default => 'warning',
                     })
                     ->formatStateUsing(static fn (string $state): string => self::statusOptions()[$state] ?? $state),

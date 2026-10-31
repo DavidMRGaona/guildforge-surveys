@@ -17,6 +17,7 @@ return [
 
     'statuses' => [
         'draft' => 'Borrador',
+        'pending_review' => 'Pendiente de revisión',
         'open' => 'Abierta',
         'closed' => 'Cerrada',
     ],
