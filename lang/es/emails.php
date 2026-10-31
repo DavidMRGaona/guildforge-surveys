@@ -39,4 +39,17 @@ return [
         'subject_line' => 'Es la encuesta de «:subject».',
         'action' => 'Revisar la encuesta',
     ],
+
+    'review_approved' => [
+        'subject' => 'Encuesta aprobada: :title',
+        'intro' => 'Han aprobado tu encuesta «:title» de :site y ya se ha enviado.',
+        'action' => 'Ver la encuesta',
+    ],
+
+    'review_rejected' => [
+        'subject' => 'Encuesta rechazada: :title',
+        'intro' => 'Han rechazado tu encuesta «:title» de :site. Puedes corregirla y volver a enviarla.',
+        'reason' => 'Motivo: :reason',
+        'action' => 'Corregir la encuesta',
+    ],
 ];
