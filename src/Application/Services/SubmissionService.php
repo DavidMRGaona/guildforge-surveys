@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\DTOs\Respondent;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
 use Modules\Surveys\Domain\Exceptions\NotInvitedException;
@@ -29,6 +30,9 @@ final readonly class SubmissionService
     public const string STATE_ANSWERED = 'answered';
 
     public const string STATE_CLOSED = 'closed';
+
+    /** Waiting for a moderator after a change: it takes responses again once approved. */
+    public const string STATE_PAUSED = 'paused';
 
     public const string STATE_NOT_INVITED = 'not_invited';
 
@@ -109,6 +113,10 @@ final readonly class SubmissionService
 
         if ($this->responses->hasParticipated($id, $userId, $tokenHash)) {
             return self::STATE_ANSWERED;
+        }
+
+        if ($survey->status() === SurveyStatus::PendingReview) {
+            return self::STATE_PAUSED;
         }
 
         return $survey->isAcceptingResponses(now()->toDateTimeImmutable()) ? self::STATE_OPEN : self::STATE_CLOSED;

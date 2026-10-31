@@ -133,7 +133,7 @@ final class SurveyReviewServiceTest extends ModuleTestCase
         $this->assertSame(SurveyStatus::PendingReview, $stillPending->status());
         $this->assertFalse($stillPending->isAcceptingResponses($this->now));
         $this->assertSame(
-            SubmissionService::STATE_CLOSED,
+            SubmissionService::STATE_PAUSED,
             $this->app->make(SubmissionService::class)->stateFor($survey->id(), Respondent::account($this->player->id)),
         );
 

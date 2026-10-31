@@ -129,6 +129,7 @@ export default {
             states: {
                 answered: 'Ya has respondido esta encuesta.',
                 closed: 'Esta encuesta está cerrada.',
+                paused: 'Esta encuesta está en revisión. Podrás responderla en cuanto la aprueben.',
                 not_invited:
                     'No puedes responder esta encuesta. Si te han enviado un enlace, comprueba que lo has abierto entero y que no ha caducado.',
             },
