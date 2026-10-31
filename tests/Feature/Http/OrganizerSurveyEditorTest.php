@@ -73,7 +73,8 @@ final class OrganizerSurveyEditorTest extends ModuleTestCase
                 ->where('survey.sendable', true)
                 ->where('locked', false)
                 ->where('definition', $survey->definition()->toArray())
-                ->where('updateUrl', route('surveys.manage.update', $survey->id()->value))
+                ->where('submitUrl', route('surveys.manage.update', $survey->id()->value))
+                ->where('submitMethod', 'put')
                 ->where('backUrl', route('surveys.subject', [ExampleThingSource::TYPE, 'thing-1'])));
     }
 
