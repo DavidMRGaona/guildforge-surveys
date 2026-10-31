@@ -26,6 +26,8 @@ Desde la web, en la ficha del sujeto o en la pestaña «Encuestas» del perfil, 
 
 Cada acción comprueba en el momento que la persona sigue organizando el sujeto: si deja de hacerlo, o el módulo del sujeto se desactiva, pierde el acceso.
 
+La ficha del sujeto, en su propio módulo, enlaza con sus encuestas a través del contrato del core `SurveySubjectLinksInterface`, que este módulo implementa: a quien lo organiza, con la página de encuestas del sujeto; a cada participante, con su encuesta mientras puede responderla y con sus resultados cuando la encuesta los comparte con quien responde (con las mismas reglas que la página de respuesta). Sin este módulo, la ficha no muestra nada.
+
 ## Revisión
 
 Con el ajuste «Las encuestas cambiadas fuera del panel requieren revisión», una encuesta cuyo contenido se ha cambiado desde la web queda «En revisión» al enviarla y no sale hasta que alguien con `surveys.moderate` la apruebe en el panel (o la rechace con un motivo, que vuelve a quien la organiza). Una encuesta ya abierta que se cambia vuelve a revisión y deja de aceptar respuestas mientras tanto; mientras espera, su contenido no se puede tocar. Las fechas y los ajustes no son contenido y nunca pasan por revisión. Apagar el ajuste no aprueba las que ya esperan.
