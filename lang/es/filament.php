@@ -187,4 +187,14 @@ return [
         'rejected' => 'Encuesta rechazada',
         'already_reviewed' => 'Esta encuesta ya no está pendiente de revisión: otra persona la ha revisado o ha cambiado mientras tanto.',
     ],
+
+    'widgets' => [
+        'pending_reviews' => [
+            'title' => 'Encuestas pendientes de revisión',
+            'subject' => 'Sobre',
+            'sent_by' => 'Enviada por',
+            'sent_at' => 'Enviada el',
+            'review' => 'Revisar',
+        ],
+    ],
 ];

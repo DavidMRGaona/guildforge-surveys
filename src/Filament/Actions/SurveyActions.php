@@ -150,7 +150,7 @@ final class SurveyActions
      * @param  callable(): mixed  $change
      */
     private static function run(
-callable $change, string $action): void
+        callable $change, string $action): void
     {
         try {
             $change();

@@ -10,8 +10,6 @@ use Illuminate\Validation\ValidationException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
-use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
-use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Concerns\HandlesDefinitionErrors;
