@@ -73,7 +73,7 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
     private function row(Survey $survey, int $responses): array
     {
         $status = $this->status($survey);
-        $offered = in_array($status, ['to_send', 'scheduled', 'rejected'], true);
+        $offered = in_array($status, ['draft', 'to_send', 'scheduled', 'rejected'], true);
         $dismissable = $offered || $status === 'prepared';
         $id = $survey->id()->value;
 
@@ -93,11 +93,15 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             'dismissUrl' => $dismissable && ! $survey->wasOpened() ? route('surveys.manage.dismiss', $id) : null,
             'editUrl' => $status === 'closed' ? null : route('surveys.manage.edit', $id),
             'resultsUrl' => $survey->wasOpened() ? route('surveys.manage.results', $id) : null,
+            'closeUrl' => $status === 'open' ? route('surveys.manage.close', $id) : null,
         ];
     }
 
     /**
-     * @return 'prepared'|'to_send'|'scheduled'|'pending_review'|'rejected'|'open'|'closed'
+     * A subject's end survey offered to its organizers is "to_send"; any other survey not sent
+     * yet (one the organizer made themselves, for example) is a "draft".
+     *
+     * @return 'draft'|'prepared'|'to_send'|'scheduled'|'pending_review'|'rejected'|'open'|'closed'
      */
     private function status(Survey $survey): string
     {
@@ -108,6 +112,7 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             $survey->isAwaitingSubjectEnd() => 'prepared',
             $survey->rejectionReason() !== null => 'rejected',
             $survey->scheduledSendAt() instanceof \DateTimeImmutable => 'scheduled',
+            $survey->subjectEndKey() === null => 'draft',
             default => 'to_send',
         };
     }

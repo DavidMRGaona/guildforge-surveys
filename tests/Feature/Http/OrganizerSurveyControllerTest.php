@@ -63,7 +63,7 @@ final class OrganizerSurveyControllerTest extends ModuleTestCase
 
     public function test_the_subject_page_lists_its_surveys_for_its_organizer(): void
     {
-        $offered = $this->offered();
+        $offered = $this->offered(ExampleThingSource::TYPE.':thing-1');
         $dismissed = $this->offered();
         $dismissed->dismiss(now()->toDateTimeImmutable());
         $this->surveys->save($dismissed);
@@ -171,7 +171,10 @@ final class OrganizerSurveyControllerTest extends ModuleTestCase
         $this->actingAs($this->organizer)->post(route('surveys.manage.send', SurveyTemplateId::generate()->value))->assertNotFound();
     }
 
-    private function offered(): Survey
+    /**
+     * @param  string|null  $endKey  given, the subject's end survey offered after its end
+     */
+    private function offered(?string $endKey = null): Survey
     {
         $template = new SurveyTemplate(
             SurveyTemplateId::generate(),
@@ -183,6 +186,6 @@ final class OrganizerSurveyControllerTest extends ModuleTestCase
         $this->app->make(SurveyTemplateRepositoryInterface::class)->save($template);
 
         return $this->app->make(SurveyLifecycleService::class)
-            ->createFromTemplateForSubject(ExampleThingSource::TYPE, 'thing-1', $template, anonymous: true, durationDays: 7, subjectEndKey: null);
+            ->createFromTemplateForSubject(ExampleThingSource::TYPE, 'thing-1', $template, anonymous: true, durationDays: 7, subjectEndKey: $endKey, subjectEndedAt: $endKey === null ? null : now()->toDateTimeImmutable());
     }
 }

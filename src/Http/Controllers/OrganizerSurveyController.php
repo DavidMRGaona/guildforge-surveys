@@ -106,6 +106,22 @@ final class OrganizerSurveyController extends Controller
     }
 
     /**
+     * Closes an open survey before its date.
+     */
+    public function close(Request $request, string $survey): RedirectResponse
+    {
+        $done = $this->act(function () use ($request, $survey): bool {
+            $this->service->close(SurveyId::fromString($survey), (string) $request->user()?->getAuthIdentifier());
+
+            return true;
+        });
+
+        return $done === null
+            ? back()->with('error', __('surveys::messages.manage.not_closable'))
+            : back()->with('success', __('surveys::messages.manage.closed'));
+    }
+
+    /**
      * Runs an organizer's action: an unknown survey is a 404 and a stranger a 403; a survey no
      * longer in a state for it (sent meanwhile, for example) gives null.
      *

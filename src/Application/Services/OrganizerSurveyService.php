@@ -11,16 +11,22 @@ use DateTimeImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Surveys\Application\Contracts\ReviewNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\DTOs\OrganizerSurveyInput;
 use Modules\Surveys\Application\Enums\SendOutcome;
 use Modules\Surveys\Application\Enums\UpdateOutcome;
 use Modules\Surveys\Application\Exceptions\OrganizerChangeRejectedException;
+use Modules\Surveys\Application\Exceptions\SubjectCancelledException;
 use Modules\Surveys\Application\Exceptions\SurveyPreparationUnavailableException;
+use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
+use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\ChartType;
+use Modules\Surveys\Domain\Enums\QuestionType;
+use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
@@ -28,7 +34,12 @@ use Modules\Surveys\Domain\Exceptions\SubjectNotFoundException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\Option;
+use Modules\Surveys\Domain\ValueObjects\Definition\Question;
+use Modules\Surveys\Domain\ValueObjects\Definition\Section;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
+use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 
@@ -113,6 +124,108 @@ final readonly class OrganizerSurveyService
             // Prepared at the same time by another click, or made by the end meanwhile
             return $this->takeBack($endKey) ?? throw SubjectNotFoundException::for($sourceType, $subjectId);
         }
+    }
+
+    /**
+     * A survey or poll the organizer writes themselves, about their subject, at any time: there
+     * may be several per subject. It is a draft until they send it, and its content counts as
+     * made outside the panel, so sending it waits for a moderator when the review setting is
+     * on. Keys only come from templates, so a question with one is refused.
+     *
+     * @throws AuthorizationException
+     * @throws SubjectNotFoundException
+     * @throws SubjectCancelledException
+     * @throws InvalidSurveyDefinitionException
+     */
+    public function create(string $sourceType, string $subjectId, string $userId, SurveyKind $kind, OrganizerSurveyInput $input): Survey
+    {
+        $source = $this->sources->source($sourceType);
+        $subject = $source?->find($subjectId);
+        if (! $subject instanceof SurveySubjectDTO) {
+            throw SubjectNotFoundException::for($sourceType, $subjectId);
+        }
+
+        if (! $source->canManage($userId, $subjectId)) {
+            throw new AuthorizationException;
+        }
+
+        if ($subject->status === SurveySubjectStatus::Cancelled) {
+            throw SubjectCancelledException::for($sourceType, $subjectId);
+        }
+
+        $validator = new SurveyDefinitionValidator;
+        $validator->assertValid($input->definition, $kind);
+        $validator->assertChangeAllowed(new SurveyDefinition([]), $input->definition, hasResponses: false, keysFixed: true);
+
+        $survey = new Survey(
+            id: SurveyId::generate(),
+            kind: $kind,
+            title: $input->title,
+            description: $input->description,
+            definition: $input->definition,
+            anonymous: $input->anonymous,
+            results: new ResultsSettings($input->liveResults, $input->visibleToRespondents),
+            audienceType: AudienceType::Subject,
+            subject: SubjectSnapshotFactory::fromDto($subject),
+            reminderHoursBefore: $input->reminderHoursBefore,
+            createdBy: $userId,
+            durationDays: $input->durationDays,
+        );
+        $survey->markUnreviewedChanges($userId);
+        $this->surveys->save($survey);
+
+        return $survey;
+    }
+
+    /**
+     * What the editor starts a new survey of the subject's type with: the type's anonymity and
+     * duration, and the kind's results settings (a poll shows them live to whoever voted).
+     *
+     * @return array{anonymous: bool, durationDays: int, liveResults: bool, visibleToRespondents: bool}
+     */
+    public function defaultsFor(string $sourceType, SurveyKind $kind): array
+    {
+        $type = $this->settings->forSubjectType($sourceType);
+        $results = ResultsSettings::defaultsFor($kind);
+
+        return [
+            'anonymous' => $type->anonymous,
+            'durationDays' => $type->closeDays,
+            'liveResults' => $results->liveResults,
+            'visibleToRespondents' => $results->visibleToRespondents,
+        ];
+    }
+
+    /**
+     * The blank content a new survey starts from: a short answer question for a form, a single
+     * choice question with two options for a poll. Titles and labels are left for the organizer.
+     */
+    public function startingDefinition(SurveyKind $kind): SurveyDefinition
+    {
+        $question = $kind === SurveyKind::Poll
+            ? new Question((string) Str::uuid(), null, QuestionType::SingleChoice, '', null, true, [
+                new Option((string) Str::uuid(), ''),
+                new Option((string) Str::uuid(), ''),
+            ])
+            : new Question((string) Str::uuid(), null, QuestionType::ShortText, '', null, true);
+
+        return new SurveyDefinition([new Section((string) Str::uuid(), null, null, [$question])]);
+    }
+
+    /**
+     * Closes an open survey before its date, as a poll in a messaging app is closed by hand.
+     *
+     * @throws AuthorizationException
+     * @throws InvalidSurveyStateException when it is not open
+     */
+    public function close(SurveyId $id, string $userId, ?DateTimeImmutable $now = null): void
+    {
+        DB::transaction(function () use ($id, $userId, $now): void {
+            $survey = $this->surveys->findForUpdate($id);
+            $this->authorize($userId, $survey);
+
+            $this->lifecycle->close($id, $now ?? now()->toDateTimeImmutable());
+        });
     }
 
     /**
@@ -362,6 +475,8 @@ final readonly class OrganizerSurveyService
             throw InvalidSurveyStateException::awaitingSubjectEnd($survey->id()->value);
         }
 
+        $this->refreshSubject($survey);
+
         if ($this->review->needsReview($survey)) {
             $survey->submitForReview($submittedBy, $now);
             $this->surveys->save($survey);
@@ -372,5 +487,24 @@ final readonly class OrganizerSurveyService
         $this->lifecycle->open($survey->id(), $now);
 
         return SendOutcome::Opened;
+    }
+
+    /**
+     * A survey that never opened goes out about the subject as it is now: a draft may have
+     * waited days while its title, dates or organizers changed. Without the subject (deleted,
+     * or its module gone) it keeps the snapshot it has.
+     */
+    private function refreshSubject(Survey $survey): void
+    {
+        $snapshot = $survey->subject();
+        if ($survey->wasOpened() || ! $snapshot instanceof SubjectSnapshot) {
+            return;
+        }
+
+        $subject = $this->sources->source($snapshot->sourceType)?->find($snapshot->subjectId);
+        if ($subject instanceof SurveySubjectDTO) {
+            $survey->refreshSubject(SubjectSnapshotFactory::fromDto($subject));
+            $this->surveys->save($survey);
+        }
     }
 }

@@ -57,4 +57,5 @@ Route::prefix('encuestas')
         Route::put('{survey}/resultados', [OrganizerSurveyResultsController::class, 'update'])->whereUuid('survey')->name('manage.results.update');
         Route::post('{survey}/enviar', [OrganizerSurveyController::class, 'send'])->whereUuid('survey')->name('manage.send');
         Route::post('{survey}/descartar', [OrganizerSurveyController::class, 'dismiss'])->whereUuid('survey')->name('manage.dismiss');
+        Route::post('{survey}/cerrar', [OrganizerSurveyController::class, 'close'])->whereUuid('survey')->name('manage.close');
     });

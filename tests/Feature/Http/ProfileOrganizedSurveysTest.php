@@ -68,7 +68,7 @@ final class ProfileOrganizedSurveysTest extends ModuleTestCase
 
     public function test_the_profile_lists_each_survey_with_its_state(): void
     {
-        $toSend = $this->offered('Por enviar');
+        $toSend = $this->offered('Por enviar', ExampleThingSource::TYPE.':thing-1');
         $scheduled = $this->offered('Programada');
         $scheduled->scheduleSending($this->now->modify('+12 hours'));
         $this->surveys->save($scheduled);
@@ -135,7 +135,10 @@ final class ProfileOrganizedSurveysTest extends ModuleTestCase
             ->assertInertia(fn (Assert $page) => $page->where('profileOrganizedSurveys', null));
     }
 
-    private function offered(string $title): Survey
+    /**
+     * @param  string|null  $endKey  given, the subject's end survey offered after its end
+     */
+    private function offered(string $title, ?string $endKey = null): Survey
     {
         $template = new SurveyTemplate(
             SurveyTemplateId::generate(),
@@ -155,6 +158,6 @@ final class ProfileOrganizedSurveysTest extends ModuleTestCase
         $this->app->make(SurveyTemplateRepositoryInterface::class)->save($template);
 
         return $this->app->make(SurveyLifecycleService::class)
-            ->createFromTemplateForSubject(ExampleThingSource::TYPE, 'thing-1', $template, anonymous: true, durationDays: 7, subjectEndKey: null);
+            ->createFromTemplateForSubject(ExampleThingSource::TYPE, 'thing-1', $template, anonymous: true, durationDays: 7, subjectEndKey: $endKey, subjectEndedAt: $endKey === null ? null : $this->now);
     }
 }
