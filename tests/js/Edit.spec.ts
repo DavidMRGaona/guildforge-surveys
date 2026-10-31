@@ -71,7 +71,8 @@ function props(
         subject: { title: 'Partida de ejemplo' },
         locked: false,
         endSending: null,
-        updateUrl: '/encuestas/sv-1/editar',
+        submitUrl: '/encuestas/sv-1/editar',
+        submitMethod: 'put',
         backUrl: '/encuestas/sujeto/example-thing/thing-1',
         ...overrides,
     };
@@ -229,5 +230,71 @@ describe('Edit', () => {
         await wrapper.find('#survey-live').setValue(true);
 
         expect(wrapper.text()).toContain('debilita el anonimato');
+    });
+
+    it('creates a new poll whose title is its question', async () => {
+        vi.mocked(router.post).mockClear();
+        const poll: SurveyDefinition = {
+            sections: [
+                {
+                    id: 's-1',
+                    title: null,
+                    description: null,
+                    questions: [
+                        {
+                            id: 'q-1',
+                            key: null,
+                            type: 'single_choice',
+                            title: '',
+                            help: null,
+                            required: true,
+                            options: [
+                                { id: 'o-1', label: 'Viernes' },
+                                { id: 'o-2', label: 'Sábado' },
+                            ],
+                            allow_other: false,
+                            scale: null,
+                            stars: null,
+                            grid: null,
+                        },
+                    ],
+                },
+            ],
+        };
+        const wrapper = mount(Edit, {
+            props: props(
+                {
+                    definition: poll,
+                    submitUrl: '/encuestas/sujeto/example-thing/thing-1/nueva/sondeo',
+                    submitMethod: 'post',
+                },
+                { id: null, kind: 'poll', title: '' }
+            ),
+        });
+
+        expect(wrapper.find('h1').text()).toBe('Nuevo sondeo');
+        expect(wrapper.find('#survey-title').exists()).toBe(false);
+        expect(wrapper.text()).toContain('Guardar borrador');
+
+        await wrapper.find('#question-q-1-title').setValue('¿Qué día jugamos?');
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Guardar y enviar')
+            ?.trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith(
+            '/encuestas/sujeto/example-thing/thing-1/nueva/sondeo?send=1',
+            expect.objectContaining({ title: '¿Qué día jugamos?' }),
+            expect.any(Object)
+        );
+    });
+
+    it('keeps the title field of a new form', () => {
+        const wrapper = mount(Edit, {
+            props: props({ submitMethod: 'post' }, { id: null, title: '' }),
+        });
+
+        expect(wrapper.find('h1').text()).toBe('Nueva encuesta');
+        expect(wrapper.find('#survey-title').exists()).toBe(true);
     });
 });

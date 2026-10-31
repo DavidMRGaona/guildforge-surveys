@@ -2,7 +2,14 @@
  * Shapes of the organizers' pages: OrganizedSurveysQueryInterface on the server.
  */
 export type OrganizedSurveyStatus =
-    'prepared' | 'to_send' | 'scheduled' | 'pending_review' | 'rejected' | 'open' | 'closed';
+    | 'draft'
+    | 'prepared'
+    | 'to_send'
+    | 'scheduled'
+    | 'pending_review'
+    | 'rejected'
+    | 'open'
+    | 'closed';
 
 export interface OrganizedSurvey {
     id: string;
@@ -14,7 +21,7 @@ export interface OrganizedSurvey {
     rejectionReason: string | null;
     responses: number;
     audienceSize: number;
-    /** Only while it can still be sent (offered, scheduled or rejected). */
+    /** Only while it can still be sent (a draft, offered, scheduled or rejected). */
     sendUrl: string | null;
     /** Prepared before its subject ends: whether it goes out by itself then, and how much later. */
     sendOnEnd: boolean;
@@ -25,6 +32,8 @@ export interface OrganizedSurvey {
     editUrl: string | null;
     /** Once it opened. */
     resultsUrl: string | null;
+    /** Only while it is open. */
+    closeUrl: string | null;
 }
 
 export interface ManageSubjectProps {
@@ -37,4 +46,6 @@ export interface ManageSubjectProps {
     surveys: OrganizedSurvey[];
     /** While the subject's end survey can be prepared ahead. */
     prepareUrl: string | null;
+    /** New surveys and polls of the organizer's own; null once the subject is cancelled. */
+    createUrls: { form: string; poll: string } | null;
 }

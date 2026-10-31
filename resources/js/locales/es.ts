@@ -11,6 +11,9 @@ export default {
         },
         editor: {
             heading: 'Editar la encuesta',
+            new_form: 'Nueva encuesta',
+            new_poll: 'Nuevo sondeo',
+            save_draft: 'Guardar borrador',
             back: 'Volver a las encuestas de {title}',
             title: 'Título',
             description: 'Descripción',
@@ -97,6 +100,7 @@ export default {
             empty_title: 'Aún no hay encuestas',
             empty_description: 'Cuando termine, su encuesta aparecerá aquí.',
             statuses: {
+                draft: 'Borrador',
                 prepared: 'Preparada',
                 to_send: 'Pendiente de enviar',
                 scheduled: 'Programada',
@@ -106,6 +110,20 @@ export default {
                 closed: 'Cerrada',
             },
             to_send_hint: 'Puedes enviarla tal cual o no enviarla.',
+            draft_hint: 'Aún no la has enviado.',
+            create_title: 'Pregunta a tu gente',
+            create_description:
+                'Lanza una encuesta o un sondeo rápido a quienes participan, cuando quieras.',
+            new_form: 'Nueva encuesta',
+            new_poll: 'Nuevo sondeo',
+            discard: 'Descartar',
+            discard_title: '¿Descartar este borrador?',
+            discard_message:
+                'Nadie lo recibirá y dejará de aparecer aquí. La organización lo seguirá viendo en el panel.',
+            close: 'Cerrar ahora',
+            close_title: '¿Cerrar esta encuesta?',
+            close_message:
+                'Dejará de admitir respuestas y no se podrá volver a abrir. Lo ya respondido se conserva.',
             prepared_auto_hint: 'Se enviará sola {hours} h después de que termine.',
             prepared_auto_now_hint: 'Se enviará sola en cuanto termine.',
             prepared_one_click_hint: 'Cuando termine te avisaremos para que la envíes con un clic.',

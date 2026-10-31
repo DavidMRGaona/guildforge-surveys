@@ -1,9 +1,10 @@
 import type { SurveyDefinition } from './Respond';
 
-/** Props of the organizer's editor (OrganizerSurveyEditorController::edit()). */
+/** Props of the organizer's editor (OrganizerSurveyEditorController::edit() and create()). */
 export interface EditSurveyProps {
     survey: {
-        id: string;
+        /** Null while a new survey is written: nothing is saved until the first save. */
+        id: string | null;
         kind: 'form' | 'poll';
         title: string;
         description: string | null;
@@ -25,7 +26,8 @@ export interface EditSurveyProps {
     locked: boolean;
     /** Only while it is prepared for its subject's end: how it goes out then. */
     endSending: { sendOnEnd: boolean; sendDelayHours: number } | null;
-    updateUrl: string;
+    submitUrl: string;
+    submitMethod: 'post' | 'put';
     backUrl: string;
 }
 
