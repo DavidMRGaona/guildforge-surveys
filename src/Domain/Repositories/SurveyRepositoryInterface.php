@@ -7,6 +7,7 @@ namespace Modules\Surveys\Domain\Repositories;
 use DateTimeImmutable;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 
 interface SurveyRepositoryInterface
 {
@@ -82,4 +83,11 @@ interface SurveyRepositoryInterface
      * @return list<Survey>
      */
     public function findBySubject(string $sourceType, string $subjectId): array;
+
+    /**
+     * The surveys made from a template that have opened and are open or closed, for trends.
+     *
+     * @return list<Survey>
+     */
+    public function findByTemplate(SurveyTemplateId $templateId): array;
 }

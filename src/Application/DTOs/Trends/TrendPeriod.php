@@ -29,6 +29,20 @@ enum TrendPeriod: string
     }
 
     /**
+     * How a key reads on a chart axis: «ene 2027», «T1 2027», «2027».
+     */
+    public function label(string $key): string
+    {
+        [$year, $part] = $this->parts($key);
+
+        return match ($this) {
+            self::Month => (string) __('surveys::messages.trends.month', ['month' => __("surveys::messages.trends.months.{$part}"), 'year' => $year]),
+            self::Quarter => (string) __('surveys::messages.trends.quarter', ['quarter' => $part, 'year' => $year]),
+            self::Year => (string) $year,
+        };
+    }
+
+    /**
      * Every key from the first to the last, both included, empty periods too.
      *
      * @return list<string>
