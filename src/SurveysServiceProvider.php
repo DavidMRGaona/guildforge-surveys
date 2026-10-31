@@ -11,6 +11,7 @@ use App\Application\Modules\DTOs\PagePrefixDTO;
 use App\Application\Modules\DTOs\PermissionDTO;
 use App\Application\Modules\DTOs\SlotRegistrationDTO;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
+use App\Domain\Surveys\Events\SurveySubjectEnded;
 use App\Modules\ModuleServiceProvider;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
@@ -18,9 +19,11 @@ use Filament\Widgets\Widget;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\OrganizerNotifierInterface;
 use Modules\Surveys\Application\Contracts\PendingSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
@@ -41,8 +44,10 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSur
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyResultsQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
+use Modules\Surveys\Infrastructure\Services\OrganizerMailer;
 use Modules\Surveys\Infrastructure\Services\SurveyInvitationSender;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
+use Modules\Surveys\Listeners\OfferSurveyWhenSubjectEnds;
 use Modules\Surveys\Policies\SurveyPolicy;
 use Modules\Surveys\Policies\SurveyTemplatePolicy;
 
@@ -80,6 +85,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
         $this->app->bind(SurveyResultsQueryInterface::class, EloquentSurveyResultsQuery::class);
         $this->app->bind(SurveySettingsInterface::class, SurveySettings::class);
+        $this->app->bind(OrganizerNotifierInterface::class, OrganizerMailer::class);
     }
 
     /**
@@ -95,13 +101,20 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         // Extend core Filament Resources with RelationManagers
         // $this->registerFilamentExtensions();
 
-        // Register domain event listeners
-        // $this->registerEventListeners();
+        $this->registerEventListeners();
 
         $this->registerCommands();
         $this->registerSchedule();
         $this->registerRateLimiters();
         $this->sharePendingSurveys();
+    }
+
+    /**
+     * A subject offered by another module ended: send or offer its survey.
+     */
+    private function registerEventListeners(): void
+    {
+        Event::listen(SurveySubjectEnded::class, OfferSurveyWhenSubjectEnds::class);
     }
 
     /**
@@ -216,20 +229,6 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      *                 ItemsRelationManager::class,
      *             ]);
      *         }
-     *     }
-     */
-
-    /**
-     * Register domain event listeners.
-     *
-     * Example:
-     *
-     *     private function registerEventListeners(): void
-     *     {
-     *         \Illuminate\Support\Facades\Event::listen(
-     *             ItemCreated::class,
-     *             SendItemCreatedNotification::class
-     *         );
      *     }
      */
 

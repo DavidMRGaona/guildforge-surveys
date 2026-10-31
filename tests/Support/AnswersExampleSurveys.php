@@ -36,7 +36,7 @@ trait AnswersExampleSurveys
 
     private function createExamplePeople(): void
     {
-        ExampleThingSource::$audience = null;
+        ExampleThingSource::reset();
         $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
         $this->people = [
             UserModel::factory()->create(['name' => 'Persona A']),
@@ -67,7 +67,7 @@ trait AnswersExampleSurveys
      */
     private function openForm(bool $anonymous, ?ResultsSettings $results = null): array
     {
-        ExampleThingSource::$audience = null;
+        ExampleThingSource::reset();
 
         return $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()), $anonymous, $results ?? ResultsSettings::defaultsFor(SurveyKind::Form));
     }

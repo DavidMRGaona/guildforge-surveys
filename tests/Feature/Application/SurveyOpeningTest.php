@@ -39,7 +39,7 @@ final class SurveyOpeningTest extends ModuleTestCase
         parent::setUp();
 
         $this->lifecycle = $this->app->make(SurveyLifecycleService::class);
-        ExampleThingSource::$audience = null;
+        ExampleThingSource::reset();
     }
 
     public function test_all_users_means_every_active_account_at_opening(): void

@@ -18,4 +18,18 @@ return [
         'subject' => 'Recordatorio: :title',
         'intro' => 'Todavía no has respondido la encuesta «:title» de :site. Se cierra pronto.',
     ],
+
+    'ready_to_send' => [
+        'subject' => '¿Quieres enviar la encuesta de :title?',
+        'intro' => '«:title» ha terminado. Su encuesta de :site está lista para enviarse a quienes participaron.',
+        'edit' => 'Puedes enviarla tal cual con un clic, cambiarla antes o no enviarla.',
+        'action' => 'Ver la encuesta',
+    ],
+
+    'scheduled' => [
+        'subject' => 'La encuesta de :title se enviará pronto',
+        'intro' => '«:title» ha terminado. Su encuesta de :site se enviará sola el :date a quienes participaron.',
+        'edit' => 'Hasta entonces puedes revisarla, enviarla ya o no enviarla.',
+        'action' => 'Ver la encuesta',
+    ],
 ];

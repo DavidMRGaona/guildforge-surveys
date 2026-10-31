@@ -10,13 +10,27 @@ use App\Application\Surveys\DTOs\SurveySubjectDTO;
 use DateTimeImmutable;
 
 /**
- * A survey subject source for tests: one example thing whose audience is set by each test.
+ * A survey subject source for tests: one example thing whose audience, organizers and managers
+ * are set by each test (reset() puts them back).
  */
 final class ExampleThingSource implements SurveySubjectSourceInterface
 {
     public const string TYPE = 'example-thing';
 
     public static ?SurveyAudienceDTO $audience = null;
+
+    /** @var list<string> */
+    public static array $organizerIds = [];
+
+    /** @var list<string> users canManage() lets in */
+    public static array $managers = [];
+
+    public static function reset(): void
+    {
+        self::$audience = null;
+        self::$organizerIds = [];
+        self::$managers = [];
+    }
 
     public function sourceType(): string
     {
@@ -36,7 +50,7 @@ final class ExampleThingSource implements SurveySubjectSourceInterface
             title: 'Partida de ejemplo',
             startsAt: new DateTimeImmutable('2030-01-05T16:00:00+00:00'),
             endsAt: new DateTimeImmutable('2030-01-05T20:00:00+00:00'),
-            organizerIds: [],
+            organizerIds: self::$organizerIds,
         ) : null;
     }
 
@@ -47,6 +61,6 @@ final class ExampleThingSource implements SurveySubjectSourceInterface
 
     public function canManage(string $userId, string $subjectId): bool
     {
-        return false;
+        return $subjectId === 'thing-1' && in_array($userId, self::$managers, true);
     }
 }
