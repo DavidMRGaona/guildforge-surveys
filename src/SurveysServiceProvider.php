@@ -10,6 +10,7 @@ use App\Application\Modules\DTOs\NavigationItemDTO;
 use App\Application\Modules\DTOs\PagePrefixDTO;
 use App\Application\Modules\DTOs\PermissionDTO;
 use App\Application\Modules\DTOs\SlotRegistrationDTO;
+use App\Application\Surveys\Contracts\SurveySubjectLinksInterface;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
 use App\Domain\Surveys\Events\SurveySubjectEnded;
 use App\Modules\ModuleServiceProvider;
@@ -53,6 +54,7 @@ use Modules\Surveys\Infrastructure\Services\OrganizerMailer;
 use Modules\Surveys\Infrastructure\Services\ReviewMailer;
 use Modules\Surveys\Infrastructure\Services\SurveyInvitationSender;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
+use Modules\Surveys\Infrastructure\Services\SurveySubjectLinks;
 use Modules\Surveys\Listeners\OfferSurveyWhenSubjectEnds;
 use Modules\Surveys\Policies\SurveyPolicy;
 use Modules\Surveys\Policies\SurveyTemplatePolicy;
@@ -92,6 +94,8 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(OrganizedSurveysQueryInterface::class, EloquentOrganizedSurveysQuery::class);
         $this->app->bind(SurveyResultsQueryInterface::class, EloquentSurveyResultsQuery::class);
         $this->app->bind(SurveySettingsInterface::class, SurveySettings::class);
+        // Replaces the core's default (no links): subject pages of other modules link to their surveys
+        $this->app->bind(SurveySubjectLinksInterface::class, SurveySubjectLinks::class);
         $this->app->bind(OrganizerNotifierInterface::class, OrganizerMailer::class);
         $this->app->bind(ReviewNotifierInterface::class, ReviewMailer::class);
     }

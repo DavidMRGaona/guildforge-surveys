@@ -2,7 +2,7 @@
 
 Encuestas para la plataforma GuildForge: formularios al estilo de un formulario web, sondeos rápidos de una pregunta y encuestas al terminar una mesa, una campaña, un torneo o un evento.
 
-Requiere el core de GuildForge `^3.28`.
+Requiere el core de GuildForge `^3.29`.
 
 ## Qué hace
 
@@ -25,6 +25,8 @@ Desde la web, en la ficha del sujeto o en la pestaña «Encuestas» del perfil, 
 - **Ver sus resultados** cuando ya ha salido, con la misma regla que el panel (una anónima espera a cerrar y al mínimo de respuestas): participación, una gráfica por pregunta con su tabla de datos, y el texto libre. Elige la gráfica de cada pregunta y cuáles se ocultan.
 
 Cada acción comprueba en el momento que la persona sigue organizando el sujeto: si deja de hacerlo, o el módulo del sujeto se desactiva, pierde el acceso.
+
+La ficha del sujeto, en su propio módulo, enlaza con sus encuestas a través del contrato del core `SurveySubjectLinksInterface`, que este módulo implementa: a quien lo organiza, con la página de encuestas del sujeto; a cada participante, con su encuesta mientras puede responderla y con sus resultados cuando la encuesta los comparte con quien responde (con las mismas reglas que la página de respuesta). Sin este módulo, la ficha no muestra nada.
 
 ## Revisión
 
