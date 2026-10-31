@@ -48,6 +48,7 @@ return [
         'duration_days' => 'días abierta',
         'closes_at' => 'fecha de cierre',
         'reminder_hours_before' => 'recordatorio',
+        'send_delay_hours' => 'horas tras terminar',
     ],
 
     'manage' => [
@@ -62,6 +63,11 @@ return [
         'not_editable' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
         'results_title' => 'Resultados de :title',
         'results_saved' => 'Ajustes de los resultados guardados.',
+        'prepared' => 'Encuesta preparada. Revísala y elige cómo se envía al terminar.',
+        'prepare_unavailable' => [
+            'no_template' => 'La organización aún no ha elegido una plantilla para estas encuestas.',
+            'cancelled' => 'Se ha cancelado, así que no tendrá encuesta al terminar.',
+        ],
     ],
 
     'definition_errors' => [
@@ -98,6 +104,7 @@ return [
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
         'closed' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
         'pending_review' => 'La encuesta está esperando revisión: su contenido no se puede cambiar hasta que la aprueben o la rechacen.',
+        'send_delay' => 'Las horas tras terminar no pueden ser negativas.',
     ],
 
     'response' => [

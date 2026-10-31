@@ -17,6 +17,8 @@ function survey(overrides: Partial<OrganizedSurvey>): OrganizedSurvey {
         responses: 0,
         audienceSize: 0,
         sendUrl: '/encuestas/s-1/enviar',
+        sendOnEnd: false,
+        sendDelayHours: 0,
         dismissUrl: '/encuestas/s-1/descartar',
         editUrl: '/encuestas/s-1/editar',
         resultsUrl: null,
@@ -25,6 +27,38 @@ function survey(overrides: Partial<OrganizedSurvey>): OrganizedSurvey {
 }
 
 describe('OrganizedSurveysList', () => {
+    it('tells how a prepared survey goes out on the end, without sending it now', () => {
+        const wrapper = mount(OrganizedSurveysList, {
+            props: {
+                surveys: [
+                    survey({
+                        id: 's-1',
+                        status: 'prepared',
+                        sendUrl: null,
+                        sendOnEnd: true,
+                        sendDelayHours: 12,
+                    }),
+                    survey({
+                        id: 's-2',
+                        status: 'prepared',
+                        sendUrl: null,
+                        sendOnEnd: true,
+                        sendDelayHours: 0,
+                    }),
+                    survey({ id: 's-3', status: 'prepared', sendUrl: null, sendOnEnd: false }),
+                ],
+            },
+        });
+
+        expect(wrapper.text()).toContain('Preparada');
+        expect(wrapper.text()).toContain('Se enviará sola 12 h después de que termine.');
+        expect(wrapper.text()).toContain('Se enviará sola en cuanto termine.');
+        expect(wrapper.text()).toContain(
+            'Cuando termine te avisaremos para que la envíes con un clic.'
+        );
+        expect(wrapper.findAll('button').map((button) => button.text())).not.toContain('Enviar');
+    });
+
     it('offers to send or not to send a survey waiting for the organizer', async () => {
         const wrapper = mount(OrganizedSurveysList, { props: { surveys: [survey({})] } });
 

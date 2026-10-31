@@ -23,5 +23,8 @@ final readonly class OrganizerSurveyInput
         public ?int $reminderHoursBefore,
         public bool $liveResults,
         public bool $visibleToRespondents,
+        /** How a survey prepared for its subject's end goes out; null leaves it as it is */
+        public ?bool $sendOnEnd = null,
+        public ?int $sendDelayHours = null,
     ) {}
 }

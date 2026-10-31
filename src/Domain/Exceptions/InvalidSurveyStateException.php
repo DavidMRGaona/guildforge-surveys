@@ -87,4 +87,29 @@ final class InvalidSurveyStateException extends DomainException
     {
         return new self("Survey {$surveyId} cannot be dismissed from status '{$status}'.");
     }
+
+    public static function notAwaitingSubjectEnd(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} is not waiting for its subject to end.");
+    }
+
+    public static function awaitingSubjectEnd(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} waits for its subject to end.");
+    }
+
+    public static function invalidSendDelay(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} needs a send delay of zero hours or more.");
+    }
+
+    public static function subjectFixed(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} already opened: its subject snapshot is fixed.");
+    }
+
+    public static function otherSubject(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} is about another subject.");
+    }
 }

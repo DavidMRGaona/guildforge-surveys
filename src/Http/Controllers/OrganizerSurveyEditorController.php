@@ -74,8 +74,13 @@ final class OrganizerSurveyEditorController extends Controller
                 'opened' => $found->wasOpened(),
                 'pendingReview' => $found->status() === SurveyStatus::PendingReview,
                 'rejectionReason' => $found->rejectionReason(),
-                'sendable' => $found->status() === SurveyStatus::Draft,
+                // Prepared for its subject's end: it goes out then, as chosen below
+                'sendable' => $found->status() === SurveyStatus::Draft && ! $found->isAwaitingSubjectEnd(),
             ],
+            'endSending' => $found->isAwaitingSubjectEnd() ? [
+                'sendOnEnd' => $found->sendsOnEnd(),
+                'sendDelayHours' => $found->sendDelayHours(),
+            ] : null,
             'definition' => $found->definition()->toArray(),
             'subject' => ['title' => $subject->title],
             'locked' => $hasResponses,
@@ -139,6 +144,8 @@ final class OrganizerSurveyEditorController extends Controller
             reminderHoursBefore: $request->filled('reminder_hours_before') ? $request->integer('reminder_hours_before') : null,
             liveResults: $request->boolean('live_results'),
             visibleToRespondents: $request->boolean('visible_to_respondents'),
+            sendOnEnd: $request->has('send_on_end') ? $request->boolean('send_on_end') : null,
+            sendDelayHours: $request->filled('send_delay_hours') ? $request->integer('send_delay_hours') : null,
         );
     }
 }

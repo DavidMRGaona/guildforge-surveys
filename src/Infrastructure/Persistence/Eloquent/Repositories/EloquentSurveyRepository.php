@@ -32,13 +32,29 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
         DB::transaction(function () use ($survey): void {
             $model = $this->write($survey);
 
-            // The snapshot never changes: its organizers are copied once, when the survey is made
-            if ($model->wasRecentlyCreated && $survey->subject() instanceof SubjectSnapshot) {
-                foreach ($survey->subject()->organizerIds as $userId) {
-                    SurveyOrganizerModel::query()->create(['survey_id' => $model->id, 'user_id' => $userId]);
-                }
+            // The snapshot's organizers, kept in step with it: a survey prepared before its subject
+            // ended gets the subject as it is on the end
+            if ($survey->subject() instanceof SubjectSnapshot) {
+                $this->syncOrganizers($model, $survey->subject()->organizerIds);
             }
         });
+    }
+
+    /**
+     * @param  list<string>  $organizerIds
+     */
+    private function syncOrganizers(SurveyModel $model, array $organizerIds): void
+    {
+        $current = SurveyOrganizerModel::query()->where('survey_id', $model->id)->pluck('user_id')->map(static fn (mixed $id): string => (string) $id)->all();
+
+        $gone = array_values(array_diff($current, $organizerIds));
+        if ($gone !== []) {
+            SurveyOrganizerModel::query()->where('survey_id', $model->id)->whereIn('user_id', $gone)->delete();
+        }
+
+        foreach (array_values(array_diff($organizerIds, $current)) as $userId) {
+            SurveyOrganizerModel::query()->create(['survey_id' => $model->id, 'user_id' => $userId]);
+        }
     }
 
     private function write(Survey $survey): SurveyModel
@@ -79,6 +95,9 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             'scheduled_send_at' => $survey->scheduledSendAt(),
             'dismissed_at' => $survey->dismissedAt(),
             'subject_end_key' => $survey->subjectEndKey(),
+            'subject_ended_at' => $survey->subjectEndedAt(),
+            'send_on_end' => $survey->sendsOnEnd(),
+            'send_delay_hours' => $survey->sendDelayHours(),
         ]);
     }
 
@@ -99,6 +118,20 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             ?? throw (new ModelNotFoundException)->setModel(SurveyModel::class, [$id->value]);
 
         return $this->toEntity($model);
+    }
+
+    public function findBySubjectEnd(string $key): ?Survey
+    {
+        $model = SurveyModel::query()->where('subject_end_key', $key)->first();
+
+        return $model === null ? null : $this->toEntity($model);
+    }
+
+    public function findBySubjectEndForUpdate(string $key): ?Survey
+    {
+        $model = SurveyModel::query()->where('subject_end_key', $key)->lockForUpdate()->first();
+
+        return $model === null ? null : $this->toEntity($model);
     }
 
     public function existsForSubjectEnd(string $key): bool
@@ -229,6 +262,9 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             scheduledSendAt: $this->instant($model->scheduled_send_at),
             dismissedAt: $this->instant($model->dismissed_at),
             subjectEndKey: $model->subject_end_key,
+            subjectEndedAt: $this->instant($model->subject_ended_at),
+            sendOnEnd: $model->send_on_end,
+            sendDelayHours: $model->send_delay_hours,
         );
     }
 

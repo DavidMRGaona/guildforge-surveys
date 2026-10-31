@@ -7,6 +7,7 @@ namespace Modules\Surveys\Tests\Support;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
 use App\Application\Surveys\DTOs\SurveyAudienceDTO;
 use App\Application\Surveys\DTOs\SurveySubjectDTO;
+use App\Application\Surveys\Enums\SurveySubjectStatus;
 use DateTimeImmutable;
 
 /**
@@ -25,11 +26,17 @@ final class ExampleThingSource implements SurveySubjectSourceInterface
     /** @var list<string> users canManage() lets in */
     public static array $managers = [];
 
+    public static string $title = 'Partida de ejemplo';
+
+    public static SurveySubjectStatus $status = SurveySubjectStatus::Active;
+
     public static function reset(): void
     {
         self::$audience = null;
         self::$organizerIds = [];
         self::$managers = [];
+        self::$title = 'Partida de ejemplo';
+        self::$status = SurveySubjectStatus::Active;
     }
 
     public function sourceType(): string
@@ -47,10 +54,11 @@ final class ExampleThingSource implements SurveySubjectSourceInterface
         return $subjectId === 'thing-1' ? new SurveySubjectDTO(
             sourceType: self::TYPE,
             subjectId: 'thing-1',
-            title: 'Partida de ejemplo',
+            title: self::$title,
             startsAt: new DateTimeImmutable('2030-01-05T16:00:00+00:00'),
             endsAt: new DateTimeImmutable('2030-01-05T20:00:00+00:00'),
             organizerIds: self::$organizerIds,
+            status: self::$status,
         ) : null;
     }
 

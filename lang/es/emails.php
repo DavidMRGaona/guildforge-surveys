@@ -33,6 +33,12 @@ return [
         'action' => 'Ver la encuesta',
     ],
 
+    'withdrawn_with_subject' => [
+        'subject' => 'La encuesta de :title no se enviará',
+        'intro' => '«:title» se ha cancelado antes de terminar, así que la encuesta «:survey» de :site no se enviará.',
+        'kept' => 'La encuesta se conserva sin enviar por si la necesitas más adelante.',
+    ],
+
     'submitted_for_review' => [
         'subject' => 'Encuesta pendiente de revisión: :title',
         'intro' => 'La encuesta «:title» de :site ha cambiado fuera del panel y espera tu revisión antes de enviarse.',

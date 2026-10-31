@@ -70,6 +70,7 @@ function props(
         definition: definition(),
         subject: { title: 'Partida de ejemplo' },
         locked: false,
+        endSending: null,
         updateUrl: '/encuestas/sv-1/editar',
         backUrl: '/encuestas/sujeto/example-thing/thing-1',
         ...overrides,
@@ -104,6 +105,54 @@ describe('Edit', () => {
             }),
             expect.any(Object)
         );
+    });
+
+    it('says how a survey prepared for the end goes out and saves it', async () => {
+        vi.mocked(router.put).mockClear();
+        const wrapper = mount(Edit, {
+            props: props(
+                { endSending: { sendOnEnd: true, sendDelayHours: 12 } },
+                { sendable: false }
+            ),
+        });
+
+        expect(wrapper.text()).toContain('Al terminar');
+        expect(wrapper.findAll('button').map((button) => button.text())).not.toContain(
+            'Guardar y enviar'
+        );
+
+        await wrapper.find('#survey-send-delay').setValue('2');
+        await wrapper.find('form').trigger('submit');
+
+        expect(router.put).toHaveBeenCalledWith(
+            '/encuestas/sv-1/editar',
+            expect.objectContaining({ send_on_end: true, send_delay_hours: 2 }),
+            expect.any(Object)
+        );
+    });
+
+    it('hides the delay when the organizer prefers the one click', async () => {
+        const wrapper = mount(Edit, {
+            props: props(
+                { endSending: { sendOnEnd: true, sendDelayHours: 12 } },
+                { sendable: false }
+            ),
+        });
+
+        await wrapper.find('#survey-send-on-end').setValue(false);
+
+        expect(wrapper.find('#survey-send-delay').exists()).toBe(false);
+    });
+
+    it('sends nothing about the end for a survey that is not prepared', async () => {
+        vi.mocked(router.put).mockClear();
+        const wrapper = mount(Edit, { props: props() });
+
+        await wrapper.find('form').trigger('submit');
+
+        const data = vi.mocked(router.put).mock.calls[0]?.[1] as Record<string, unknown>;
+        expect(data).not.toHaveProperty('send_on_end');
+        expect(wrapper.text()).not.toContain('Al terminar');
     });
 
     it('saves and sends with one click', async () => {

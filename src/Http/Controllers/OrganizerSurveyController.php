@@ -17,13 +17,16 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Surveys\Application\Contracts\OrganizedSurveysQueryInterface;
 use Modules\Surveys\Application\Enums\SendOutcome;
+use Modules\Surveys\Application\Exceptions\SurveyPreparationUnavailableException;
 use Modules\Surveys\Application\Services\OrganizerSurveyService;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
+use Modules\Surveys\Domain\Exceptions\SubjectNotFoundException;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
  * A subject's surveys for whoever organizes it, without the panel: its page (module pages link
- * to it), sending an offered survey with one click and choosing not to send it. Who may is
+ * to it), preparing its end survey ahead, sending an offered survey with one click and choosing
+ * not to send it. Who may is
  * asked to the subject's source on every request.
  */
 final class OrganizerSurveyController extends Controller
@@ -49,13 +52,34 @@ final class OrganizerSurveyController extends Controller
                 'title' => $found->title,
                 'typeLabel' => $source->sourceLabel(),
                 'url' => $found->url,
+                'status' => $found->status->value,
             ],
             'surveys' => $this->organized->forSubject($type, $subject, $userId),
+            'prepareUrl' => $this->service->preparationAvailable($found) ? route('surveys.manage.prepare', [$type, $subject]) : null,
             'seo' => $this->seo->forPage(new SeoPageDTO(
                 title: (string) __('surveys::messages.manage.subject_title', ['title' => $found->title]),
                 noindex: true,
             ))->toArray(),
         ]);
+    }
+
+    /**
+     * Prepares the subject's end survey from its type's template and opens it in the editor.
+     */
+    public function prepare(Request $request, string $type, string $subject): RedirectResponse
+    {
+        try {
+            $survey = $this->service->prepare($type, $subject, (string) $request->user()?->getAuthIdentifier());
+        } catch (SubjectNotFoundException) {
+            abort(404);
+        } catch (AuthorizationException) {
+            abort(403);
+        } catch (SurveyPreparationUnavailableException $exception) {
+            return back()->with('error', __("surveys::messages.manage.prepare_unavailable.{$exception->reason}"));
+        }
+
+        return redirect()->route('surveys.manage.edit', $survey->id()->value)
+            ->with('success', __('surveys::messages.manage.prepared'));
     }
 
     public function send(Request $request, string $survey): RedirectResponse

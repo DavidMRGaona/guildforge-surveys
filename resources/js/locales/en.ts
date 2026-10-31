@@ -29,6 +29,13 @@ export default {
             live_results_warning:
                 'Ver los resultados antes del cierre debilita el anonimato: comparando antes y después de cada respuesta se puede adivinar quién respondió qué.',
             questions: 'Preguntas',
+            end_sending: 'Al terminar',
+            awaiting_end_notice:
+                'Encuesta preparada: se enviará cuando termine, como elijas en «Al terminar».',
+            send_on_end: 'Enviarla sola al terminar',
+            send_on_end_help: 'Si no, te avisaremos al terminar para que la envíes con un clic.',
+            send_delay_hours: 'Horas tras terminar',
+            send_delay_help: 'Con 0 se envía en cuanto termina.',
             pending_review_notice:
                 'La encuesta está esperando revisión: su contenido no se puede cambiar hasta que la aprueben o la rechacen. Las fechas y los ajustes sí.',
             locked_notice:
@@ -90,6 +97,7 @@ export default {
             empty_title: 'Aún no hay encuestas',
             empty_description: 'Cuando termine, su encuesta aparecerá aquí.',
             statuses: {
+                prepared: 'Preparada',
                 to_send: 'Pendiente de enviar',
                 scheduled: 'Programada',
                 pending_review: 'En revisión',
@@ -98,6 +106,16 @@ export default {
                 closed: 'Cerrada',
             },
             to_send_hint: 'Puedes enviarla tal cual o no enviarla.',
+            prepared_auto_hint: 'Se enviará sola {hours} h después de que termine.',
+            prepared_auto_now_hint: 'Se enviará sola en cuanto termine.',
+            prepared_one_click_hint: 'Cuando termine te avisaremos para que la envíes con un clic.',
+            prepare_title: 'Prepara la encuesta',
+            prepare_description:
+                'Parte de la plantilla de la organización. Puedes cambiarla y elegir si se envía sola al terminar.',
+            prepare_ended_description:
+                'Ya ha terminado: prepara su encuesta desde la plantilla de la organización y envíala cuando quieras.',
+            prepare: 'Preparar encuesta',
+            cancelled_notice: 'Se ha cancelado, así que no tendrá encuesta al terminar.',
             scheduled_at: 'Se enviará el {date}',
             pending_review_hint: 'Saldrá cuando alguien la apruebe.',
             rejection_reason: 'Motivo del rechazo: {reason}',

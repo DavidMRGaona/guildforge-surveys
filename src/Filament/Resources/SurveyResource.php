@@ -171,7 +171,13 @@ final class SurveyResource extends BaseResource
                         SurveyStatus::PendingReview->value => 'info',
                         default => 'warning',
                     })
-                    ->formatStateUsing(static fn (string $state): string => self::statusOptions()[$state] ?? $state),
+                    ->formatStateUsing(static fn (string $state): string => self::statusOptions()[$state] ?? $state)
+                    // Prepared by its organizers for the end of what it is about: it waits for it
+                    ->description(static fn (SurveyModel $record): ?string => $record->subject_end_key !== null && $record->subject_ended_at === null && $record->opens_at === null
+                        ? ($record->send_on_end
+                            ? (string) __('surveys::filament.survey.awaiting_end_auto', ['hours' => $record->send_delay_hours])
+                            : (string) __('surveys::filament.survey.awaiting_end_one_click'))
+                        : null),
                 IconColumn::make('anonymous')
                     ->label(__('surveys::filament.survey.fields.anonymous'))
                     ->boolean(),

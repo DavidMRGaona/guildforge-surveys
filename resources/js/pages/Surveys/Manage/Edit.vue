@@ -22,6 +22,8 @@ const closesAt = ref(props.survey.closesAt ?? '');
 const reminderHoursBefore = ref<number | null>(props.survey.reminderHoursBefore);
 const liveResults = ref(props.survey.liveResults);
 const visibleToRespondents = ref(props.survey.visibleToRespondents);
+const sendOnEnd = ref(props.endSending?.sendOnEnd ?? false);
+const sendDelayHours = ref<number | null>(props.endSending?.sendDelayHours ?? 0);
 const definition = ref<SurveyDefinition>(cloneDefinition(props.definition));
 
 const errors = ref<Record<string, string>>({});
@@ -49,6 +51,10 @@ function submit(send: boolean): void {
             reminder_hours_before: reminderHoursBefore.value,
             live_results: liveResults.value,
             visible_to_respondents: visibleToRespondents.value,
+            // Only a survey prepared for its subject's end says how it goes out then
+            ...(props.endSending
+                ? { send_on_end: sendOnEnd.value, send_delay_hours: sendDelayHours.value ?? 0 }
+                : {}),
         },
         {
             preserveScroll: true,
@@ -137,6 +143,43 @@ function submit(send: boolean): void {
                     ></textarea>
                     <p v-if="errors.description" class="mt-1 text-sm text-error">
                         {{ errors.description }}
+                    </p>
+                </div>
+            </section>
+
+            <section v-if="props.endSending" class="space-y-4" aria-labelledby="survey-end-sending">
+                <h2 id="survey-end-sending" class="text-lg font-semibold text-base-primary">
+                    {{ t('surveys.editor.end_sending') }}
+                </h2>
+                <p class="text-sm text-base-secondary">
+                    {{ t('surveys.editor.awaiting_end_notice') }}
+                </p>
+                <div>
+                    <FormCheckbox
+                        id="survey-send-on-end"
+                        v-model="sendOnEnd"
+                        :label="t('surveys.editor.send_on_end')"
+                    />
+                    <p class="mt-1 text-sm text-base-secondary">
+                        {{ t('surveys.editor.send_on_end_help') }}
+                    </p>
+                </div>
+                <div v-if="sendOnEnd">
+                    <label
+                        for="survey-send-delay"
+                        class="block text-sm font-medium text-base-primary"
+                    >
+                        {{ t('surveys.editor.send_delay_hours') }}
+                    </label>
+                    <FormNumberInput
+                        id="survey-send-delay"
+                        v-model="sendDelayHours"
+                        :min="0"
+                        :max="8760"
+                        :error="errors.send_delay_hours"
+                    />
+                    <p class="mt-1 text-sm text-base-secondary">
+                        {{ t('surveys.editor.send_delay_help') }}
                     </p>
                 </div>
             </section>

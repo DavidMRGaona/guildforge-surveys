@@ -30,6 +30,16 @@ interface SurveyRepositoryInterface
     public function findForUpdate(SurveyId $id): Survey;
 
     /**
+     * The subject's end survey ("<type>:<id>"), if it exists.
+     */
+    public function findBySubjectEnd(string $key): ?Survey;
+
+    /**
+     * The subject's end survey ("<type>:<id>"), with its row locked until the transaction ends.
+     */
+    public function findBySubjectEndForUpdate(string $key): ?Survey;
+
+    /**
      * Whether the survey made when this subject ended ("<type>:<id>") already exists.
      */
     public function existsForSubjectEnd(string $key): bool;

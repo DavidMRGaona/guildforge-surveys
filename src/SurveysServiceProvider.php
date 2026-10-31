@@ -11,6 +11,7 @@ use App\Application\Modules\DTOs\PagePrefixDTO;
 use App\Application\Modules\DTOs\PermissionDTO;
 use App\Application\Modules\DTOs\SlotRegistrationDTO;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
+use App\Domain\Surveys\Events\SurveySubjectCancelled;
 use App\Domain\Surveys\Events\SurveySubjectEnded;
 use App\Modules\ModuleServiceProvider;
 use Filament\Pages\Page;
@@ -54,6 +55,7 @@ use Modules\Surveys\Infrastructure\Services\ReviewMailer;
 use Modules\Surveys\Infrastructure\Services\SurveyInvitationSender;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
 use Modules\Surveys\Listeners\OfferSurveyWhenSubjectEnds;
+use Modules\Surveys\Listeners\WithdrawSurveysWhenSubjectIsCancelled;
 use Modules\Surveys\Policies\SurveyPolicy;
 use Modules\Surveys\Policies\SurveyTemplatePolicy;
 
@@ -118,11 +120,13 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * A subject offered by another module ended: send or offer its survey.
+     * A subject offered by another module ended (send or offer its survey) or will never end
+     * (drop its surveys that never opened).
      */
     private function registerEventListeners(): void
     {
         Event::listen(SurveySubjectEnded::class, OfferSurveyWhenSubjectEnds::class);
+        Event::listen(SurveySubjectCancelled::class, WithdrawSurveysWhenSubjectIsCancelled::class);
     }
 
     /**

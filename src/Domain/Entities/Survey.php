@@ -34,7 +34,7 @@ final class Survey
         private array $audienceRoles = [],
         private bool $publicLinkEnabled = false,
         private readonly ?SurveyTemplateId $templateId = null,
-        private readonly ?SubjectSnapshot $subject = null,
+        private ?SubjectSnapshot $subject = null,
         private SurveyStatus $status = SurveyStatus::Draft,
         private ?DateTimeImmutable $opensAt = null,
         private ?DateTimeImmutable $closesAt = null,
@@ -54,6 +54,9 @@ final class Survey
         private ?DateTimeImmutable $scheduledSendAt = null,
         private ?DateTimeImmutable $dismissedAt = null,
         private readonly ?string $subjectEndKey = null,
+        private ?DateTimeImmutable $subjectEndedAt = null,
+        private bool $sendOnEnd = false,
+        private int $sendDelayHours = 0,
     ) {}
 
     /**
@@ -220,6 +223,89 @@ final class Survey
             throw InvalidSurveyStateException::cannotDismiss($this->id->value, $this->status->value);
         }
 
+        $this->dismissedAt = $now;
+        $this->scheduledSendAt = null;
+    }
+
+    /**
+     * A subject's end survey made before the subject ended: it waits for SurveySubjectEnded, then
+     * goes out or is offered as chosen. Opening it some other way (from the panel) stops the wait.
+     */
+    public function isAwaitingSubjectEnd(): bool
+    {
+        return $this->subjectEndKey !== null
+            && ! $this->subjectEndedAt instanceof DateTimeImmutable
+            && ! $this->wasOpened();
+    }
+
+    /**
+     * How a survey waiting for its subject's end goes out: by itself, that many hours after the
+     * end (0 = at once), or offered to the organizers with one click.
+     */
+    public function chooseEndSending(bool $sendOnEnd, int $sendDelayHours): void
+    {
+        if (! $this->isAwaitingSubjectEnd()) {
+            throw InvalidSurveyStateException::notAwaitingSubjectEnd($this->id->value);
+        }
+
+        if ($sendDelayHours < 0) {
+            throw InvalidSurveyStateException::invalidSendDelay($this->id->value);
+        }
+
+        $this->sendOnEnd = $sendOnEnd;
+        $this->sendDelayHours = $sendDelayHours;
+    }
+
+    /**
+     * The subject ended: kept from the first time it is told, so a repeated end changes nothing.
+     */
+    public function markSubjectEnded(DateTimeImmutable $endedAt): void
+    {
+        $this->subjectEndedAt ??= $endedAt;
+    }
+
+    /**
+     * The subject as it is now, for a survey prepared before its end: titles, dates and
+     * organizers may have changed meanwhile. Fixed once the survey opens.
+     */
+    public function refreshSubject(SubjectSnapshot $subject): void
+    {
+        if ($this->wasOpened()) {
+            throw InvalidSurveyStateException::subjectFixed($this->id->value);
+        }
+
+        if (! $this->subject instanceof SubjectSnapshot
+            || $subject->sourceType !== $this->subject->sourceType
+            || $subject->subjectId !== $this->subject->subjectId) {
+            throw InvalidSurveyStateException::otherSubject($this->id->value);
+        }
+
+        $this->subject = $subject;
+    }
+
+    /**
+     * Takes back a survey its organizers chose not to send, while it never opened.
+     */
+    public function reconsider(): void
+    {
+        if ($this->status !== SurveyStatus::Draft || $this->wasOpened()) {
+            throw InvalidSurveyStateException::cannotDismiss($this->id->value, $this->status->value);
+        }
+
+        $this->dismissedAt = null;
+    }
+
+    /**
+     * The subject will never end: a survey that never opened is dropped, also while it waits for
+     * a moderator (approving it would send it to the audience of something that did not happen).
+     */
+    public function withdrawWithSubject(DateTimeImmutable $now): void
+    {
+        if ($this->wasOpened() || ! in_array($this->status, [SurveyStatus::Draft, SurveyStatus::PendingReview], true)) {
+            throw InvalidSurveyStateException::cannotDismiss($this->id->value, $this->status->value);
+        }
+
+        $this->status = SurveyStatus::Draft;
         $this->dismissedAt = $now;
         $this->scheduledSendAt = null;
     }
@@ -507,6 +593,21 @@ final class Survey
     public function dismissedAt(): ?DateTimeImmutable
     {
         return $this->dismissedAt;
+    }
+
+    public function subjectEndedAt(): ?DateTimeImmutable
+    {
+        return $this->subjectEndedAt;
+    }
+
+    public function sendsOnEnd(): bool
+    {
+        return $this->sendOnEnd;
+    }
+
+    public function sendDelayHours(): int
+    {
+        return $this->sendDelayHours;
     }
 
     public function subjectEndKey(): ?string

@@ -23,6 +23,7 @@ const dismissing = ref<OrganizedSurvey | null>(null);
 const dismissOpen = ref(false);
 
 const badgeClasses: Record<OrganizedSurveyStatus, string> = {
+    prepared: 'bg-primary-light text-primary',
     to_send: 'bg-primary-light text-primary',
     scheduled: 'bg-primary-light text-primary',
     pending_review: 'bg-warning-light text-warning',
@@ -37,6 +38,16 @@ function date(value: string): string {
         timeStyle: 'short',
         timeZone: VENUE_TIMEZONE,
     }).format(new Date(value));
+}
+
+function preparedHint(survey: OrganizedSurvey): string {
+    if (!survey.sendOnEnd) {
+        return t('surveys.manage.prepared_one_click_hint');
+    }
+
+    return survey.sendDelayHours === 0
+        ? t('surveys.manage.prepared_auto_now_hint')
+        : t('surveys.manage.prepared_auto_hint', { hours: survey.sendDelayHours });
 }
 
 function post(survey: OrganizedSurvey, url: string): void {
@@ -98,6 +109,9 @@ function confirmDismiss(): void {
                     class="text-sm text-base-secondary"
                 >
                     {{ t('surveys.manage.scheduled_at', { date: date(survey.scheduledSendAt) }) }}
+                </p>
+                <p v-if="survey.status === 'prepared'" class="text-sm text-base-secondary">
+                    {{ preparedHint(survey) }}
                 </p>
                 <p v-if="survey.status === 'to_send'" class="text-sm text-base-secondary">
                     {{ t('surveys.manage.to_send_hint') }}

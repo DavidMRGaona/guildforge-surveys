@@ -49,6 +49,8 @@ Route::prefix('encuestas')
     ->group(function (): void {
         Route::get('sujeto/{type}/{subject}', [OrganizerSurveyController::class, 'subject'])
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('subject');
+        Route::post('sujeto/{type}/{subject}/preparar', [OrganizerSurveyController::class, 'prepare'])
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('manage.prepare');
         Route::get('{survey}/editar', [OrganizerSurveyEditorController::class, 'edit'])->whereUuid('survey')->name('manage.edit');
         Route::put('{survey}/editar', [OrganizerSurveyEditorController::class, 'update'])->whereUuid('survey')->name('manage.update');
         Route::get('{survey}/resultados', [OrganizerSurveyResultsController::class, 'show'])->whereUuid('survey')->name('manage.results');

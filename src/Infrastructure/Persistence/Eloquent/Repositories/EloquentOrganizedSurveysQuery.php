@@ -74,6 +74,7 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
     {
         $status = $this->status($survey);
         $offered = in_array($status, ['to_send', 'scheduled', 'rejected'], true);
+        $dismissable = $offered || $status === 'prepared';
         $id = $survey->id()->value;
 
         return [
@@ -87,14 +88,16 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             'responses' => $responses,
             'audienceSize' => $survey->audienceSize(),
             'sendUrl' => $offered ? route('surveys.manage.send', $id) : null,
-            'dismissUrl' => $offered && ! $survey->wasOpened() ? route('surveys.manage.dismiss', $id) : null,
+            'sendOnEnd' => $survey->sendsOnEnd(),
+            'sendDelayHours' => $survey->sendDelayHours(),
+            'dismissUrl' => $dismissable && ! $survey->wasOpened() ? route('surveys.manage.dismiss', $id) : null,
             'editUrl' => $status === 'closed' ? null : route('surveys.manage.edit', $id),
             'resultsUrl' => $survey->wasOpened() ? route('surveys.manage.results', $id) : null,
         ];
     }
 
     /**
-     * @return 'to_send'|'scheduled'|'pending_review'|'rejected'|'open'|'closed'
+     * @return 'prepared'|'to_send'|'scheduled'|'pending_review'|'rejected'|'open'|'closed'
      */
     private function status(Survey $survey): string
     {
@@ -102,6 +105,7 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             $survey->status() === SurveyStatus::Open => 'open',
             $survey->status() === SurveyStatus::Closed => 'closed',
             $survey->status() === SurveyStatus::PendingReview => 'pending_review',
+            $survey->isAwaitingSubjectEnd() => 'prepared',
             $survey->rejectionReason() !== null => 'rejected',
             $survey->scheduledSendAt() instanceof \DateTimeImmutable => 'scheduled',
             default => 'to_send',
