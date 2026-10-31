@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\Surveys\Filament\Widgets;
 
 use DateTimeImmutable;
-use Filament\Support\Colors\Color;
 use Filament\Widgets\ChartWidget;
 use Livewire\Attributes\Locked;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
@@ -15,6 +14,7 @@ use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Domain\Enums\ChartType;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Filament\Support\ChartPalette;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 
 /**
@@ -140,8 +140,6 @@ final class QuestionResultChart extends ChartWidget
 
     private function color(int $index): string
     {
-        $palette = [Color::Amber[500], Color::Sky[500], Color::Emerald[500], Color::Rose[500], Color::Violet[500], Color::Lime[500], Color::Orange[500], Color::Teal[500]];
-
-        return $palette[$index % count($palette)];
+        return ChartPalette::color($index);
     }
 }

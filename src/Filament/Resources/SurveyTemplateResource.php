@@ -6,6 +6,7 @@ namespace Modules\Surveys\Filament\Resources;
 
 use App\Filament\Resources\BaseResource;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -17,6 +18,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Filament\Forms\DefinitionEditor;
+use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 
@@ -94,6 +96,12 @@ final class SurveyTemplateResource extends BaseResource
             ])
             ->defaultSort('name')
             ->recordActions([
+                Action::make('trends')
+                    ->label(__('surveys::filament.trends.action'))
+                    ->icon('heroicon-o-chart-bar')
+                    ->color('gray')
+                    ->visible(static fn (): bool => SurveyTrendsPage::canAccess())
+                    ->url(static fn (SurveyTemplateModel $record): string => SurveyTrendsPage::getUrl(['template' => $record->getKey()])),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
