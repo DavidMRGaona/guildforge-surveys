@@ -147,6 +147,7 @@ final class Survey
         $this->submittedBy = $userId;
         $this->submittedForReviewAt = $now;
         $this->rejectionReason = null;
+        $this->scheduledSendAt = null;
     }
 
     /**

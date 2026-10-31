@@ -42,6 +42,15 @@ return [
         'anonymous' => 'Anónima',
     ],
 
+    'manage' => [
+        'subject_title' => 'Encuestas de :title',
+        'sent' => 'Encuesta enviada.',
+        'sent_for_review' => 'Encuesta enviada a revisión: saldrá cuando la aprueben.',
+        'not_sendable' => 'Esta encuesta ya no se puede enviar: puede que ya se haya enviado.',
+        'dismissed' => 'No se enviará esta encuesta.',
+        'not_dismissable' => 'Esta encuesta ya se ha enviado: no se puede descartar.',
+    ],
+
     'definition_errors' => [
         'malformed' => 'El contenido no tiene el formato esperado.',
         'unknown_type' => 'Tipo de pregunta desconocido.',

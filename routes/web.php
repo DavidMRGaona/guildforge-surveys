@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Modules\Surveys\Http\Controllers\OrganizerSurveyController;
 use Modules\Surveys\Http\Controllers\RespondController;
 
 /*
@@ -34,4 +35,18 @@ Route::prefix('encuestas')
             Route::get('{survey}', [RespondController::class, 'show'])->whereUuid('survey')->name('respond');
             Route::post('{survey}', [RespondController::class, 'store'])->whereUuid('survey')->name('respond.store');
         });
+    });
+
+/*
+| Managing a subject's surveys on the public site: for whoever its source lets manage the
+| subject, asked live on every request. Module pages link to surveys.subject.
+*/
+Route::prefix('encuestas')
+    ->name('surveys.')
+    ->middleware(['auth', 'email.verified-if-required'])
+    ->group(function (): void {
+        Route::get('sujeto/{type}/{subject}', [OrganizerSurveyController::class, 'subject'])
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('subject');
+        Route::post('{survey}/enviar', [OrganizerSurveyController::class, 'send'])->whereUuid('survey')->name('manage.send');
+        Route::post('{survey}/descartar', [OrganizerSurveyController::class, 'dismiss'])->whereUuid('survey')->name('manage.dismiss');
     });

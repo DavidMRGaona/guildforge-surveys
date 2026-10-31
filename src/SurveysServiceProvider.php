@@ -11,6 +11,7 @@ use App\Application\Modules\DTOs\PagePrefixDTO;
 use App\Application\Modules\DTOs\PermissionDTO;
 use App\Application\Modules\DTOs\SlotRegistrationDTO;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
+use App\Domain\Surveys\Events\SurveySubjectEnded;
 use App\Modules\ModuleServiceProvider;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
@@ -18,22 +19,28 @@ use Filament\Widgets\Widget;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\OrganizedSurveysQueryInterface;
+use Modules\Surveys\Application\Contracts\OrganizerNotifierInterface;
 use Modules\Surveys\Application\Contracts\PendingSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
+use Modules\Surveys\Application\Contracts\ReviewNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
+use Modules\Surveys\Console\Commands\SendScheduledSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentOrganizedSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentPendingSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentResponseStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRecipientStore;
@@ -41,8 +48,11 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSur
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyResultsQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
+use Modules\Surveys\Infrastructure\Services\OrganizerMailer;
+use Modules\Surveys\Infrastructure\Services\ReviewMailer;
 use Modules\Surveys\Infrastructure\Services\SurveyInvitationSender;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
+use Modules\Surveys\Listeners\OfferSurveyWhenSubjectEnds;
 use Modules\Surveys\Policies\SurveyPolicy;
 use Modules\Surveys\Policies\SurveyTemplatePolicy;
 
@@ -78,8 +88,11 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
         $this->app->bind(SurveyNotifierInterface::class, SurveyInvitationSender::class);
         $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
+        $this->app->bind(OrganizedSurveysQueryInterface::class, EloquentOrganizedSurveysQuery::class);
         $this->app->bind(SurveyResultsQueryInterface::class, EloquentSurveyResultsQuery::class);
         $this->app->bind(SurveySettingsInterface::class, SurveySettings::class);
+        $this->app->bind(OrganizerNotifierInterface::class, OrganizerMailer::class);
+        $this->app->bind(ReviewNotifierInterface::class, ReviewMailer::class);
     }
 
     /**
@@ -95,8 +108,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         // Extend core Filament Resources with RelationManagers
         // $this->registerFilamentExtensions();
 
-        // Register domain event listeners
-        // $this->registerEventListeners();
+        $this->registerEventListeners();
 
         $this->registerCommands();
         $this->registerSchedule();
@@ -105,24 +117,39 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * The profile's "Encuestas pendientes" tab: only computed on the profile page.
+     * A subject offered by another module ended: send or offer its survey.
+     */
+    private function registerEventListeners(): void
+    {
+        Event::listen(SurveySubjectEnded::class, OfferSurveyWhenSubjectEnds::class);
+    }
+
+    /**
+     * The profile's surveys tab: what the person still has to answer and, for organizers, the
+     * surveys of what they organize. Only computed on the profile page. The badge counts both
+     * what to answer and what waits for the organizer (to send, or rejected).
      */
     private function sharePendingSurveys(): void
     {
-        $pending = static function (): ?array {
+        $userId = static function (): ?string {
             $user = auth()->user();
-            if (request()->route()?->getName() !== 'profile.show' || $user === null) {
+
+            return request()->route()?->getName() === 'profile.show' && $user !== null ? (string) $user->getAuthIdentifier() : null;
+        };
+        $pending = static fn (): ?array => ($id = $userId()) === null ? null : app(PendingSurveysQueryInterface::class)->forUser($id, now()->toDateTimeImmutable());
+        $organized = static fn (): ?array => ($id = $userId()) === null ? null : app(OrganizedSurveysQueryInterface::class)->forUser($id);
+
+        Inertia::share('profilePendingSurveys', $pending);
+        Inertia::share('profileOrganizedSurveys', $organized);
+        Inertia::share('profilePendingSurveysTotal', static function () use ($pending, $organized): ?int {
+            $toAnswer = $pending();
+            if ($toAnswer === null) {
                 return null;
             }
 
-            return app(PendingSurveysQueryInterface::class)->forUser((string) $user->getAuthIdentifier(), now()->toDateTimeImmutable());
-        };
+            $waiting = array_filter($organized() ?? [], static fn (array $survey): bool => in_array($survey['status'], ['to_send', 'rejected'], true));
 
-        Inertia::share('profilePendingSurveys', $pending);
-        Inertia::share('profilePendingSurveysTotal', static function () use ($pending): ?int {
-            $surveys = $pending();
-
-            return $surveys === null ? null : count($surveys);
+            return count($toAnswer) + count($waiting);
         });
     }
 
@@ -143,6 +170,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
             $this->commands([
                 CloseDueSurveysCommand::class,
                 SendSurveyRemindersCommand::class,
+                SendScheduledSurveysCommand::class,
             ]);
         }
     }
@@ -152,6 +180,11 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
             // Closes surveys whose date has passed and forgets their guests' email addresses
             $schedule->command('surveys:close-due')
+                ->everyFiveMinutes()
+                ->withoutOverlapping(10);
+
+            // Sends the subject surveys whose scheduled time has come
+            $schedule->command('surveys:send-scheduled')
                 ->everyFiveMinutes()
                 ->withoutOverlapping(10);
 
@@ -216,20 +249,6 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      *                 ItemsRelationManager::class,
      *             ]);
      *         }
-     *     }
-     */
-
-    /**
-     * Register domain event listeners.
-     *
-     * Example:
-     *
-     *     private function registerEventListeners(): void
-     *     {
-     *         \Illuminate\Support\Facades\Event::listen(
-     *             ItemCreated::class,
-     *             SendItemCreatedNotification::class
-     *         );
      *     }
      */
 
@@ -318,7 +337,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
                 component: 'components/profile/ProfilePendingSurveysSection.vue',
                 module: $this->moduleName(),
                 order: 40,
-                dataKeys: ['profilePendingSurveys'],
+                dataKeys: ['profilePendingSurveys', 'profileOrganizedSurveys'],
                 profileTab: [
                     'tabId' => 'surveys',
                     'icon' => 'pencil-square',

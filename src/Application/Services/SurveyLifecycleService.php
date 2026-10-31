@@ -7,6 +7,7 @@ namespace Modules\Surveys\Application\Services;
 use App\Application\Surveys\DTOs\SurveySubjectDTO;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use DateTimeImmutable;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
@@ -14,6 +15,7 @@ use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
 use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
@@ -77,13 +79,62 @@ final readonly class SurveyLifecycleService
     }
 
     /**
+     * The survey made when a subject ends: a copy of the template (keys included) about the
+     * subject, as a draft that lasts $durationDays once it opens. The end key keeps it unique.
+     *
+     * @throws SubjectNotFoundException
+     * @throws UniqueConstraintViolationException when another survey already has the end key
+     */
+    public function createFromTemplateForSubject(
+        string $sourceType,
+        string $subjectId,
+        SurveyTemplate $template,
+        bool $anonymous,
+        int $durationDays,
+        ?string $subjectEndKey,
+    ): Survey {
+        $subject = $this->sources->source($sourceType)?->find($subjectId);
+        if (! $subject instanceof SurveySubjectDTO) {
+            throw SubjectNotFoundException::for($sourceType, $subjectId);
+        }
+
+        $survey = new Survey(
+            id: SurveyId::generate(),
+            kind: $template->kind(),
+            title: $template->name(),
+            description: $template->description(),
+            definition: $template->definition(),
+            anonymous: $anonymous,
+            results: ResultsSettings::defaultsFor($template->kind()),
+            audienceType: AudienceType::Subject,
+            templateId: $template->id(),
+            subject: SubjectSnapshotFactory::fromDto($subject),
+            durationDays: $durationDays,
+            subjectEndKey: $subjectEndKey,
+        );
+        $this->surveys->save($survey);
+
+        return $survey;
+    }
+
+    /**
      * Opens the survey, fixes its audience (whoever joins later does not get it) and mails it.
+     * A survey that had opened before (back from a review) resumes: its audience and links stay
+     * as fixed then, and nobody is mailed again.
      *
      * @throws InvalidSurveyStateException
      */
     public function open(SurveyId $id, ?DateTimeImmutable $now = null, bool $notify = true): OpenedSurveyDTO
     {
         $survey = $this->surveys->findOrFail($id);
+
+        if ($survey->wasOpened()) {
+            $survey->open($now ?? now()->toDateTimeImmutable());
+            $this->surveys->save($survey);
+
+            return new OpenedSurveyDTO($survey->id(), [], $survey->publicToken());
+        }
+
         $audience = $this->audiences->resolve($survey);
 
         $guestTokens = [];

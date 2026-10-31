@@ -82,6 +82,17 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
         ]);
     }
 
+    public function findMany(array $ids): array
+    {
+        $values = array_map(static fn (SurveyId $id): string => $id->value, $ids);
+        $models = SurveyModel::query()->whereKey($values)->get()->keyBy('id');
+
+        return array_values(array_map(
+            $this->toEntity(...),
+            array_filter(array_map(static fn (string $id): ?SurveyModel => $models->get($id), $values)),
+        ));
+    }
+
     public function findForUpdate(SurveyId $id): Survey
     {
         $model = SurveyModel::query()->whereKey($id->value)->lockForUpdate()->first()
