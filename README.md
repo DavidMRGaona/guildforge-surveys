@@ -8,8 +8,8 @@ Requiere el core de GuildForge `^3.29`.
 
 - **Plantillas y encuestas** desde el panel, con secciones y diez tipos de pregunta: texto corto, párrafo, opción única, casillas, desplegable, escala, estrellas, fecha, hora y cuadrícula. Las preguntas de opciones admiten «Otra».
 - **Sondeo rápido**: una pregunta de opción única o múltiple. Por defecto quien vota ve los resultados en directo.
-- **Audiencia**: todas las cuentas, las personas socias, unos roles o las personas de un sujeto (una mesa, un torneo…) que ofrezca otro módulo. Se fija al abrir la encuesta. Enlace público opcional, que no garantiza una respuesta por persona.
-- **Respuesta** con la cuenta, con el enlace de invitado o con el enlace público. Cada persona responde una vez.
+- **Audiencia**: todas las cuentas, las personas socias, unos roles o las personas de un sujeto (una mesa, un torneo…) que ofrezca otro módulo. Se fija al abrir la encuesta. Enlace público opcional, en uno de dos modos: «Una respuesta por correo» (por defecto: pide un correo y envía a esa dirección un enlace de un solo uso, así cada dirección responde una vez) o «Abierto» (cualquiera con el enlace responde, tantas veces como quiera).
+- **Respuesta** con la cuenta, con el enlace de invitado o con el enlace público. Cada cuenta, invitado o dirección verificada responde una vez. Quien pide el enlace con un correo de la audiencia recibe su propio enlace, no uno nuevo. La dirección se compara en minúsculas y sin «+etiqueta», se guarda cifrada y se borra al cerrar la encuesta; cada dirección recibe como mucho 3 enlaces al día, y la página nunca dice si una dirección ya respondió.
 - **Avisos**: correo al abrir, recordatorio opcional antes del cierre a quien no ha respondido y pestaña «Encuestas» en el perfil con las pendientes.
 - **Resultados** en el panel, con un gráfico por pregunta (tipo de gráfico y preguntas ocultas configurables), la tasa de respuesta y la exportación a CSV y Excel. Si la encuesta lo permite, quien responde también ve los resultados.
 - **Cierre** por fecha o a mano. Las encuestas solo se borran a mano, con doble confirmación.
@@ -39,7 +39,7 @@ Con el ajuste «Las encuestas cambiadas fuera del panel requieren revisión», u
 
 Una encuesta anónima guarda sus respuestas sin ningún vínculo con la persona: la participación («ya ha respondido») va en otra tabla, y ninguna columna, orden ni hora permite unirlas. La respuesta solo guarda el día.
 
-Sus resultados se muestran al cerrarla (o antes, si tiene los resultados en directo, que debilitan el anonimato) y solo con un mínimo de respuestas, que se aplica también a cada pregunta, al texto libre y a la exportación. La exportación de una encuesta anónima no lleva ni persona ni fecha. Nunca se muestra quién ha respondido.
+Sus resultados se muestran al cerrarla (o antes, si tiene los resultados en directo, que debilitan el anonimato) y solo con un mínimo de respuestas, que se aplica también a cada pregunta, al texto libre y a la exportación. El mínimo solo cuenta las respuestas con participación (cuentas, invitados y direcciones verificadas): las del enlace público abierto salen en los resultados, pero no ayudan a alcanzarlo, porque alguien podría enviar respuestas de relleno y deducir otra restándolas. La exportación de una encuesta anónima no lleva ni persona ni fecha. Nunca se muestra quién ha respondido.
 
 La garantía es frente a quien usa la aplicación, panel incluido; quien tenga acceso directo a la base de datos queda fuera.
 

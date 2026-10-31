@@ -10,9 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Someone a survey was sent to, fixed when it opened: an account or a guest. A guest's
- * email address and link token are encrypted and cleared when the survey closes; lookups
- * use the token's hash.
+ * Someone a survey was sent to, fixed when it opened: an account or a guest. An address that
+ * asked for a link on the verified public link is one too, of its own source: it never joins
+ * the audience or gets reminders, and its reference (a keyed hash of the address) keeps it to
+ * one link. A guest's email address and link token are encrypted and cleared when the survey
+ * closes; lookups use the token's hash.
  *
  * @property string $id
  * @property string $survey_id
@@ -22,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $guest_email
  * @property string|null $token
  * @property string|null $token_hash
+ * @property string $source
  * @property Carbon|null $notified_at
  * @property Carbon|null $reminded_at
  */
@@ -29,6 +32,10 @@ final class SurveyRecipientModel extends Model
 {
     use HasUuids;
     use StoresInstantsInStorageTimezone;
+
+    public const string SOURCE_AUDIENCE = 'audience';
+
+    public const string SOURCE_PUBLIC_LINK = 'public_link';
 
     public $timestamps = false;
 
@@ -41,7 +48,7 @@ final class SurveyRecipientModel extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['id', 'survey_id', 'user_id', 'guest_reference', 'guest_name', 'guest_email', 'token', 'token_hash', 'notified_at', 'reminded_at'];
+    protected $fillable = ['id', 'survey_id', 'user_id', 'guest_reference', 'guest_name', 'guest_email', 'token', 'token_hash', 'source', 'notified_at', 'reminded_at'];
 
     /**
      * @return array<string, string>

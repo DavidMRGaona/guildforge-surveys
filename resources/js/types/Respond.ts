@@ -44,7 +44,8 @@ export interface SurveyDefinition {
     sections: SurveySection[];
 }
 
-export type RespondState = 'open' | 'answered' | 'closed' | 'paused' | 'not_invited';
+export type RespondState =
+    'open' | 'answered' | 'closed' | 'paused' | 'not_invited' | 'verify_email';
 
 export interface RespondSurvey {
     id: string;
@@ -57,10 +58,12 @@ export interface RespondSurvey {
 
 export interface RespondProps {
     state: RespondState;
-    result: 'submitted' | null;
+    result: 'submitted' | 'link_sent' | null;
     survey?: RespondSurvey;
     definition?: SurveyDefinition;
     submitUrl?: string;
+    /** Only on the verified public link: where the address is sent to get a single-use link. */
+    requestUrl?: string;
     /** Only when the survey shares its results with the people who answer, and they may be seen. */
     results?: RespondResults;
 }

@@ -15,7 +15,8 @@ use Modules\Surveys\Http\Controllers\RespondController;
 |
 | Answering a survey: with an account, with a guest's link or with the public
 | link. A GET only shows the page (mail scanners opening a link change nothing);
-| answering is a POST.
+| answering is a POST. The verified public link asks for an address and mails it
+| a guest's link, with its own, tighter limit.
 |
 */
 
@@ -32,6 +33,9 @@ Route::prefix('encuestas')
             ->whereUuid('survey')->where('token', '[a-f0-9]{64}')->name('public');
         Route::post('{survey}/abierta/{token}', [RespondController::class, 'storePublic'])
             ->whereUuid('survey')->where('token', '[a-f0-9]{64}')->name('public.store');
+        Route::post('{survey}/abierta/{token}/correo', [RespondController::class, 'requestPublicLink'])
+            ->whereUuid('survey')->where('token', '[a-f0-9]{64}')
+            ->middleware('throttle:surveys-access-links')->name('public.request');
 
         Route::middleware(['auth', 'email.verified-if-required'])->group(function (): void {
             Route::get('{survey}', [RespondController::class, 'show'])->whereUuid('survey')->name('respond');

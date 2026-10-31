@@ -14,6 +14,13 @@ return [
         'intro' => ':site te invita a responder la encuesta «:title».',
     ],
 
+    'access_link' => [
+        'subject' => 'Tu enlace para responder: :title',
+        'intro' => 'Has pedido responder la encuesta «:title» de :site.',
+        'personal' => 'El enlace es personal y solo sirve para una respuesta: no lo compartas.',
+        'not_you' => 'Si no lo has pedido, ignora este correo.',
+    ],
+
     'reminder' => [
         'subject' => 'Recordatorio: :title',
         'intro' => 'Todavía no has respondido la encuesta «:title» de :site. Se cierra pronto.',

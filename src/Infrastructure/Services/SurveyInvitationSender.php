@@ -11,11 +11,13 @@ use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Notification;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
+use Modules\Surveys\Application\DTOs\AccessLinkRecipient;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyParticipationModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyRecipientModel;
+use Modules\Surveys\Notifications\SurveyAccessLink;
 use Modules\Surveys\Notifications\SurveyInvitation;
 
 /**
@@ -44,8 +46,10 @@ final readonly class SurveyInvitationSender implements SurveyNotifierInterface
         $survey = $this->surveys->findOrFail($surveyId);
         $answered = SurveyParticipationModel::query()->where('survey_id', $surveyId->value);
 
+        // Addresses that asked for a link on the public link are not the audience: no reminder
         $pending = SurveyRecipientModel::query()
             ->where('survey_id', $surveyId->value)
+            ->where('source', SurveyRecipientModel::SOURCE_AUDIENCE)
             ->where(static fn (Builder $query): Builder => $query
                 ->where(static fn (Builder $accounts): Builder => $accounts
                     ->whereNotNull('user_id')
@@ -55,6 +59,21 @@ final readonly class SurveyInvitationSender implements SurveyNotifierInterface
                     ->whereNotIn('token_hash', (clone $answered)->whereNotNull('token_hash')->select('token_hash'))));
 
         return $this->send($survey, 'reminded_at', $pending, reminder: true);
+    }
+
+    public function sendAccessLink(SurveyId $surveyId, AccessLinkRecipient $recipient): void
+    {
+        $survey = $this->surveys->findOrFail($surveyId);
+        $closesAt = $survey->closesAt() instanceof DateTimeImmutable ? $this->timezone->format($survey->closesAt()) : null;
+        $siteName = $this->branding->siteName();
+        $mail = static fn (string $url): SurveyAccessLink => new SurveyAccessLink($survey->title(), $url, $closesAt, $survey->isAnonymous(), $siteName);
+
+        if ($recipient->userId !== null) {
+            UserModel::query()->whereKey($recipient->userId)->whereNull('anonymized_at')->first()
+                ?->notify($mail(route('surveys.respond', $surveyId->value)));
+        } elseif ($recipient->email !== null && $recipient->token !== null) {
+            Notification::route('mail', $recipient->email)->notify($mail(route('surveys.guest', [$surveyId->value, $recipient->token])));
+        }
     }
 
     /**

@@ -45,7 +45,7 @@ final readonly class SurveyExportTable
     public function build(SurveyId $id, ?DateTimeImmutable $now = null): ExportTable
     {
         $survey = $this->surveys->findOrFail($id);
-        $reason = $this->results->panelHiddenReason($survey, $this->query->responseCount($id), $now ?? now()->toDateTimeImmutable());
+        $reason = $this->results->panelHiddenReason($survey, $this->query->verifiedResponseCount($id), $now ?? now()->toDateTimeImmutable());
 
         if ($reason !== null) {
             throw ResultsNotAvailableException::for($id->value, $reason);
@@ -192,7 +192,7 @@ final readonly class SurveyExportTable
     }
 
     /**
-     * Questions of an anonymous survey too few people answered: their column stays empty.
+     * Questions of an anonymous survey too few verified people answered: their column stays empty.
      *
      * @return list<string>
      */
@@ -204,7 +204,7 @@ final readonly class SurveyExportTable
         }
 
         $ids = array_map(static fn (Question $question): string => $question->id, $survey->definition()->questions());
-        $answered = $this->query->answeredCounts($survey->id(), $ids);
+        $answered = $this->query->verifiedAnsweredCounts($survey->id(), $ids);
 
         return array_values(array_filter($ids, static fn (string $id): bool => ($answered[$id] ?? 0) < $minimum));
     }

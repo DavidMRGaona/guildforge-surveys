@@ -163,13 +163,19 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * Answering pages are open to guests: limit them per IP address.
+     * Answering pages are open to guests: limit them per IP address. Asking for a link sends
+     * mail, so it is limited tighter (and per address in PublicLinkAccessService).
      */
     private function registerRateLimiters(): void
     {
         RateLimiter::for('surveys-responses', static fn (Request $request): array => [
             Limit::perMinute(20)->by('surveys-responses-minute:'.$request->ip()),
             Limit::perHour(200)->by('surveys-responses-hour:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('surveys-access-links', static fn (Request $request): array => [
+            Limit::perMinute(5)->by('surveys-access-links-minute:'.$request->ip()),
+            Limit::perHour(30)->by('surveys-access-links-hour:'.$request->ip()),
         ]);
     }
 

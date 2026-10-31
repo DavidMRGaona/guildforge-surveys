@@ -10,6 +10,7 @@ use DateTimeImmutable;
 use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
@@ -167,6 +168,28 @@ final class SurveyTest extends TestCase
         $this->expectException(InvalidSurveyStateException::class);
 
         $survey->changeAudience(AudienceType::AssociationMembers, [], publicLinkEnabled: true);
+    }
+
+    public function test_a_public_link_asks_for_an_email_unless_told_otherwise(): void
+    {
+        $this->assertSame(PublicLinkMode::VerifiedEmail, $this->survey()->publicLinkMode());
+    }
+
+    public function test_the_public_link_mode_is_fixed_once_open(): void
+    {
+        $survey = $this->survey();
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::Open);
+        $this->assertSame(PublicLinkMode::Open, $survey->publicLinkMode());
+
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $this->assertSame(PublicLinkMode::Open, $survey->publicLinkMode(), 'Leaving the mode out keeps it.');
+
+        $survey->open($this->now);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::Open);
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::VerifiedEmail);
     }
 
     public function test_an_open_survey_can_be_rescheduled_but_not_into_the_past(): void

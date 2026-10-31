@@ -16,6 +16,7 @@ use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
@@ -61,15 +62,30 @@ trait AnswersExampleSurveys
     }
 
     /**
+     * Answers the every-type form through its open public link, with no participation.
+     *
+     * @param  array<string, mixed>  $overrides
+     */
+    private function answerPublicly(SurveyId $id, OpenedSurveyDTO $opened, array $overrides = []): void
+    {
+        $answers = array_merge([
+            'q-short' => 'Algo', 'q-paragraph' => 'Más', 'q-single' => 'o-2', 'q-multiple' => ['o-1'], 'q-dropdown' => 'o-1',
+            'q-scale' => 3, 'q-stars' => 3, 'q-date' => '2030-01-01', 'q-time' => '10:00', 'q-grid' => ['r-1' => 'c-1', 'r-2' => 'c-1'],
+        ], $overrides);
+
+        $this->app->make(SubmissionService::class)->submit($id, Respondent::publicLink($opened->publicToken ?? throw new LogicException('The survey has a public link.')), $answers);
+    }
+
+    /**
      * The every-type form (SurveyDefinitionTest::everyTypeDefinition()) sent to the three people.
      *
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openForm(bool $anonymous, ?ResultsSettings $results = null): array
+    private function openForm(bool $anonymous, ?ResultsSettings $results = null, bool $publicLink = false): array
     {
         ExampleThingSource::reset();
 
-        return $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()), $anonymous, $results ?? ResultsSettings::defaultsFor(SurveyKind::Form));
+        return $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()), $anonymous, $results ?? ResultsSettings::defaultsFor(SurveyKind::Form), $publicLink);
     }
 
     /**
@@ -77,7 +93,7 @@ trait AnswersExampleSurveys
      *
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openPoll(bool $anonymous, bool $audience = true, bool $publicLink = false): array
+    private function openPoll(bool $anonymous, bool $audience = true, bool $publicLink = false, PublicLinkMode $publicLinkMode = PublicLinkMode::Open): array
     {
         ExampleThingSource::$audience = $audience
             ? new SurveyAudienceDTO(array_map(static fn (UserModel $user): string => $user->id, $this->people), [new SurveyGuestDTO('guest-1', 'Invitada de ejemplo', 'invitada@example.test')])
@@ -87,7 +103,7 @@ trait AnswersExampleSurveys
             'options' => [['id' => 'o-1', 'label' => 'Viernes'], ['id' => 'o-2', 'label' => 'Sábado']],
         ]]]]]);
 
-        return $this->openExample(SurveyKind::Poll, $definition, $anonymous, ResultsSettings::defaultsFor(SurveyKind::Poll), $publicLink);
+        return $this->openExample(SurveyKind::Poll, $definition, $anonymous, ResultsSettings::defaultsFor(SurveyKind::Poll), $publicLink, $publicLinkMode);
     }
 
     /**
@@ -95,7 +111,7 @@ trait AnswersExampleSurveys
      *
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openExample(SurveyKind $kind, SurveyDefinition $definition, bool $anonymous, ResultsSettings $results, bool $publicLink = false): array
+    private function openExample(SurveyKind $kind, SurveyDefinition $definition, bool $anonymous, ResultsSettings $results, bool $publicLink = false, PublicLinkMode $publicLinkMode = PublicLinkMode::Open): array
     {
         ExampleThingSource::$audience ??= new SurveyAudienceDTO(array_map(static fn (UserModel $user): string => $user->id, $this->people), []);
         $survey = new Survey(
@@ -110,6 +126,7 @@ trait AnswersExampleSurveys
             publicLinkEnabled: $publicLink,
             subject: SubjectSnapshotFactory::fromDto((new ExampleThingSource)->find('thing-1') ?? throw new LogicException('The example thing exists.')),
             closesAt: now()->addDays(7)->toDateTimeImmutable(),
+            publicLinkMode: $publicLinkMode,
         );
         $this->app->make(SurveyRepositoryInterface::class)->save($survey);
 

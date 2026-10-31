@@ -44,7 +44,7 @@ final readonly class ResultsService
     {
         $survey = $this->surveys->findOrFail($id);
         $responses = $this->query->responseCount($id);
-        $reason = $this->panelHiddenReason($survey, $responses, $now ?? now()->toDateTimeImmutable());
+        $reason = $this->panelHiddenReason($survey, $this->query->verifiedResponseCount($id), $now ?? now()->toDateTimeImmutable());
 
         $questions = array_values(array_filter(
             $survey->definition()->questions(),
@@ -62,7 +62,7 @@ final readonly class ResultsService
     {
         $survey = $this->surveys->findOrFail($id);
         $responses = $this->query->responseCount($id);
-        $reason = $this->panelHiddenReason($survey, $responses, $now ?? now()->toDateTimeImmutable());
+        $reason = $this->panelHiddenReason($survey, $this->query->verifiedResponseCount($id), $now ?? now()->toDateTimeImmutable());
 
         $questions = array_values(array_filter(
             $survey->definition()->questions(),
@@ -85,7 +85,7 @@ final readonly class ResultsService
         $reason = match (true) {
             ! $survey->results()->visibleToRespondents => SurveyResultsDTO::NOT_SHARED,
             ! $survey->results()->liveResults && ! $survey->hasEnded($now) => SurveyResultsDTO::NOT_CLOSED,
-            $survey->isAnonymous() && $responses < $this->settings->minResponses() => SurveyResultsDTO::BELOW_MINIMUM,
+            $survey->isAnonymous() && $this->query->verifiedResponseCount($id) < $this->settings->minResponses() => SurveyResultsDTO::BELOW_MINIMUM,
             default => null,
         };
 
@@ -99,8 +99,10 @@ final readonly class ResultsService
 
     /**
      * Why the panel (and the export) may not show an anonymous survey's results yet, or null.
+     * Only verified responses reach the minimum: anyone may send open link ones, and subtracting
+     * them would give a lone verified response away.
      */
-    public function panelHiddenReason(Survey $survey, int $responses, DateTimeImmutable $now): ?string
+    public function panelHiddenReason(Survey $survey, int $verifiedResponses, DateTimeImmutable $now): ?string
     {
         if (! $survey->isAnonymous()) {
             return null;
@@ -110,7 +112,7 @@ final readonly class ResultsService
             return SurveyResultsDTO::NOT_CLOSED;
         }
 
-        return $responses < $this->settings->minResponses() ? SurveyResultsDTO::BELOW_MINIMUM : null;
+        return $verifiedResponses < $this->settings->minResponses() ? SurveyResultsDTO::BELOW_MINIMUM : null;
     }
 
     /**
@@ -137,12 +139,13 @@ final readonly class ResultsService
         $voters = ! $survey->isAnonymous() && $survey->kind() === SurveyKind::Poll ? $this->query->voters($id, $optionIds) : [];
 
         // An optional question one person answered would give that answer away: the minimum
-        // applies to each question of an anonymous survey too
+        // applies to each question of an anonymous survey too, counting verified answers only
         $minimum = $survey->isAnonymous() ? $this->settings->minResponses() : 0;
+        $verified = $minimum > 0 ? $this->query->verifiedAnsweredCounts($id, $ids) : [];
 
         $results = [];
         foreach ($questions as $question) {
-            if (($answered[$question->id] ?? 0) < $minimum) {
+            if ($minimum > 0 && ($verified[$question->id] ?? 0) < $minimum) {
                 $results[] = new QuestionResultDTO(
                     questionId: $question->id,
                     title: $question->title,

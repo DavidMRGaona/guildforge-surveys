@@ -19,6 +19,7 @@ use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
@@ -170,12 +171,24 @@ final class SubmissionServiceTest extends ModuleTestCase
         $this->submissions->submit($id, Respondent::publicLink('not-the-token'), ['q-1' => 'o-1']);
     }
 
+    public function test_only_responses_with_a_participation_are_verified(): void
+    {
+        $user = UserModel::factory()->create();
+        [$id, $opened] = $this->openPoll(anonymous: true, users: [$user->id], publicLink: true);
+        $this->assertIsString($opened->publicToken);
+
+        $this->submissions->submit($id, Respondent::account($user->id), ['q-1' => 'o-1']);
+        $this->submissions->submit($id, Respondent::publicLink($opened->publicToken), ['q-1' => 'o-2']);
+
+        $this->assertSame([true, false], SurveyResponseModel::query()->get()->sortByDesc('verified')->pluck('verified')->values()->all());
+    }
+
     /**
      * @param  list<string>  $users
      * @param  list<SurveyGuestDTO>  $guests
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openPoll(bool $anonymous, array $users = [], array $guests = [], ?DateTimeImmutable $closesAt = null, bool $publicLink = false): array
+    private function openPoll(bool $anonymous, array $users = [], array $guests = [], ?DateTimeImmutable $closesAt = null, bool $publicLink = false, PublicLinkMode $publicLinkMode = PublicLinkMode::Open): array
     {
         ExampleThingSource::$audience = new SurveyAudienceDTO($users, $guests);
         $survey = new Survey(
@@ -193,6 +206,7 @@ final class SubmissionServiceTest extends ModuleTestCase
             publicLinkEnabled: $publicLink,
             subject: SubjectSnapshotFactory::fromDto((new ExampleThingSource)->find('thing-1') ?? throw new LogicException('The example thing exists.')),
             closesAt: $closesAt ?? now()->addDays(7)->toDateTimeImmutable(),
+            publicLinkMode: $publicLinkMode,
         );
         $this->app->make(SurveyRepositoryInterface::class)->save($survey);
 

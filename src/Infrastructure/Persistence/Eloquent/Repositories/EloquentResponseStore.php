@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
+use Modules\Surveys\Application\DTOs\GuestRecipient;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyAnswerModel;
@@ -22,14 +23,14 @@ final class EloquentResponseStore implements ResponseStoreInterface
         return SurveyRecipientModel::query()->where('survey_id', $surveyId->value)->where('user_id', $userId)->exists();
     }
 
-    public function guestName(SurveyId $surveyId, string $tokenHash): ?string
+    public function guestRecipient(SurveyId $surveyId, string $tokenHash): ?GuestRecipient
     {
         $recipient = SurveyRecipientModel::query()
             ->where('survey_id', $surveyId->value)
             ->where('token_hash', $tokenHash)
             ->first();
 
-        return $recipient?->guest_name;
+        return $recipient === null ? null : new GuestRecipient($recipient->guest_name, $recipient->source === SurveyRecipientModel::SOURCE_PUBLIC_LINK);
     }
 
     public function hasParticipated(SurveyId $surveyId, ?string $userId, ?string $tokenHash): bool
@@ -56,7 +57,8 @@ final class EloquentResponseStore implements ResponseStoreInterface
     ): void {
         try {
             DB::transaction(static function () use ($surveyId, $participantUserId, $participantTokenHash, $submittedOn, $responseUserId, $responseGuestName, $values): void {
-                if ($participantUserId !== null || $participantTokenHash !== null) {
+                $verified = $participantUserId !== null || $participantTokenHash !== null;
+                if ($verified) {
                     // The unique indexes settle a race between two submissions of the same person
                     SurveyParticipationModel::query()->create([
                         'survey_id' => $surveyId->value,
@@ -70,6 +72,8 @@ final class EloquentResponseStore implements ResponseStoreInterface
                     'submitted_on' => $submittedOn->format('Y-m-d'),
                     'user_id' => $responseUserId,
                     'guest_name' => $responseGuestName,
+                    // Only says whether it came with a participation, never whose
+                    'verified' => $verified,
                 ]);
 
                 foreach ($values as $value) {

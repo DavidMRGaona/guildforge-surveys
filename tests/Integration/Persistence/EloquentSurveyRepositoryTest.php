@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
@@ -65,6 +66,20 @@ final class EloquentSurveyRepositoryTest extends ModuleTestCase
         $this->assertSame('2026-11-17T18:00:00+00:00', $found->closesAt()?->format(DATE_ATOM));
         $this->assertTrue($found->templateId()?->equals($template->id()));
         $this->assertSame(48, $found->reminderHoursBefore());
+    }
+
+    public function test_keeps_the_public_link_mode(): void
+    {
+        $survey = $this->survey();
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::Open);
+        $this->surveys->save($survey);
+
+        $this->assertSame(PublicLinkMode::Open, $this->surveys->find($survey->id())?->publicLinkMode());
+
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::VerifiedEmail);
+        $this->surveys->save($survey);
+
+        $this->assertSame(PublicLinkMode::VerifiedEmail, $this->surveys->find($survey->id())?->publicLinkMode());
     }
 
     public function test_finds_open_surveys_whose_closing_date_has_come(): void
