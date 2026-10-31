@@ -32,6 +32,8 @@ final class UpdateOrganizerSurveyRequest extends FormRequest
             'reminder_hours_before' => ['nullable', 'integer', 'min:1', 'max:720'],
             'live_results' => ['required', 'boolean'],
             'visible_to_respondents' => ['required', 'boolean'],
+            'send_on_end' => ['sometimes', 'boolean'],
+            'send_delay_hours' => ['nullable', 'integer', 'min:0', 'max:8760'],
         ];
     }
 
@@ -46,6 +48,7 @@ final class UpdateOrganizerSurveyRequest extends FormRequest
             'duration_days' => (string) __('surveys::messages.editor.duration_days'),
             'closes_at' => (string) __('surveys::messages.editor.closes_at'),
             'reminder_hours_before' => (string) __('surveys::messages.editor.reminder_hours_before'),
+            'send_delay_hours' => (string) __('surveys::messages.editor.send_delay_hours'),
         ];
     }
 }

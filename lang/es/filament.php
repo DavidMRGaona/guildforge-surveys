@@ -92,6 +92,8 @@ return [
             'results' => 'Resultados',
         ],
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
+        'awaiting_end_auto' => 'Preparada: se enviará :hours h después de terminar',
+        'awaiting_end_one_click' => 'Preparada: al terminar se ofrecerá a quien la organiza',
         'fields' => [
             'template' => 'Partir de una plantilla',
             'template_help' => 'Copia las preguntas de la plantilla. Después puedes cambiarlas.',

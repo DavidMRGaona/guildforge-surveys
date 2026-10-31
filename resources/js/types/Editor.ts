@@ -23,6 +23,8 @@ export interface EditSurveyProps {
     subject: { title: string };
     /** Someone answered: only help texts and the closing date may change. */
     locked: boolean;
+    /** Only while it is prepared for its subject's end: how it goes out then. */
+    endSending: { sendOnEnd: boolean; sendDelayHours: number } | null;
     updateUrl: string;
     backUrl: string;
 }

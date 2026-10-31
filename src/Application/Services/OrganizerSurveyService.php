@@ -4,23 +4,33 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Application\Services;
 
+use App\Application\Surveys\DTOs\SurveySubjectDTO;
+use App\Application\Surveys\Enums\SurveySubjectStatus;
+use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use DateTimeImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\ReviewNotifierInterface;
+use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\DTOs\OrganizerSurveyInput;
 use Modules\Surveys\Application\Enums\SendOutcome;
 use Modules\Surveys\Application\Enums\UpdateOutcome;
 use Modules\Surveys\Application\Exceptions\OrganizerChangeRejectedException;
+use Modules\Surveys\Application\Exceptions\SurveyPreparationUnavailableException;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\ChartType;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
+use Modules\Surveys\Domain\Exceptions\SubjectNotFoundException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 
 /**
  * What an organizer does with their subject's survey on the public site. Every action checks,
@@ -35,7 +45,113 @@ final readonly class OrganizerSurveyService
         private SurveyLifecycleService $lifecycle,
         private SurveyReviewRule $review,
         private ReviewNotifierInterface $reviewNotifier,
+        private SurveySubjectSourceRegistryInterface $sources,
+        private SurveySettingsInterface $settings,
+        private SurveyTemplateRepositoryInterface $templates,
     ) {}
+
+    /**
+     * The subject's end survey, prepared ahead from its type's template: it waits for the end and
+     * then goes out by itself or is offered, as the type says until the organizer changes it. On
+     * a subject that already ended it is ready to send. Preparing again gives the same survey,
+     * taken back if it had been dismissed without opening.
+     *
+     * @throws AuthorizationException
+     * @throws SubjectNotFoundException
+     * @throws SurveyPreparationUnavailableException
+     */
+    public function prepare(string $sourceType, string $subjectId, string $userId, ?DateTimeImmutable $now = null): Survey
+    {
+        $now ??= now()->toDateTimeImmutable();
+        $source = $this->sources->source($sourceType);
+        $subject = $source?->find($subjectId);
+        if (! $subject instanceof SurveySubjectDTO) {
+            throw SubjectNotFoundException::for($sourceType, $subjectId);
+        }
+
+        if (! $source->canManage($userId, $subjectId)) {
+            throw new AuthorizationException;
+        }
+
+        if ($subject->status === SurveySubjectStatus::Cancelled) {
+            throw new SurveyPreparationUnavailableException('cancelled');
+        }
+
+        $endKey = "{$sourceType}:{$subjectId}";
+        $existing = $this->takeBack($endKey);
+        if ($existing instanceof Survey) {
+            return $existing;
+        }
+
+        $type = $this->settings->forSubjectType($sourceType);
+        $template = $type->templateId === null ? null : $this->templates->find(SurveyTemplateId::fromString($type->templateId));
+        if (! $template instanceof SurveyTemplate) {
+            throw new SurveyPreparationUnavailableException('no_template');
+        }
+
+        try {
+            return DB::transaction(function () use ($sourceType, $subjectId, $template, $type, $endKey, $userId, $subject, $now): Survey {
+                $survey = $this->lifecycle->createFromTemplateForSubject(
+                    $sourceType,
+                    $subjectId,
+                    $template,
+                    $type->anonymous,
+                    $type->closeDays,
+                    $endKey,
+                    createdBy: $userId,
+                    subjectEndedAt: $subject->status === SurveySubjectStatus::Ended ? $now : null,
+                );
+
+                if ($survey->isAwaitingSubjectEnd()) {
+                    $survey->chooseEndSending($type->autoSend, $type->sendDelayHours);
+                    $this->surveys->save($survey);
+                }
+
+                return $survey;
+            });
+        } catch (UniqueConstraintViolationException) {
+            // Prepared at the same time by another click, or made by the end meanwhile
+            return $this->takeBack($endKey) ?? throw SubjectNotFoundException::for($sourceType, $subjectId);
+        }
+    }
+
+    /**
+     * Whether the subject's page offers to prepare its end survey: its type has a template, the
+     * subject was not cancelled and it has no end survey still in play (a dismissed one that
+     * never opened is taken back by preparing).
+     */
+    public function preparationAvailable(SurveySubjectDTO $subject): bool
+    {
+        if ($subject->status === SurveySubjectStatus::Cancelled) {
+            return false;
+        }
+
+        $type = $this->settings->forSubjectType($subject->sourceType);
+        if ($type->templateId === null || ! $this->templates->find(SurveyTemplateId::fromString($type->templateId)) instanceof SurveyTemplate) {
+            return false;
+        }
+
+        $existing = $this->surveys->findBySubjectEnd("{$subject->sourceType}:{$subject->subjectId}");
+
+        return ! $existing instanceof Survey
+            || ($existing->dismissedAt() instanceof DateTimeImmutable && ! $existing->wasOpened());
+    }
+
+    /**
+     * The subject's end survey if it exists, taken back when dismissed without ever opening.
+     */
+    private function takeBack(string $endKey): ?Survey
+    {
+        return DB::transaction(function () use ($endKey): ?Survey {
+            $survey = $this->surveys->findBySubjectEndForUpdate($endKey);
+            if ($survey instanceof Survey && $survey->dismissedAt() instanceof DateTimeImmutable && ! $survey->wasOpened()) {
+                $survey->reconsider();
+                $this->surveys->save($survey);
+            }
+
+            return $survey;
+        });
+    }
 
     /**
      * Sends the survey: it opens, or waits for a moderator when it carries unreviewed changes
@@ -183,6 +299,9 @@ final readonly class OrganizerSurveyService
                 $this->onField('duration_days', 'closing_date', fn () => $survey->changeDuration($input->durationDays));
                 $this->onField('reminder_hours_before', 'closing_date', fn () => $survey->reschedule($survey->closesAt(), $input->reminderHoursBefore, $now));
             }
+            if ($input->sendOnEnd !== null && $survey->isAwaitingSubjectEnd()) {
+                $this->onField('send_delay_hours', 'send_delay', fn () => $survey->chooseEndSending($input->sendOnEnd, $input->sendDelayHours ?? 0));
+            }
             $survey->changeResults(new ResultsSettings(
                 liveResults: $input->liveResults,
                 visibleToRespondents: $input->visibleToRespondents,
@@ -238,6 +357,11 @@ final readonly class OrganizerSurveyService
 
     private function sendLocked(Survey $survey, string $submittedBy, DateTimeImmutable $now): SendOutcome
     {
+        // Prepared for its subject's end: it goes out then, as chosen
+        if ($survey->isAwaitingSubjectEnd()) {
+            throw InvalidSurveyStateException::awaitingSubjectEnd($survey->id()->value);
+        }
+
         if ($this->review->needsReview($survey)) {
             $survey->submitForReview($submittedBy, $now);
             $this->surveys->save($survey);

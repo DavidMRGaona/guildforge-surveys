@@ -16,6 +16,7 @@ use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Notifications\SurveyReadyToSend;
 use Modules\Surveys\Notifications\SurveyScheduled;
+use Modules\Surveys\Notifications\SurveyWithdrawnWithSubject;
 
 /**
  * Mails the organizers of a survey's subject who still manage it (asked live) and whose
@@ -48,6 +49,16 @@ final readonly class OrganizerMailer implements OrganizerNotifierInterface
         }
 
         $this->mail($survey, new SurveyScheduled($subject->title, $this->timezone->format($sendsAt), $this->url($subject), $this->branding->siteName()));
+    }
+
+    public function withdrawn(Survey $survey): void
+    {
+        $subject = $survey->subject();
+        if (! $subject instanceof SubjectSnapshot) {
+            return;
+        }
+
+        $this->mail($survey, new SurveyWithdrawnWithSubject($subject->title, $survey->title(), $this->branding->siteName()));
     }
 
     private function mail(Survey $survey, BaseNotification $notification): void

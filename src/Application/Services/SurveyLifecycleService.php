@@ -79,8 +79,9 @@ final readonly class SurveyLifecycleService
     }
 
     /**
-     * The survey made when a subject ends: a copy of the template (keys included) about the
-     * subject, as a draft that lasts $durationDays once it opens. The end key keeps it unique.
+     * A subject's survey from a template: a copy (keys included) about the subject, as a draft
+     * that lasts $durationDays once it opens. An end survey carries the end key, which keeps it
+     * unique, and when the end arrived (null while an organizer's prepared survey waits for it).
      *
      * @throws SubjectNotFoundException
      * @throws UniqueConstraintViolationException when another survey already has the end key
@@ -92,6 +93,8 @@ final readonly class SurveyLifecycleService
         bool $anonymous,
         int $durationDays,
         ?string $subjectEndKey,
+        ?string $createdBy = null,
+        ?DateTimeImmutable $subjectEndedAt = null,
     ): Survey {
         $subject = $this->sources->source($sourceType)?->find($subjectId);
         if (! $subject instanceof SurveySubjectDTO) {
@@ -109,8 +112,10 @@ final readonly class SurveyLifecycleService
             audienceType: AudienceType::Subject,
             templateId: $template->id(),
             subject: SubjectSnapshotFactory::fromDto($subject),
+            createdBy: $createdBy,
             durationDays: $durationDays,
             subjectEndKey: $subjectEndKey,
+            subjectEndedAt: $subjectEndedAt,
         );
         $this->surveys->save($survey);
 

@@ -20,4 +20,9 @@ interface OrganizerNotifierInterface
      * The subject ended and its survey will go out by itself at its scheduled time.
      */
     public function scheduled(Survey $survey): void;
+
+    /**
+     * The subject was cancelled before it ended, so its survey will not go out.
+     */
+    public function withdrawn(Survey $survey): void;
 }
