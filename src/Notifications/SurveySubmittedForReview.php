@@ -44,6 +44,6 @@ final class SurveySubmittedForReview extends Notification implements ShouldQueue
             ->when($this->subjectTitle !== null, fn (MailMessage $mail): MailMessage => $mail->line(__('surveys::emails.submitted_for_review.subject_line', [
                 'subject' => EscapesMarkdown::escape((string) $this->subjectTitle),
             ])))
-            ->action(__('surveys::emails.submitted_for_review.action'), SurveyResource::getUrl('edit', ['record' => $this->surveyId]));
+            ->action(__('surveys::emails.submitted_for_review.action'), SurveyResource::getUrl('view', ['record' => $this->surveyId]));
     }
 }

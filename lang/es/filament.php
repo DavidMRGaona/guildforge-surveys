@@ -173,4 +173,18 @@ return [
         'multiple' => 'Permitir elegir varias opciones',
         'invalid' => 'El sondeo no es válido: revisa la pregunta y las opciones.',
     ],
+
+    'review' => [
+        'approve' => 'Aprobar',
+        'approve_heading' => '¿Aprobar esta encuesta?',
+        'approve_description' => 'Si aún no se había enviado, se envía ahora a su audiencia y sus días abierta cuentan desde este momento. Si ya estaba abierta, vuelve a admitir respuestas.',
+        'reject' => 'Rechazar',
+        'reject_heading' => '¿Rechazar esta encuesta?',
+        'reject_description' => 'Vuelve a quien la organiza con el motivo, que recibirá por correo, para que la corrija.',
+        'reason' => 'Motivo del rechazo',
+        'reason_placeholder' => 'Explica qué hay que cambiar',
+        'approved' => 'Encuesta aprobada',
+        'rejected' => 'Encuesta rechazada',
+        'already_reviewed' => 'Esta encuesta ya no está pendiente de revisión: otra persona la ha revisado o ha cambiado mientras tanto.',
+    ],
 ];

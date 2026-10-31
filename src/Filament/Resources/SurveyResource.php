@@ -8,6 +8,7 @@ use App\Filament\Resources\BaseResource;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use BackedEnum;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -192,7 +193,11 @@ final class SurveyResource extends BaseResource
                     ->options(SurveyTemplateResource::kindOptions()),
             ])
             ->recordActions([
+                // Moderators without surveys.manage read the survey they review here
+                ViewAction::make()->visible(static fn (SurveyModel $record): bool => auth()->user()?->can('update', $record) !== true),
                 EditAction::make(),
+                SurveyActions::approve(),
+                SurveyActions::reject(),
                 SurveyActions::results(),
                 SurveyActions::open(),
                 SurveyActions::close(),
@@ -206,6 +211,7 @@ final class SurveyResource extends BaseResource
             'index' => Pages\ListSurveys::route('/'),
             'create' => Pages\CreateSurvey::route('/create'),
             'edit' => Pages\EditSurvey::route('/{record}/edit'),
+            'view' => Pages\ViewSurvey::route('/{record}'),
             'results' => Pages\ViewSurveyResults::route('/{record}/results'),
         ];
     }

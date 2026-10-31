@@ -9,8 +9,9 @@ use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 
 /**
- * surveys.manage creates and edits surveys; surveys.view_results reads results and exports.
- * Either lets someone see the list.
+ * surveys.manage creates and edits surveys; surveys.view_results reads results and exports;
+ * surveys.moderate approves or rejects what changed outside the panel. Any of them lets
+ * someone see the list and each survey.
  */
 final class SurveyPolicy
 {
@@ -20,14 +21,16 @@ final class SurveyPolicy
 
     private const string VIEW_RESULTS = 'surveys:surveys.view_results';
 
+    private const string MODERATE = 'surveys:surveys.moderate';
+
     public function viewAny(UserModel $user): bool
     {
-        return $this->authorizeAny($user, [self::MANAGE, self::VIEW_RESULTS]);
+        return $this->authorizeAny($user, [self::MANAGE, self::VIEW_RESULTS, self::MODERATE]);
     }
 
     public function view(UserModel $user, SurveyModel $survey): bool
     {
-        return $this->authorizeAny($user, [self::MANAGE, self::VIEW_RESULTS]);
+        return $this->authorizeAny($user, [self::MANAGE, self::VIEW_RESULTS, self::MODERATE]);
     }
 
     public function create(UserModel $user): bool
@@ -53,5 +56,10 @@ final class SurveyPolicy
     public function export(UserModel $user, SurveyModel $survey): bool
     {
         return $this->authorize($user, self::VIEW_RESULTS);
+    }
+
+    public function moderate(UserModel $user, SurveyModel $survey): bool
+    {
+        return $this->authorize($user, self::MODERATE);
     }
 }
