@@ -16,6 +16,25 @@ interface SurveyRepositoryInterface
 
     public function findOrFail(SurveyId $id): Survey;
 
+    /**
+     * The survey with its row locked until the surrounding transaction ends.
+     */
+    public function findForUpdate(SurveyId $id): Survey;
+
+    /**
+     * Whether the survey made when this subject ended ("<type>:<id>") already exists.
+     */
+    public function existsForSubjectEnd(string $key): bool;
+
+    /**
+     * Scheduled drafts whose sending time has come, earliest first.
+     *
+     * @return list<SurveyId>
+     */
+    public function dueForSending(DateTimeImmutable $now): array;
+
+    public function pendingReviewCount(): int;
+
     public function delete(SurveyId $id): void;
 
     /**
