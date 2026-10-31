@@ -110,6 +110,32 @@ export default {
             dismiss_message:
                 'Nadie la recibirá y dejará de aparecer aquí. La organización la seguirá viendo en el panel.',
             cancel: 'Cancelar',
+            results: 'Resultados',
+            results_heading: 'Resultados de {title}',
+            back_to_surveys: 'Volver a las encuestas',
+            results_participation: 'Participación',
+            results_responses: 'Respuestas',
+            results_of_audience: '{responses} de {audience}',
+            results_rate: 'Tasa de respuesta',
+            results_anonymous:
+                'Encuesta anónima: ves el total de cada pregunta, nunca quién respondió qué.',
+            results_named: 'Encuesta con nombre: en las votaciones ves quién eligió cada opción.',
+            results_not_closed:
+                'Es una encuesta anónima: verás los resultados cuando cierre, para que nadie pueda deducir quién respondió qué.',
+            results_below_minimum:
+                'Es una encuesta anónima y aún no tiene respuestas suficientes para mostrar los resultados sin delatar a nadie.',
+            results_chart: 'Gráfica',
+            chart_types: {
+                bar: 'Barras',
+                pie: 'Circular',
+                stacked_bar: 'Barras apiladas',
+                list: 'Lista',
+            },
+            results_hide: 'Ocultar de los resultados',
+            results_will_hide: 'Se ocultará al guardar.',
+            results_hidden_title: 'Preguntas ocultas',
+            results_hidden_hint: 'Desmárcalas y guarda para volver a mostrarlas.',
+            results_save: 'Guardar ajustes de los resultados',
         },
         respond: {
             required: 'Obligatoria',
@@ -145,6 +171,13 @@ export default {
             percent: '{percent} %',
             voters: 'Han votado: {names}',
             other: 'Otra',
+            other_answers: 'Otras respuestas',
+            no_texts: 'Nadie ha escrito nada todavía.',
+            chart_summary:
+                'Gráfica de «{title}»: {answered} respuestas. Los datos están en la tabla.',
+            answer: 'Respuesta',
+            answers: 'Respuestas',
+            share: 'Porcentaje',
         },
     },
 };

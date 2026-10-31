@@ -13,6 +13,7 @@ use Modules\Surveys\Application\Enums\SendOutcome;
 use Modules\Surveys\Application\Enums\UpdateOutcome;
 use Modules\Surveys\Application\Exceptions\OrganizerChangeRejectedException;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\ChartType;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
@@ -101,6 +102,42 @@ final readonly class OrganizerSurveyService
             $this->authorize($userId, $survey);
 
             $survey->dismiss($now ?? now()->toDateTimeImmutable());
+            $this->surveys->save($survey);
+        });
+    }
+
+    /**
+     * How the results show: a chart per question and the questions left out. Not content, so
+     * never reviewed. A chart the question cannot draw and an unknown question are dropped; a
+     * question without a chart in the request keeps the one it had.
+     *
+     * @param  array<mixed>  $chartTypes  question id => chart type
+     * @param  array<mixed>  $hiddenQuestionIds
+     *
+     * @throws AuthorizationException
+     */
+    public function configureResults(SurveyId $id, string $userId, array $chartTypes, array $hiddenQuestionIds): void
+    {
+        DB::transaction(function () use ($id, $userId, $chartTypes, $hiddenQuestionIds): void {
+            $survey = $this->surveys->findForUpdate($id);
+            $this->authorize($userId, $survey);
+
+            $current = $survey->results();
+            $charts = [];
+            $hidden = [];
+            foreach ($survey->definition()->questions() as $question) {
+                $chart = ChartType::tryFrom(is_string($chartTypes[$question->id] ?? null) ? $chartTypes[$question->id] : '');
+                if ($chart instanceof ChartType && in_array($chart, $question->type->chartTypes(), true)) {
+                    $charts[$question->id] = $chart->value;
+                } elseif (isset($current->chartTypes[$question->id])) {
+                    $charts[$question->id] = $current->chartTypes[$question->id];
+                }
+                if (in_array($question->id, $hiddenQuestionIds, true)) {
+                    $hidden[] = $question->id;
+                }
+            }
+
+            $survey->changeResults(new ResultsSettings($current->liveResults, $current->visibleToRespondents, $charts, $hidden));
             $this->surveys->save($survey);
         });
     }

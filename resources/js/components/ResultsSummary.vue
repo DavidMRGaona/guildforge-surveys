@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import type { QuestionResult, RespondResults, ResultBucket } from '../types/Respond';
+import { bucketLabel, percent } from '../utils/buckets';
 
 defineProps<{
     results: RespondResults;
@@ -8,24 +9,8 @@ defineProps<{
 
 const { t, locale } = useI18n();
 
-function percent(count: number, total: number): number {
-    return total > 0 ? Math.round((count / total) * 100) : 0;
-}
-
-function bucketLabel(question: QuestionResult, bucket: ResultBucket): string {
-    if (bucket.label === null) {
-        return t('surveys.results.other');
-    }
-
-    if (question.type === 'date') {
-        // A calendar day: formatted in UTC so it never moves to the day before
-        return new Intl.DateTimeFormat(locale.value, {
-            dateStyle: 'medium',
-            timeZone: 'UTC',
-        }).format(new Date(`${bucket.label}T00:00:00Z`));
-    }
-
-    return bucket.label;
+function label(question: QuestionResult, bucket: ResultBucket): string {
+    return bucketLabel(question.type, bucket.label, t('surveys.results.other'), locale.value);
 }
 
 function number(value: number | null): string {
@@ -117,7 +102,7 @@ function rowTotal(counts: Record<string, number>): number {
                     <div
                         class="flex items-baseline justify-between gap-3 text-sm text-base-primary"
                     >
-                        <span>{{ bucketLabel(question, bucket) }}</span>
+                        <span>{{ label(question, bucket) }}</span>
                         <span class="shrink-0 tabular-nums text-base-secondary">
                             {{ bucket.count }} ·
                             {{
@@ -130,7 +115,7 @@ function rowTotal(counts: Record<string, number>): number {
                     <div
                         class="mt-1 h-2 overflow-hidden rounded-full bg-muted"
                         role="progressbar"
-                        :aria-label="bucketLabel(question, bucket)"
+                        :aria-label="label(question, bucket)"
                         aria-valuemin="0"
                         aria-valuemax="100"
                         :aria-valuenow="percent(bucket.count, question.answered)"

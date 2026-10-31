@@ -89,6 +89,7 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             'sendUrl' => $offered ? route('surveys.manage.send', $id) : null,
             'dismissUrl' => $offered && ! $survey->wasOpened() ? route('surveys.manage.dismiss', $id) : null,
             'editUrl' => $status === 'closed' ? null : route('surveys.manage.edit', $id),
+            'resultsUrl' => $survey->wasOpened() ? route('surveys.manage.results', $id) : null,
         ];
     }
 

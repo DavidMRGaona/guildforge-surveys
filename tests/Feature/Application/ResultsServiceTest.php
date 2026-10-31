@@ -143,6 +143,30 @@ final class ResultsServiceTest extends ModuleTestCase
         $this->assertSame([], $this->question($this->results->forRespondents($id), 'q-single')->texts);
     }
 
+    public function test_the_organizer_gets_what_the_panel_gets_without_hidden_questions(): void
+    {
+        [$id] = $this->openForm(anonymous: false, results: new ResultsSettings(hiddenQuestionIds: ['q-dropdown']));
+        $this->answer($id, 0);
+
+        $results = $this->results->forOrganizer($id);
+        $ids = array_map(static fn (QuestionResultDTO $question): string => $question->questionId, $results->questions);
+
+        $this->assertTrue($results->visible);
+        $this->assertNotContains('q-dropdown', $ids);
+        $this->assertContains('q-short', $ids);
+        $this->assertNotSame([], $this->question($results, 'q-short')->texts);
+    }
+
+    public function test_the_organizer_waits_like_the_panel_for_an_anonymous_survey(): void
+    {
+        [$id] = $this->openForm(anonymous: true);
+        $this->answer($id, 0);
+        $this->answer($id, 1);
+        $this->answer($id, 2);
+
+        $this->assertSame(SurveyResultsDTO::NOT_CLOSED, $this->results->forOrganizer($id)->hiddenReason);
+    }
+
     public function test_respondents_see_results_only_when_the_survey_lets_them_and_it_is_live_or_ended(): void
     {
         [$hidden] = $this->openForm(anonymous: false, results: new ResultsSettings(liveResults: true, visibleToRespondents: false));

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyController;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyEditorController;
+use Modules\Surveys\Http\Controllers\OrganizerSurveyResultsController;
 use Modules\Surveys\Http\Controllers\RespondController;
 
 /*
@@ -50,6 +51,8 @@ Route::prefix('encuestas')
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('subject');
         Route::get('{survey}/editar', [OrganizerSurveyEditorController::class, 'edit'])->whereUuid('survey')->name('manage.edit');
         Route::put('{survey}/editar', [OrganizerSurveyEditorController::class, 'update'])->whereUuid('survey')->name('manage.update');
+        Route::get('{survey}/resultados', [OrganizerSurveyResultsController::class, 'show'])->whereUuid('survey')->name('manage.results');
+        Route::put('{survey}/resultados', [OrganizerSurveyResultsController::class, 'update'])->whereUuid('survey')->name('manage.results.update');
         Route::post('{survey}/enviar', [OrganizerSurveyController::class, 'send'])->whereUuid('survey')->name('manage.send');
         Route::post('{survey}/descartar', [OrganizerSurveyController::class, 'dismiss'])->whereUuid('survey')->name('manage.dismiss');
     });

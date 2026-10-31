@@ -86,7 +86,7 @@ final class ProfileOrganizedSurveysTest extends ModuleTestCase
         $this->actingAs($this->organizer)->get(route('profile.show'))
             ->assertOk()
             ->assertInertia(function (Assert $page) use ($toSend, $scheduled, $open, $rejected): Assert {
-                /** @var list<array{id: string, status: string, subjectTitle: ?string, scheduledSendAt: ?string, rejectionReason: ?string, responses: int, audienceSize: int, sendUrl: ?string}> $rows */
+                /** @var list<array{id: string, status: string, subjectTitle: ?string, scheduledSendAt: ?string, rejectionReason: ?string, responses: int, audienceSize: int, sendUrl: ?string, resultsUrl: ?string}> $rows */
                 $rows = $page->toArray()['props']['profileOrganizedSurveys'];
                 $surveys = array_column($rows, null, 'id');
 
@@ -98,6 +98,9 @@ final class ProfileOrganizedSurveysTest extends ModuleTestCase
                 $this->assertSame(1, $surveys[$open->id()->value]['responses']);
                 $this->assertSame(2, $surveys[$open->id()->value]['audienceSize']);
                 $this->assertNull($surveys[$open->id()->value]['sendUrl']);
+                // Results only once it opened
+                $this->assertSame(route('surveys.manage.results', $open->id()->value), $surveys[$open->id()->value]['resultsUrl']);
+                $this->assertNull($surveys[$toSend->id()->value]['resultsUrl']);
                 $this->assertSame('rejected', $surveys[$rejected->id()->value]['status']);
                 $this->assertSame('Falta una pregunta', $surveys[$rejected->id()->value]['rejectionReason']);
                 $this->assertSame('Partida de ejemplo', $surveys[$toSend->id()->value]['subjectTitle']);

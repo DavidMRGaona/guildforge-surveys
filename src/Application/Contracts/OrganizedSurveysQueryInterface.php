@@ -21,6 +21,7 @@ namespace Modules\Surveys\Application\Contracts;
  *     sendUrl: ?string,
  *     dismissUrl: ?string,
  *     editUrl: ?string,
+ *     resultsUrl: ?string,
  * }
  */
 interface OrganizedSurveysQueryInterface

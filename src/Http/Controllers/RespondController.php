@@ -12,10 +12,6 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Surveys\Application\DTOs\Respondent;
-use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
-use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
-use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
-use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Domain\Entities\Survey;
@@ -24,8 +20,8 @@ use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
 use Modules\Surveys\Domain\Exceptions\NotInvitedException;
 use Modules\Surveys\Domain\Exceptions\SurveyNotAcceptingResponsesException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
-use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Http\Support\ResultsPayload;
 
 /**
  * The page where a survey is answered: with an account, with a guest's link or with the
@@ -123,41 +119,11 @@ final class RespondController extends Controller
             $results = $this->results->forRespondents($id);
             if ($results->visible) {
                 // Names of who voted are for the audience, never for a visitor with the public link
-                $props['results'] = $this->resultsPayload($results, withVoters: $respondent->kind !== Respondent::PUBLIC_LINK);
+                $props['results'] = ResultsPayload::forRespondents($results, withVoters: $respondent->kind !== Respondent::PUBLIC_LINK);
             }
         }
 
         return Inertia::render('Surveys/Respond', $props);
-    }
-
-    /**
-     * @return array{responses: int, questions: list<array<string, mixed>>}
-     */
-    private function resultsPayload(SurveyResultsDTO $results, bool $withVoters): array
-    {
-        return [
-            'responses' => $results->responses,
-            'questions' => array_map(static fn (QuestionResultDTO $question): array => [
-                'id' => $question->questionId,
-                'title' => $question->title,
-                'type' => $question->type->value,
-                'answered' => $question->answered,
-                'belowMinimum' => $question->belowMinimum,
-                'buckets' => array_map(static fn (ResultBucketDTO $bucket): array => [
-                    'key' => $bucket->key,
-                    'label' => $bucket->label,
-                    'count' => $bucket->count,
-                    'voters' => $withVoters ? $bucket->voters : [],
-                ], $question->buckets),
-                'grid' => $question->grid instanceof GridResultDTO ? [
-                    'rows' => array_map(static fn (Option $row): array => $row->toArray(), $question->grid->rows),
-                    'columns' => array_map(static fn (Option $column): array => $column->toArray(), $question->grid->columns),
-                    'counts' => $question->grid->counts,
-                ] : null,
-                'mean' => $question->mean,
-                'median' => $question->median,
-            ], $results->questions),
-        ];
     }
 
     private function submit(Request $request, string $surveyId, Respondent $respondent, string $pageUrl): RedirectResponse
