@@ -83,6 +83,7 @@ return [
         'audience_fixed' => 'La audiencia se fija al abrir la encuesta: ya no se puede cambiar.',
         'closing_date' => 'El cierre de una encuesta abierta no puede quedar en el pasado, y una encuesta cerrada no se reprograma.',
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
+        'closed' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
     ],
 
     'response' => [
