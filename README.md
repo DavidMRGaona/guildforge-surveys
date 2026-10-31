@@ -2,7 +2,7 @@
 
 Encuestas para la plataforma GuildForge: formularios al estilo de un formulario web, sondeos rápidos de una pregunta y encuestas al terminar una mesa, una campaña, un torneo o un evento.
 
-Requiere el core de GuildForge `^3.28`.
+Requiere el core de GuildForge `^3.29`.
 
 ## Qué hace
 
