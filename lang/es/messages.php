@@ -52,6 +52,7 @@ return [
     ],
 
     'manage' => [
+        'trends_title' => 'Tendencias de tus encuestas',
         'subject_title' => 'Encuestas de :title',
         'sent' => 'Encuesta enviada.',
         'sent_for_review' => 'Encuesta enviada a revisión: saldrá cuando la aprueben.',
@@ -137,5 +138,21 @@ return [
         'date' => 'Fecha',
         'person' => 'Persona',
         'other' => 'Otra: :text',
+    ],
+
+    'trends' => [
+        'month' => ':month :year',
+        'months' => [1 => 'ene', 2 => 'feb', 3 => 'mar', 4 => 'abr', 5 => 'may', 6 => 'jun', 7 => 'jul', 8 => 'ago', 9 => 'sep', 10 => 'oct', 11 => 'nov', 12 => 'dic'],
+        'quarter' => 'T:quarter :year',
+        'total' => 'Todo el periodo',
+        'all' => 'Todas las encuestas',
+        'rest' => 'Resto',
+        'other' => 'Otra',
+        'previous' => 'Opciones anteriores',
+        'row_title' => ':question · :row',
+        'no_organizer' => 'Sin organizador',
+        'unknown_organizer' => 'Cuenta eliminada',
+        'no_game_system' => 'Sin sistema de juego',
+        'general' => 'Encuesta general',
     ],
 ];

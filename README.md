@@ -43,6 +43,15 @@ Sus resultados se muestran al cerrarla (o antes, si tiene los resultados en dire
 
 La garantía es frente a quien usa la aplicación, panel incluido; quien tenga acceso directo a la base de datos queda fuera.
 
+## Tendencias
+
+Cómo evoluciona cada pregunta de una plantilla en las encuestas hechas con ella. Las preguntas se siguen por su clave estable, aunque cambie su texto. Las preguntas añadidas a mano, sin clave, y las encuestas propias del organizador, sin plantilla, no entran.
+
+- **Qué se dibuja**: la media por periodo en escalas y estrellas; el reparto por opción en opción única, desplegable y casillas (en casillas, el porcentaje de quienes respondieron); un gráfico por fila en la cuadrícula. El texto libre, la fecha y la hora no tienen tendencia.
+- **Filtros**: tipo de sujeto, organizador, sistema de juego (el atributo `game_system` de la instantánea) y fechas. Se agrupa por mes, trimestre o año, según la fecha del sujeto (su inicio; en las encuestas generales, la apertura), en la zona horaria del sitio. Se puede comparar por organizador, sistema de juego o tipo de sujeto, con 8 series como mucho: el resto se junta en «Resto».
+- **Anonimato**: solo cuentan las encuestas cuyos resultados ya se pueden ver por separado (cerradas o con resultados en directo y, en las anónimas, con el mínimo; cada pregunta, con el suyo). Así, combinar filtros nunca revela una encuesta que sola no se ve. Además, cada punto necesita el mínimo de respuestas verificadas.
+- **Quién lo ve**: la organización, en el panel (*Encuestas → Tendencias*, o desde la tabla de plantillas), con `surveys.view_results`. Cada organizador, en la web (`/encuestas/tendencias`, enlazada desde la pestaña *Encuestas* del perfil), solo las encuestas en las que figura como organizador en la instantánea, sin filtrar ni comparar por organizador y sin las preguntas que cada encuesta oculta en sus resultados.
+
 ## Permisos
 
 Ninguno se concede solo; se dan en el editor de roles.
@@ -50,7 +59,7 @@ Ninguno se concede solo; se dan en el editor de roles.
 | Permiso | Para qué |
 |---|---|
 | `surveys.manage` | Crear y editar plantillas y encuestas, abrirlas, cerrarlas y borrarlas |
-| `surveys.view_results` | Ver los resultados y exportarlos |
+| `surveys.view_results` | Ver los resultados, exportarlos y ver las tendencias |
 | `surveys.moderate` | Revisar las encuestas creadas fuera del panel (llega con la creación desde la web) |
 
 ## Ajustes

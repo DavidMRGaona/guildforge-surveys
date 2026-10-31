@@ -34,12 +34,15 @@ use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
+use Modules\Surveys\Application\Contracts\TrendsQueryInterface;
+use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
 use Modules\Surveys\Console\Commands\SendScheduledSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
+use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Widgets\PendingSurveyReviewsWidget;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
@@ -50,6 +53,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSur
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRepository;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyResultsQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentTrendsQuery;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
 use Modules\Surveys\Infrastructure\Services\OrganizerMailer;
 use Modules\Surveys\Infrastructure\Services\ReviewMailer;
@@ -95,6 +99,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
         $this->app->bind(OrganizedSurveysQueryInterface::class, EloquentOrganizedSurveysQuery::class);
         $this->app->bind(SurveyResultsQueryInterface::class, EloquentSurveyResultsQuery::class);
+        $this->app->bind(TrendsQueryInterface::class, EloquentTrendsQuery::class);
         $this->app->bind(SurveySettingsInterface::class, SurveySettings::class);
         // Replaces the core's default (no links): subject pages of other modules link to their surveys
         $this->app->bind(SurveySubjectLinksInterface::class, SurveySubjectLinks::class);
@@ -148,8 +153,11 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $pending = static fn (): ?array => ($id = $userId()) === null ? null : app(PendingSurveysQueryInterface::class)->forUser($id, now()->toDateTimeImmutable());
         $organized = static fn (): ?array => ($id = $userId()) === null ? null : app(OrganizedSurveysQueryInterface::class)->forUser($id);
 
+        $trendsUrl = static fn (): ?string => ($id = $userId()) === null || app(TrendsService::class)->templatesFor($id) === [] ? null : route('surveys.manage.trends');
+
         Inertia::share('profilePendingSurveys', $pending);
         Inertia::share('profileOrganizedSurveys', $organized);
+        Inertia::share('profileSurveyTrendsUrl', $trendsUrl);
         Inertia::share('profilePendingSurveysTotal', static function () use ($pending, $organized): ?int {
             $toAnswer = $pending();
             if ($toAnswer === null) {
@@ -352,7 +360,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
                 component: 'components/profile/ProfilePendingSurveysSection.vue',
                 module: $this->moduleName(),
                 order: 40,
-                dataKeys: ['profilePendingSurveys', 'profileOrganizedSurveys'],
+                dataKeys: ['profilePendingSurveys', 'profileOrganizedSurveys', 'profileSurveyTrendsUrl'],
                 profileTab: [
                     'tabId' => 'surveys',
                     'icon' => 'pencil-square',
@@ -409,7 +417,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      */
     public function registerFilamentPages(): array
     {
-        return [SurveySettingsPage::class];
+        return [SurveySettingsPage::class, SurveyTrendsPage::class];
     }
 
     /**

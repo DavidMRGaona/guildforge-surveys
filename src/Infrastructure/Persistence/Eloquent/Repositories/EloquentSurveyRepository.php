@@ -227,6 +227,19 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             ->all());
     }
 
+    public function findByTemplate(SurveyTemplateId $templateId): array
+    {
+        return array_values(SurveyModel::query()
+            ->where('template_id', $templateId->value)
+            ->whereNotNull('opens_at')
+            ->whereIn('status', [SurveyStatus::Open->value, SurveyStatus::Closed->value])
+            ->orderBy('opens_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (SurveyModel $model): Survey => $this->toEntity($model))
+            ->all());
+    }
+
     private function toEntity(SurveyModel $model): Survey
     {
         /** @var array{source_type: string, subject_id: string, title: string, starts_at: ?string, ends_at: ?string, organizer_ids: list<string>, attributes: list<array{key: string, label: string, value: string|int|float|bool|null}>, url: ?string}|null $snapshot */
