@@ -330,7 +330,7 @@ final class Survey
     public function replaceDefinition(SurveyDefinition $definition, bool $hasResponses, SurveyDefinitionValidator $validator): void
     {
         $validator->assertValid($definition, $this->kind);
-        $validator->assertChangeAllowed($this->definition, $definition, $hasResponses);
+        $validator->assertChangeAllowed($this->definition, $definition, $hasResponses, keysFixed: true);
 
         $this->definition = $definition;
     }

@@ -80,11 +80,13 @@ final class SurveyDefinitionValidator
     /**
      * Rules for replacing a stored definition: a question with a key never changes type
      * (it would break its series over time), and once there are responses only the help
-     * texts may change, since any other edit would change what earlier answers mean.
+     * texts may change, since any other edit would change what earlier answers mean. With
+     * $keysFixed (a survey, not a template) no key may appear that the old content did not have:
+     * keys only come from templates, so nobody can slip a question into a template's series.
      *
      * @return list<DefinitionViolation>
      */
-    public function validateChange(SurveyDefinition $old, SurveyDefinition $new, bool $hasResponses): array
+    public function validateChange(SurveyDefinition $old, SurveyDefinition $new, bool $hasResponses, bool $keysFixed = false): array
     {
         $violations = [];
 
@@ -100,6 +102,9 @@ final class SurveyDefinitionValidator
                 $oldType = $question->key === null ? null : ($oldTypesByKey[$question->key] ?? null);
                 if ($oldType !== null && $oldType !== $question->type) {
                     $violations[] = new DefinitionViolation("sections.{$s}.questions.{$q}.type", 'type_locked');
+                }
+                if ($keysFixed && $question->key !== null && ! array_key_exists($question->key, $oldTypesByKey)) {
+                    $violations[] = new DefinitionViolation("sections.{$s}.questions.{$q}.key", 'key_not_allowed');
                 }
             }
         }
@@ -122,9 +127,9 @@ final class SurveyDefinitionValidator
     /**
      * @throws InvalidSurveyDefinitionException
      */
-    public function assertChangeAllowed(SurveyDefinition $old, SurveyDefinition $new, bool $hasResponses): void
+    public function assertChangeAllowed(SurveyDefinition $old, SurveyDefinition $new, bool $hasResponses, bool $keysFixed = false): void
     {
-        $this->throwIfAny($this->validateChange($old, $new, $hasResponses));
+        $this->throwIfAny($this->validateChange($old, $new, $hasResponses, $keysFixed));
     }
 
     /**

@@ -49,6 +49,7 @@ return [
         'poll_single_question' => 'Un sondeo rápido tiene exactamente una pregunta.',
         'poll_type' => 'Un sondeo rápido es de opción única o de casillas.',
         'type_locked' => 'Esta pregunta tiene clave estable: no puede cambiar de tipo. Crea una pregunta nueva con otra clave.',
+        'key_not_allowed' => 'Esta pregunta no puede llevar clave: las claves solo vienen de la plantilla.',
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
     ],
 
