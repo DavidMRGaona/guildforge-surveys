@@ -192,6 +192,7 @@ final class SurveyResource extends BaseResource
             ])
             ->recordActions([
                 EditAction::make(),
+                SurveyActions::results(),
                 SurveyActions::open(),
                 SurveyActions::close(),
                 SurveyActions::delete(),
@@ -204,6 +205,7 @@ final class SurveyResource extends BaseResource
             'index' => Pages\ListSurveys::route('/'),
             'create' => Pages\CreateSurvey::route('/create'),
             'edit' => Pages\EditSurvey::route('/{record}/edit'),
+            'results' => Pages\ViewSurveyResults::route('/{record}/results'),
         ];
     }
 

@@ -130,6 +130,38 @@ return [
         'delete_confirmation' => 'Entiendo que se borrarán todas las respuestas para siempre',
     ],
 
+    'results' => [
+        'action' => 'Resultados',
+        'title' => 'Resultados: :title',
+        'breadcrumb' => 'Resultados',
+        'responses' => '{0} Sin respuestas|{1} :count respuesta|[2,*] :count respuestas',
+        'rate' => 'Tasa de respuesta: :rate % de :audience',
+        'no_rate' => 'Sin audiencia fija, no hay tasa de respuesta.',
+        'hidden' => [
+            'not_closed' => 'Los resultados de una encuesta anónima se muestran al cerrarla, salvo que tenga los resultados en directo.',
+            'below_minimum' => 'Aún no hay respuestas suficientes para mostrar resultados.',
+        ],
+        'answered' => '{0} Nadie ha respondido a esta pregunta|{1} :count persona ha respondido a esta pregunta|[2,*] :count personas han respondido a esta pregunta',
+        'question_below_minimum' => 'Aún no hay respuestas suficientes a esta pregunta para mostrarlas.',
+        'mean_median' => 'Media: :mean · Mediana: :median',
+        'no_texts' => 'Nadie ha escrito nada todavía.',
+        'other' => 'Otra',
+        'other_texts' => 'Lo escrito en «Otra»',
+        'series' => 'Respuestas',
+        'hidden_questions' => 'Preguntas ocultas en los resultados: :questions',
+        'configure' => 'Configurar resultados',
+        'configure_done' => 'Configuración de resultados guardada',
+        'chart_type_of' => 'Gráfico de «:question»',
+        'hidden_question_ids' => 'Preguntas ocultas',
+        'hidden_question_ids_help' => 'No se muestran en esta página ni a quien responde. La exportación las incluye.',
+        'chart_types' => [
+            'bar' => 'Barras',
+            'pie' => 'Sectores',
+            'stacked_bar' => 'Barras apiladas',
+            'list' => 'Lista',
+        ],
+    ],
+
     'quick_poll' => [
         'action' => 'Sondeo rápido',
         'heading' => 'Nuevo sondeo rápido',
