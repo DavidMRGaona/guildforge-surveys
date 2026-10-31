@@ -32,6 +32,7 @@ use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
+use Modules\Surveys\Console\Commands\SendScheduledSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
@@ -159,6 +160,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
             $this->commands([
                 CloseDueSurveysCommand::class,
                 SendSurveyRemindersCommand::class,
+                SendScheduledSurveysCommand::class,
             ]);
         }
     }
@@ -168,6 +170,11 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
             // Closes surveys whose date has passed and forgets their guests' email addresses
             $schedule->command('surveys:close-due')
+                ->everyFiveMinutes()
+                ->withoutOverlapping(10);
+
+            // Sends the subject surveys whose scheduled time has come
+            $schedule->command('surveys:send-scheduled')
                 ->everyFiveMinutes()
                 ->withoutOverlapping(10);
 

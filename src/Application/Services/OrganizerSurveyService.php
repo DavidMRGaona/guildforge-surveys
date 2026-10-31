@@ -55,6 +55,33 @@ final readonly class OrganizerSurveyService
     }
 
     /**
+     * Sends a scheduled survey whose time has come, on nobody's behalf: changed content goes to
+     * review in the name of whoever changed it. Null when there was nothing to send any more
+     * (sent, dismissed or moved meanwhile).
+     *
+     * @throws InvalidSurveyStateException
+     */
+    public function sendScheduled(SurveyId $id, ?DateTimeImmutable $now = null): ?SendOutcome
+    {
+        $now ??= now()->toDateTimeImmutable();
+
+        [$outcome, $survey] = DB::transaction(function () use ($id, $now): array {
+            $survey = $this->surveys->findForUpdate($id);
+            if (! $survey->isDueForSending($now)) {
+                return [null, $survey];
+            }
+
+            return [$this->sendLocked($survey, $survey->lastChangedBy() ?? $survey->createdBy() ?? '', $now), $survey];
+        });
+
+        if ($outcome === SendOutcome::SentForReview) {
+            $this->reviewNotifier->submittedForReview($survey);
+        }
+
+        return $outcome;
+    }
+
+    /**
      * The organizer chose not to send a survey offered to them; the panel keeps it.
      *
      * @throws AuthorizationException
