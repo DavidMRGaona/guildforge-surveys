@@ -109,6 +109,49 @@ final class SurveyResultsPageTest extends ModuleTestCase
         $this->assertSame(['q-dropdown'], $results->hiddenQuestionIds);
     }
 
+    public function test_a_pie_chart_hands_chart_js_an_options_object(): void
+    {
+        $this->actingAsPanelAdmin();
+        [$id] = $this->openForm(anonymous: false);
+        $this->answer($id, 0, ['q-single' => 'o-1']);
+        Livewire::test(ViewSurveyResults::class, ['record' => $id->value])
+            ->callAction('configure_results', data: ['chart_types' => ['q-single' => 'pie'], 'hidden_question_ids' => []])
+            ->assertHasNoActionErrors();
+
+        $chart = Livewire::test(QuestionResultChart::class, ['surveyId' => $id->value, 'questionId' => 'q-single']);
+
+        $this->assertSame('pie', (new ReflectionMethod(QuestionResultChart::class, 'getType'))->invoke($chart->instance()));
+        $this->assertNotJsonList($this->chartOptions($chart->instance()));
+        $chart->assertDontSeeHtml('options: []');
+    }
+
+    public function test_a_chart_without_a_result_hands_chart_js_an_options_object(): void
+    {
+        $this->actingAsPanelAdmin();
+        [$id] = $this->openForm(anonymous: false);
+
+        $chart = Livewire::test(QuestionResultChart::class, ['surveyId' => $id->value, 'questionId' => 'q-missing']);
+
+        $this->assertNotJsonList($this->chartOptions($chart->instance()));
+        $chart->assertDontSeeHtml('options: []');
+    }
+
+    /**
+     * Chart.js reads its options as an object: an empty PHP array reaches it as the JSON list
+     * [] and breaks the chart, while null becomes {} in Filament's widget.
+     */
+    private function assertNotJsonList(mixed $options): void
+    {
+        $this->assertFalse(is_array($options) && array_is_list($options), 'The chart options would reach Chart.js as a JSON list');
+    }
+
+    private function chartOptions(Component $chart): mixed
+    {
+        $this->assertInstanceOf(QuestionResultChart::class, $chart);
+
+        return (new ReflectionMethod(QuestionResultChart::class, 'getOptions'))->invoke($chart);
+    }
+
     /**
      * What the chart hands to Chart.js; getCachedData() is protected on Filament's ChartWidget.
      *
