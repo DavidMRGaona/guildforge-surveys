@@ -12,6 +12,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Str;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
@@ -68,7 +69,14 @@ final class ListSurveys extends ListRecords
                     ->label(__('surveys::filament.quick_poll.multiple')),
                 Toggle::make('anonymous')
                     ->label(__('surveys::filament.survey.fields.anonymous'))
+                    ->live()
                     ->default(static fn (): bool => app(SurveySettings::class)->anonymousByDefault()),
+                Toggle::make('live_results')
+                    ->label(__('surveys::filament.survey.fields.live_results'))
+                    ->helperText(static fn (Get $get): string => $get('anonymous') === true
+                        ? __('surveys::filament.survey.fields.live_results_anonymous_help')
+                        : __('surveys::filament.survey.fields.live_results_help'))
+                    ->default(ResultsSettings::defaultsFor(SurveyKind::Poll)->liveResults),
                 DateTimePicker::make('closes_at')
                     ->label(__('surveys::filament.survey.fields.closes_at'))
                     ->native(false)
@@ -124,7 +132,10 @@ final class ListSurveys extends ListRecords
             description: null,
             definition: $definition,
             anonymous: (bool) ($data['anonymous'] ?? true),
-            results: ResultsSettings::defaultsFor(SurveyKind::Poll),
+            results: new ResultsSettings(
+                liveResults: (bool) ($data['live_results'] ?? ResultsSettings::defaultsFor(SurveyKind::Poll)->liveResults),
+                visibleToRespondents: true,
+            ),
             audienceType: AudienceType::AllUsers,
             closesAt: SurveyFormData::closesAt($data),
             createdBy: is_string(auth()->id()) ? auth()->id() : null,

@@ -4,29 +4,18 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Tests\Feature\Application;
 
-use App\Application\Surveys\DTOs\SurveyAudienceDTO;
-use App\Application\Surveys\DTOs\SurveyGuestDTO;
-use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
-use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
-use LogicException;
-use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
 use Modules\Surveys\Application\DTOs\Respondent;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
 use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
-use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
-use Modules\Surveys\Domain\Entities\Survey;
-use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\ChartType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
-use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
-use Modules\Surveys\Domain\ValueObjects\SurveyId;
-use Modules\Surveys\Tests\Support\ExampleThingSource;
+use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\ModuleTestCase;
 
@@ -36,22 +25,16 @@ final class ResultsServiceTest extends ModuleTestCase
 
     protected bool $autoEnableModule = true;
 
-    private ResultsService $results;
+    use AnswersExampleSurveys;
 
-    /** @var list<UserModel> */
-    private array $people;
+    private ResultsService $results;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->results = $this->app->make(ResultsService::class);
-        $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
-        $this->people = [
-            UserModel::factory()->create(['name' => 'Persona A']),
-            UserModel::factory()->create(['name' => 'Persona B']),
-            UserModel::factory()->create(['name' => 'Persona C']),
-        ];
+        $this->createExamplePeople();
     }
 
     public function test_counts_the_answers_of_every_question_type(): void
@@ -115,21 +98,40 @@ final class ResultsServiceTest extends ModuleTestCase
         $this->assertTrue($this->results->forPanel($id)->visible);
     }
 
+    public function test_an_anonymous_question_answered_by_fewer_than_the_minimum_stays_hidden(): void
+    {
+        $definition = SurveyDefinitionTest::everyTypeDefinition();
+        $definition['sections'][0]['questions'][0]['required'] = false;
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray($definition), true, new ResultsSettings(liveResults: true));
+        $this->answer($id, 0, ['q-short' => 'Solo lo escribo yo']);
+        $this->answer($id, 1, ['q-short' => '']);
+        $this->answer($id, 2, ['q-short' => '']);
+
+        $results = $this->results->forPanel($id);
+
+        $this->assertTrue($results->visible);
+        $short = $this->question($results, 'q-short');
+        $this->assertTrue($short->belowMinimum);
+        $this->assertSame(1, $short->answered);
+        $this->assertSame([], $short->texts);
+        $this->assertFalse($this->question($results, 'q-single')->belowMinimum);
+    }
+
     public function test_live_results_show_an_anonymous_survey_while_open_but_keep_the_minimum(): void
     {
         [$id] = $this->openForm(anonymous: true, results: new ResultsSettings(liveResults: true));
-        $this->answer($id, 0, []);
+        $this->answer($id, 0);
         $this->assertSame('below_minimum', $this->results->forPanel($id)->hiddenReason);
 
-        $this->answer($id, 1, []);
-        $this->answer($id, 2, []);
+        $this->answer($id, 1);
+        $this->answer($id, 2);
         $this->assertTrue($this->results->forPanel($id)->visible);
     }
 
     public function test_the_panel_marks_hidden_questions_and_respondents_never_get_them_or_free_text(): void
     {
         [$id] = $this->openForm(anonymous: false, results: new ResultsSettings(liveResults: true, visibleToRespondents: true, hiddenQuestionIds: ['q-dropdown']));
-        $this->answer($id, 0, []);
+        $this->answer($id, 0);
 
         $this->assertTrue($this->question($this->results->forPanel($id), 'q-dropdown')->hidden);
 
@@ -144,11 +146,11 @@ final class ResultsServiceTest extends ModuleTestCase
     public function test_respondents_see_results_only_when_the_survey_lets_them_and_it_is_live_or_ended(): void
     {
         [$hidden] = $this->openForm(anonymous: false, results: new ResultsSettings(liveResults: true, visibleToRespondents: false));
-        $this->answer($hidden, 0, []);
+        $this->answer($hidden, 0);
         $this->assertFalse($this->results->forRespondents($hidden)->visible);
 
         [$notLive] = $this->openForm(anonymous: false, results: new ResultsSettings(visibleToRespondents: true));
-        $this->answer($notLive, 0, []);
+        $this->answer($notLive, 0);
         $this->assertTrue($this->results->forPanel($notLive)->visible);
         $this->assertFalse($this->results->forRespondents($notLive)->visible);
         $this->assertSame('not_closed', $this->results->forRespondents($notLive)->hiddenReason);
@@ -182,67 +184,6 @@ final class ResultsServiceTest extends ModuleTestCase
 
         $this->assertSame(0, $results->audienceSize);
         $this->assertNull($results->rate);
-    }
-
-    /**
-     * @param  array<string, mixed>  $overrides
-     */
-    private function answer(SurveyId $id, int $person, array $overrides): void
-    {
-        $answers = array_merge([
-            'q-short' => 'Algo', 'q-paragraph' => 'Más', 'q-single' => 'o-2', 'q-multiple' => ['o-1'], 'q-dropdown' => 'o-1',
-            'q-scale' => 3, 'q-stars' => 3, 'q-date' => '2030-01-01', 'q-time' => '10:00', 'q-grid' => ['r-1' => 'c-1', 'r-2' => 'c-1'],
-        ], $overrides);
-
-        $this->app->make(SubmissionService::class)->submit($id, Respondent::account($this->people[$person]->id), $answers);
-    }
-
-    /**
-     * @return array{SurveyId, OpenedSurveyDTO}
-     */
-    private function openForm(bool $anonymous, ?ResultsSettings $results = null): array
-    {
-        ExampleThingSource::$audience = new SurveyAudienceDTO(array_map(static fn (UserModel $user): string => $user->id, $this->people), []);
-
-        return $this->open(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()), $anonymous, $results ?? ResultsSettings::defaultsFor(SurveyKind::Form));
-    }
-
-    /**
-     * @return array{SurveyId, OpenedSurveyDTO}
-     */
-    private function openPoll(bool $anonymous, bool $audience = true): array
-    {
-        ExampleThingSource::$audience = $audience
-            ? new SurveyAudienceDTO(array_map(static fn (UserModel $user): string => $user->id, $this->people), [new SurveyGuestDTO('guest-1', 'Invitada de ejemplo', 'invitada@example.test')])
-            : new SurveyAudienceDTO([], []);
-        $definition = SurveyDefinition::fromArray(['sections' => [['id' => 's-1', 'questions' => [[
-            'id' => 'q-1', 'type' => 'single_choice', 'title' => '¿Qué día?', 'required' => true,
-            'options' => [['id' => 'o-1', 'label' => 'Viernes'], ['id' => 'o-2', 'label' => 'Sábado']],
-        ]]]]]);
-
-        return $this->open(SurveyKind::Poll, $definition, $anonymous, ResultsSettings::defaultsFor(SurveyKind::Poll));
-    }
-
-    /**
-     * @return array{SurveyId, OpenedSurveyDTO}
-     */
-    private function open(SurveyKind $kind, SurveyDefinition $definition, bool $anonymous, ResultsSettings $results): array
-    {
-        $survey = new Survey(
-            id: SurveyId::generate(),
-            kind: $kind,
-            title: 'Encuesta de ejemplo',
-            description: null,
-            definition: $definition,
-            anonymous: $anonymous,
-            results: $results,
-            audienceType: AudienceType::Subject,
-            subject: SubjectSnapshotFactory::fromDto((new ExampleThingSource)->find('thing-1') ?? throw new LogicException('The example thing exists.')),
-            closesAt: now()->addDays(7)->toDateTimeImmutable(),
-        );
-        $this->app->make(SurveyRepositoryInterface::class)->save($survey);
-
-        return [$survey->id(), $this->app->make(SurveyLifecycleService::class)->open($survey->id(), notify: false)];
     }
 
     private function question(SurveyResultsDTO $results, string $questionId): QuestionResultDTO

@@ -101,10 +101,12 @@ final class SurveyResourceTest extends ModuleTestCase
             'options' => [['label' => 'Viernes'], ['label' => 'Sábado'], ['label' => 'Domingo']],
             'multiple' => true,
             'anonymous' => false,
+            'live_results' => false,
             'closes_at' => '2030-01-10 20:00:00',
         ]]);
 
         $poll = $this->stored();
+        $this->assertFalse($poll->results()->liveResults);
         $this->assertSame(SurveyKind::Poll, $poll->kind());
         $this->assertFalse($poll->isAnonymous());
         $this->assertTrue($poll->results()->visibleToRespondents);

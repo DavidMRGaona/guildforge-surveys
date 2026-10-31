@@ -118,8 +118,26 @@ final readonly class ResultsService
         $texts = $forRespondents ? [] : $this->query->texts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type->isFreeText() || $type->allowsOther()));
         $voters = ! $survey->isAnonymous() && $survey->kind() === SurveyKind::Poll ? $this->query->voters($id, $optionIds) : [];
 
+        // An optional question one person answered would give that answer away: the minimum
+        // applies to each question of an anonymous survey too
+        $minimum = $survey->isAnonymous() ? $this->settings->minResponses() : 0;
+
         $results = [];
         foreach ($questions as $question) {
+            if (($answered[$question->id] ?? 0) < $minimum) {
+                $results[] = new QuestionResultDTO(
+                    questionId: $question->id,
+                    title: $question->title,
+                    type: $question->type,
+                    chartType: $survey->results()->chartTypeFor($question),
+                    hidden: $survey->results()->isHidden($question->id),
+                    answered: $answered[$question->id] ?? 0,
+                    belowMinimum: true,
+                );
+
+                continue;
+            }
+
             $results[] = $this->question(
                 $survey,
                 $question,

@@ -11,6 +11,7 @@ final readonly class QuestionResultDTO
 {
     /**
      * @param  int  $answered  responses that answered this question
+     * @param  bool  $belowMinimum  an anonymous question too few people answered: nothing else is filled in
      * @param  list<ResultBucketDTO>  $buckets
      * @param  list<string>  $texts  free text, or the text of "Other"
      */
@@ -26,5 +27,6 @@ final readonly class QuestionResultDTO
         public ?float $mean = null,
         public ?float $median = null,
         public array $texts = [],
+        public bool $belowMinimum = false,
     ) {}
 }
