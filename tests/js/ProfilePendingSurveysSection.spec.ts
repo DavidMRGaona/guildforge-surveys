@@ -34,4 +34,27 @@ describe('ProfilePendingSurveysSection', () => {
         expect(wrapper.find('li').exists()).toBe(false);
         expect(wrapper.text()).toContain('No tienes encuestas pendientes');
     });
+
+    it('links to the trends when the server offers them', () => {
+        const wrapper = mount(ProfilePendingSurveysSection, {
+            props: {
+                profilePendingSurveys: [],
+                profileOrganizedSurveys: [],
+                profileSurveyTrendsUrl: '/encuestas/tendencias',
+            },
+        });
+
+        expect(wrapper.get('[data-testid="trends-link"]').attributes('href')).toBe(
+            '/encuestas/tendencias'
+        );
+        expect(wrapper.text()).toContain('Ver las tendencias');
+    });
+
+    it('has no trends link without them', () => {
+        const wrapper = mount(ProfilePendingSurveysSection, {
+            props: { profilePendingSurveys: [], profileSurveyTrendsUrl: null },
+        });
+
+        expect(wrapper.find('[data-testid="trends-link"]').exists()).toBe(false);
+    });
 });

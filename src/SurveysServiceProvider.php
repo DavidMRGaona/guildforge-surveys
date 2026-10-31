@@ -35,6 +35,7 @@ use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\Contracts\TrendsQueryInterface;
+use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
 use Modules\Surveys\Console\Commands\SendScheduledSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
@@ -152,8 +153,11 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $pending = static fn (): ?array => ($id = $userId()) === null ? null : app(PendingSurveysQueryInterface::class)->forUser($id, now()->toDateTimeImmutable());
         $organized = static fn (): ?array => ($id = $userId()) === null ? null : app(OrganizedSurveysQueryInterface::class)->forUser($id);
 
+        $trendsUrl = static fn (): ?string => ($id = $userId()) === null || app(TrendsService::class)->templatesFor($id) === [] ? null : route('surveys.manage.trends');
+
         Inertia::share('profilePendingSurveys', $pending);
         Inertia::share('profileOrganizedSurveys', $organized);
+        Inertia::share('profileSurveyTrendsUrl', $trendsUrl);
         Inertia::share('profilePendingSurveysTotal', static function () use ($pending, $organized): ?int {
             $toAnswer = $pending();
             if ($toAnswer === null) {
@@ -356,7 +360,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
                 component: 'components/profile/ProfilePendingSurveysSection.vue',
                 module: $this->moduleName(),
                 order: 40,
-                dataKeys: ['profilePendingSurveys', 'profileOrganizedSurveys'],
+                dataKeys: ['profilePendingSurveys', 'profileOrganizedSurveys', 'profileSurveyTrendsUrl'],
                 profileTab: [
                     'tabId' => 'surveys',
                     'icon' => 'pencil-square',

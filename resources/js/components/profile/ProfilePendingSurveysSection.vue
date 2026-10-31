@@ -11,6 +11,8 @@ import OrganizedSurveysList from '../OrganizedSurveysList.vue';
 const props = defineProps<{
     profilePendingSurveys: PendingSurvey[] | null;
     profileOrganizedSurveys?: OrganizedSurvey[] | null;
+    /** Only when something the person organized has surveys made from a template. */
+    profileSurveyTrendsUrl?: string | null;
 }>();
 
 const { t, locale } = useI18n();
@@ -29,11 +31,21 @@ function closesAt(value: string): string {
 
 <template>
     <div class="space-y-8">
-        <section v-if="organized.length > 0" class="space-y-4">
-            <h2 class="text-xl font-semibold text-base-primary">
-                {{ t('surveys.manage.profile_title') }}
-            </h2>
-            <OrganizedSurveysList :surveys="organized" />
+        <section v-if="organized.length > 0 || props.profileSurveyTrendsUrl" class="space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-xl font-semibold text-base-primary">
+                    {{ t('surveys.manage.profile_title') }}
+                </h2>
+                <Link
+                    v-if="props.profileSurveyTrendsUrl"
+                    :href="props.profileSurveyTrendsUrl"
+                    class="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                    data-testid="trends-link"
+                >
+                    {{ t('surveys.trends.profile_link') }}
+                </Link>
+            </div>
+            <OrganizedSurveysList v-if="organized.length > 0" :surveys="organized" />
         </section>
 
         <section class="space-y-4">

@@ -70,7 +70,7 @@ final class ProfilePendingSurveysTest extends ModuleTestCase
 
         $this->assertCount(1, $slots);
         $slot = array_first($slots);
-        $this->assertSame(['profilePendingSurveys', 'profileOrganizedSurveys'], $slot->dataKeys);
+        $this->assertSame(['profilePendingSurveys', 'profileOrganizedSurveys', 'profileSurveyTrendsUrl'], $slot->dataKeys);
         $this->assertSame('profilePendingSurveysTotal', $slot->profileTab['badgeKey'] ?? null);
     }
 

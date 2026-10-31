@@ -52,6 +52,7 @@ return [
     ],
 
     'manage' => [
+        'trends_title' => 'Tendencias de tus encuestas',
         'subject_title' => 'Encuestas de :title',
         'sent' => 'Encuesta enviada.',
         'sent_for_review' => 'Encuesta enviada a revisión: saldrá cuando la aprueben.',
