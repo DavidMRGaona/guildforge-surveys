@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import { VENUE_TIMEZONE } from '@/utils/datetime';
 import QuestionField from '../../components/QuestionField.vue';
+import ResultsSummary from '../../components/ResultsSummary.vue';
 import type { AnswerDraft, RespondProps } from '../../types/Respond';
 import { draftsFor, emptyDraft, toPayload } from '../../utils/answers';
 
@@ -95,6 +96,8 @@ function submit(): void {
                 t('surveys.respond.back_home')
             }}</Link>
         </div>
+
+        <ResultsSummary v-if="results && !showForm" :results="results" />
 
         <form v-if="showForm && definition" novalidate class="space-y-8" @submit.prevent="submit">
             <p v-if="survey" class="rounded-md bg-muted p-3 text-sm text-base-secondary">

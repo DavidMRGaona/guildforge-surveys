@@ -32,5 +32,16 @@ export default {
             },
             back_home: 'Volver al inicio',
         },
+        results: {
+            title: 'Resultados',
+            responses: 'Sin respuestas | {count} respuesta | {count} respuestas',
+            answered:
+                'Nadie ha respondido | {count} persona ha respondido | {count} personas han respondido',
+            below_minimum: 'Aún no hay respuestas suficientes a esta pregunta para mostrarlas.',
+            mean_median: 'Media: {mean} · Mediana: {median}',
+            percent: '{percent} %',
+            voters: 'Han votado: {names}',
+            other: 'Otra',
+        },
     },
 };

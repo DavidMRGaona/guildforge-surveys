@@ -77,7 +77,7 @@ trait AnswersExampleSurveys
      *
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openPoll(bool $anonymous, bool $audience = true): array
+    private function openPoll(bool $anonymous, bool $audience = true, bool $publicLink = false): array
     {
         ExampleThingSource::$audience = $audience
             ? new SurveyAudienceDTO(array_map(static fn (UserModel $user): string => $user->id, $this->people), [new SurveyGuestDTO('guest-1', 'Invitada de ejemplo', 'invitada@example.test')])
@@ -87,7 +87,7 @@ trait AnswersExampleSurveys
             'options' => [['id' => 'o-1', 'label' => 'Viernes'], ['id' => 'o-2', 'label' => 'Sábado']],
         ]]]]]);
 
-        return $this->openExample(SurveyKind::Poll, $definition, $anonymous, ResultsSettings::defaultsFor(SurveyKind::Poll));
+        return $this->openExample(SurveyKind::Poll, $definition, $anonymous, ResultsSettings::defaultsFor(SurveyKind::Poll), $publicLink);
     }
 
     /**
@@ -95,7 +95,7 @@ trait AnswersExampleSurveys
      *
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openExample(SurveyKind $kind, SurveyDefinition $definition, bool $anonymous, ResultsSettings $results): array
+    private function openExample(SurveyKind $kind, SurveyDefinition $definition, bool $anonymous, ResultsSettings $results, bool $publicLink = false): array
     {
         ExampleThingSource::$audience ??= new SurveyAudienceDTO(array_map(static fn (UserModel $user): string => $user->id, $this->people), []);
         $survey = new Survey(
@@ -107,6 +107,7 @@ trait AnswersExampleSurveys
             anonymous: $anonymous,
             results: $results,
             audienceType: AudienceType::Subject,
+            publicLinkEnabled: $publicLink,
             subject: SubjectSnapshotFactory::fromDto((new ExampleThingSource)->find('thing-1') ?? throw new LogicException('The example thing exists.')),
             closesAt: now()->addDays(7)->toDateTimeImmutable(),
         );
