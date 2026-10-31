@@ -29,6 +29,7 @@ final class EditSurvey extends EditRecord
             SurveyActions::approve()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::reject()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::results(),
+            SurveyActions::renewPublicLink(),
             SurveyActions::open()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::close()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::delete(),

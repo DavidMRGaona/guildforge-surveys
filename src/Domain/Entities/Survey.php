@@ -330,6 +330,21 @@ final class Survey
     }
 
     /**
+     * A new token for the public link, when the old one went where it should not: the old link
+     * stops working at once. Only while open, so a closed survey's link never comes back.
+     *
+     * @throws InvalidSurveyStateException
+     */
+    public function renewPublicToken(string $token): void
+    {
+        if ($this->status !== SurveyStatus::Open || $this->publicToken === null) {
+            throw InvalidSurveyStateException::cannotRenewPublicLink($this->id->value, $this->status->value);
+        }
+
+        $this->publicToken = $token;
+    }
+
+    /**
      * True only while open and before the closing date: the scheduled close may run late,
      * so the date decides, not the status alone.
      */

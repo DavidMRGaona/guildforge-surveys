@@ -15,6 +15,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -23,11 +24,13 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
+use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Forms\DefinitionEditor;
@@ -88,6 +91,23 @@ final class SurveyResource extends BaseResource
                             ->rows(2)
                             ->disabled($hasResponses),
                     ]),
+                // Shown again while the survey takes responses, so the link can be shared after opening
+                Section::make(__('surveys::filament.survey.sections.public_link'))
+                    ->schema([
+                        TextEntry::make('public_link_url')
+                            ->label(__('surveys::filament.survey.fields.public_link_url'))
+                            ->state(static fn (?SurveyModel $record): ?string => $record instanceof SurveyModel ? self::publicLinkUrl($record) : null)
+                            ->fontFamily('mono')
+                            ->extraAttributes(['class' => 'break-all'])
+                            ->afterContent(SurveyActions::copyPublicLink())
+                            ->columnSpanFull(),
+                        TextEntry::make('public_link_current_mode')
+                            ->label(__('surveys::filament.survey.fields.public_link_mode'))
+                            ->state(static fn (?SurveyModel $record): ?string => $record instanceof SurveyModel ? (string) __("surveys::filament.survey.public_link_modes.{$record->public_link_mode}") : null)
+                            ->belowContent(static fn (?SurveyModel $record): ?string => $record instanceof SurveyModel ? (string) __("surveys::filament.survey.public_link_modes.{$record->public_link_mode}_help") : null)
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(static fn (?SurveyModel $record): bool => $record instanceof SurveyModel && self::publicLinkUrl($record) !== null),
                 Section::make(__('surveys::filament.definition.title'))
                     ->description(static fn (?SurveyModel $record): ?string => $hasResponses($record) ? (string) __('surveys::filament.survey.locked_by_responses') : null)
                     ->schema([DefinitionEditor::make(contentLocked: $hasResponses)]),
@@ -237,6 +257,16 @@ final class SurveyResource extends BaseResource
             'view' => Pages\ViewSurvey::route('/{record}'),
             'results' => Pages\ViewSurveyResults::route('/{record}/results'),
         ];
+    }
+
+    /**
+     * The survey's public link while it takes responses, null otherwise.
+     */
+    public static function publicLinkUrl(SurveyModel $record): ?string
+    {
+        $link = app(SurveyLifecycleService::class)->publicLink(SurveyId::fromString($record->id));
+
+        return $link === null ? null : route('surveys.public', [$record->id, $link->token]);
     }
 
     /**

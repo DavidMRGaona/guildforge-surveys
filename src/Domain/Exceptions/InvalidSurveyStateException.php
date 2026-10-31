@@ -48,6 +48,11 @@ final class InvalidSurveyStateException extends DomainException
         return new self("Survey {$surveyId} is no longer a draft: its audience is fixed.");
     }
 
+    public static function cannotRenewPublicLink(string $surveyId, string $status): self
+    {
+        return new self("Survey {$surveyId} cannot renew its public link from status '{$status}' or without one.");
+    }
+
     public static function alreadyClosed(string $surveyId): self
     {
         return new self("Survey {$surveyId} is closed.");

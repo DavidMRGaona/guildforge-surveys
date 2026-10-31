@@ -7,8 +7,9 @@ namespace Modules\Surveys\Application\DTOs;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
- * The secrets a survey gets when it opens. They are stored only as hashes (or encrypted, the
- * public token), so they are handed back once, to send the guests' links.
+ * The secrets a survey gets when it opens. The guests' tokens are stored only as hashes, so they
+ * are handed back once, to send their links; the public token is also kept encrypted, so the panel
+ * shows it again (SurveyLifecycleService::publicLink()).
  */
 final readonly class OpenedSurveyDTO
 {

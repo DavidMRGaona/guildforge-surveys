@@ -90,6 +90,11 @@ return [
             'audience' => 'A quién va dirigida',
             'schedule' => 'Plazo',
             'results' => 'Resultados',
+            'public_link' => 'Enlace público',
+        ],
+        'public_link' => [
+            'copy' => 'Copiar enlace',
+            'copied' => 'Enlace copiado',
         ],
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
         'awaiting_end_auto' => 'Preparada: se enviará :hours h después de terminar',
@@ -113,6 +118,7 @@ return [
             'public_link' => 'Enlace público',
             'public_link_help' => 'Un enlace para responder sin cuenta, que se puede compartir donde quieras.',
             'public_link_mode' => 'Quién responde con el enlace',
+            'public_link_url' => 'Enlace para compartir',
             'closes_at' => 'Cierre',
             'reminder' => 'Recordatorio',
             'reminder_help' => 'Horas antes del cierre en que se recuerda la encuesta a quien no ha respondido. Vacío: sin recordatorio.',
@@ -138,6 +144,11 @@ return [
         'close_failed' => 'No se puede cerrar: la encuesta no está abierta.',
         'delete_description' => 'Se borran la encuesta y todas sus respuestas. No se puede deshacer.',
         'delete_confirmation' => 'Entiendo que se borrarán todas las respuestas para siempre',
+        'renew_public_link' => 'Cambiar el enlace',
+        'renew_public_link_description' => 'El enlace público actual deja de funcionar al momento y habrá que compartir el nuevo. Las respuestas recibidas se conservan y los enlaces personales ya enviados por correo siguen valiendo.',
+        'renew_public_link_confirmation' => 'Entiendo que el enlace actual dejará de funcionar para todos',
+        'renew_public_link_done' => 'Enlace cambiado',
+        'renew_public_link_failed' => 'No se puede cambiar: la encuesta ya no acepta respuestas.',
     ],
 
     'results' => [
