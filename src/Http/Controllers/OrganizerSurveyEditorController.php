@@ -52,7 +52,7 @@ final class OrganizerSurveyEditorController extends Controller
         abort_unless($this->gate->canManage((string) $request->user()?->getAuthIdentifier(), $found), 403);
 
         $subject = $found->subject();
-        if ($found->status() === SurveyStatus::Closed || $found->dismissedAt() !== null) {
+        if ($found->status() === SurveyStatus::Closed || $found->dismissedAt() instanceof \DateTimeImmutable) {
             return redirect()->route('surveys.subject', [$subject->sourceType, $subject->subjectId])
                 ->with('error', __('surveys::messages.manage.not_editable'));
         }
@@ -67,7 +67,7 @@ final class OrganizerSurveyEditorController extends Controller
                 'description' => $found->description(),
                 'anonymous' => $found->isAnonymous(),
                 'durationDays' => $found->durationDays(),
-                'closesAt' => $found->closesAt() === null ? null : $this->timezone->toDisplayWallTime($found->closesAt()),
+                'closesAt' => $found->closesAt() instanceof \DateTimeImmutable ? $this->timezone->toDisplayWallTime($found->closesAt()) : null,
                 'reminderHoursBefore' => $found->reminderHoursBefore(),
                 'liveResults' => $found->results()->liveResults,
                 'visibleToRespondents' => $found->results()->visibleToRespondents,
@@ -111,7 +111,7 @@ final class OrganizerSurveyEditorController extends Controller
             return back()->with('error', __('surveys::messages.manage.not_sendable'));
         }
 
-        if ($sent !== null) {
+        if ($sent instanceof SendOutcome) {
             return redirect()->route('surveys.subject', [$subject->sourceType, $subject->subjectId])
                 ->with('success', __($sent === SendOutcome::Opened ? 'surveys::messages.manage.sent' : 'surveys::messages.manage.sent_for_review'));
         }

@@ -18,6 +18,7 @@ function survey(overrides: Partial<OrganizedSurvey>): OrganizedSurvey {
         audienceSize: 0,
         sendUrl: '/encuestas/s-1/enviar',
         dismissUrl: '/encuestas/s-1/descartar',
+        editUrl: '/encuestas/s-1/editar',
         ...overrides,
     };
 }
