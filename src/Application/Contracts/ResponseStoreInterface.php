@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Application\Contracts;
 
 use DateTimeImmutable;
+use Modules\Surveys\Application\DTOs\GuestRecipient;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
@@ -14,10 +15,10 @@ interface ResponseStoreInterface
     public function isRecipient(SurveyId $surveyId, string $userId): bool;
 
     /**
-     * The display name of the guest whose link token has this hash, or null when no guest of
-     * this survey has it.
+     * Whoever holds the single-use link whose token has this hash (a guest, or an address that
+     * asked for it on the public link), or null when nobody on this survey has it.
      */
-    public function guestName(SurveyId $surveyId, string $tokenHash): ?string;
+    public function guestRecipient(SurveyId $surveyId, string $tokenHash): ?GuestRecipient;
 
     /**
      * Whether this account or guest link has already answered: only participations are read.

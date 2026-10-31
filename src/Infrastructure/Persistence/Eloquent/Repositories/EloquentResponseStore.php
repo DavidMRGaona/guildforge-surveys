@@ -7,6 +7,7 @@ namespace Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories;
 use DateTimeImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Modules\Surveys\Application\DTOs\GuestRecipient;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
@@ -22,14 +23,14 @@ final class EloquentResponseStore implements ResponseStoreInterface
         return SurveyRecipientModel::query()->where('survey_id', $surveyId->value)->where('user_id', $userId)->exists();
     }
 
-    public function guestName(SurveyId $surveyId, string $tokenHash): ?string
+    public function guestRecipient(SurveyId $surveyId, string $tokenHash): ?GuestRecipient
     {
         $recipient = SurveyRecipientModel::query()
             ->where('survey_id', $surveyId->value)
             ->where('token_hash', $tokenHash)
             ->first();
 
-        return $recipient?->guest_name;
+        return $recipient === null ? null : new GuestRecipient($recipient->guest_name, $recipient->source === SurveyRecipientModel::SOURCE_PUBLIC_LINK);
     }
 
     public function hasParticipated(SurveyId $surveyId, ?string $userId, ?string $tokenHash): bool

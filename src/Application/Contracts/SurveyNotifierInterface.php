@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Application\Contracts;
 
+use Modules\Surveys\Application\DTOs\AccessLinkRecipient;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 interface SurveyNotifierInterface
@@ -17,4 +18,9 @@ interface SurveyNotifierInterface
      * Reminds the recipients who have not answered. Returns how many were reminded.
      */
     public function remindPending(SurveyId $surveyId): int;
+
+    /**
+     * Mails the link someone asked for on the verified public link.
+     */
+    public function sendAccessLink(SurveyId $surveyId, AccessLinkRecipient $recipient): void;
 }

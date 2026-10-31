@@ -7,8 +7,10 @@ namespace Modules\Surveys\Application\Services;
 use App\Application\Services\TimezoneServiceInterface;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
+use Modules\Surveys\Application\DTOs\GuestRecipient;
 use Modules\Surveys\Application\DTOs\Respondent;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
@@ -33,6 +35,9 @@ final readonly class SubmissionService
 
     /** Waiting for a moderator after a change: it takes responses again once approved. */
     public const string STATE_PAUSED = 'paused';
+
+    /** The verified public link: it asks for an address before anyone may answer. */
+    public const string STATE_VERIFY_EMAIL = 'verify_email';
 
     public const string STATE_NOT_INVITED = 'not_invited';
 
@@ -105,6 +110,14 @@ final readonly class SubmissionService
             return self::STATE_NOT_FOUND;
         }
 
+        if ($this->isVerifiedPublicLink($survey, $respondent)) {
+            return match (true) {
+                $survey->status() === SurveyStatus::PendingReview => self::STATE_PAUSED,
+                $survey->isAcceptingResponses(now()->toDateTimeImmutable()) => self::STATE_VERIFY_EMAIL,
+                default => self::STATE_CLOSED,
+            };
+        }
+
         try {
             [$userId, $tokenHash] = $this->identify($survey, $respondent);
         } catch (NotInvitedException) {
@@ -137,17 +150,43 @@ final readonly class SubmissionService
 
         if ($respondent->kind === Respondent::GUEST && $respondent->token !== null) {
             $hash = hash('sha256', $respondent->token);
-            $name = $this->responses->guestName($id, $hash);
-            if ($name !== null) {
-                return [null, $hash, $name];
+            $guest = $this->responses->guestRecipient($id, $hash);
+            if ($guest instanceof GuestRecipient) {
+                return [null, $hash, $guest->name];
             }
         }
 
-        $publicToken = $survey->publicToken();
-        if ($respondent->kind === Respondent::PUBLIC_LINK && $respondent->token !== null && $publicToken !== null && hash_equals($publicToken, $respondent->token)) {
+        // The verified public link only hands out single-use links: nobody answers through it
+        if ($this->holdsPublicLink($survey, $respondent) && $survey->publicLinkMode() === PublicLinkMode::Open) {
             return [null, null, null];
         }
 
         throw NotInvitedException::for($id->value);
+    }
+
+    /**
+     * Whether whoever answers came through the public link, directly or with a link it mailed.
+     * Their names are not the audience's: a named poll never shows them who voted.
+     */
+    public function comesFromPublicLink(SurveyId $id, Respondent $respondent): bool
+    {
+        if ($respondent->kind === Respondent::PUBLIC_LINK) {
+            return true;
+        }
+
+        return $respondent->kind === Respondent::GUEST && $respondent->token !== null
+            && $this->responses->guestRecipient($id, hash('sha256', $respondent->token))?->fromPublicLink === true;
+    }
+
+    private function isVerifiedPublicLink(Survey $survey, Respondent $respondent): bool
+    {
+        return $this->holdsPublicLink($survey, $respondent) && $survey->publicLinkMode() === PublicLinkMode::VerifiedEmail;
+    }
+
+    private function holdsPublicLink(Survey $survey, Respondent $respondent): bool
+    {
+        $publicToken = $survey->publicToken();
+
+        return $respondent->kind === Respondent::PUBLIC_LINK && $respondent->token !== null && $publicToken !== null && hash_equals($publicToken, $respondent->token);
     }
 }
