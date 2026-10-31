@@ -23,27 +23,27 @@ final readonly class EloquentTrendsQuery implements TrendsQueryInterface
 
     public function responseCounts(array $surveyIds): array
     {
-        $counts = [];
-        foreach ($this->batches($surveyIds) as $batch) {
-            $rows = DB::table('surveys_responses')->whereIn('survey_id', $batch)->groupBy('survey_id')->selectRaw('survey_id, count(*) as total')->get();
-            foreach ($rows as $row) {
-                $counts[$this->string($row->survey_id)] = $this->int($row->total);
-            }
-        }
+        return $this->countResponses($surveyIds, verifiedOnly: false);
+    }
 
-        return $counts;
+    public function verifiedResponseCounts(array $surveyIds): array
+    {
+        return $this->countResponses($surveyIds, verifiedOnly: true);
     }
 
     public function answeredCounts(array $surveyIds, array $questionIds): array
     {
         $counts = [];
-        $this->each($surveyIds, $questionIds, static fn (Builder $query): Builder => $query
-            ->selectRaw('r.survey_id, a.question_id, count(distinct a.response_id) as total')
-            ->groupBy('r.survey_id', 'a.question_id'), function (stdClass $row) use (&$counts): void {
-                $total = $this->int($row->total);
-                // Every stored response counts for the minimum until responses say whether they were verified
-                $counts[$this->string($row->survey_id)][$this->string($row->question_id)] = ['all' => $total, 'verified' => $total];
-            });
+        foreach ([false, true] as $verifiedOnly) {
+            $this->each($surveyIds, $questionIds, static fn (Builder $query): Builder => ($verifiedOnly ? $query->where('r.verified', true) : $query)
+                ->selectRaw('r.survey_id, a.question_id, count(distinct a.response_id) as total')
+                ->groupBy('r.survey_id', 'a.question_id'), function (stdClass $row) use (&$counts, $verifiedOnly): void {
+                    $surveyId = $this->string($row->survey_id);
+                    $questionId = $this->string($row->question_id);
+                    $counts[$surveyId][$questionId] ??= ['all' => 0, 'verified' => 0];
+                    $counts[$surveyId][$questionId][$verifiedOnly ? 'verified' : 'all'] = $this->int($row->total);
+                });
+        }
 
         return $counts;
     }
@@ -114,6 +114,27 @@ final readonly class EloquentTrendsQuery implements TrendsQueryInterface
         }
 
         return array_values(array_map($this->string(...), $query->distinct()->pluck('template_id')->all()));
+    }
+
+    /**
+     * @param  list<string>  $surveyIds
+     * @return array<string, int>
+     */
+    private function countResponses(array $surveyIds, bool $verifiedOnly): array
+    {
+        $counts = [];
+        foreach ($this->batches($surveyIds) as $batch) {
+            $query = DB::table('surveys_responses')->whereIn('survey_id', $batch);
+            if ($verifiedOnly) {
+                $query->where('verified', true);
+            }
+
+            foreach ($query->groupBy('survey_id')->selectRaw('survey_id, count(*) as total')->get() as $row) {
+                $counts[$this->string($row->survey_id)] = $this->int($row->total);
+            }
+        }
+
+        return $counts;
     }
 
     /**

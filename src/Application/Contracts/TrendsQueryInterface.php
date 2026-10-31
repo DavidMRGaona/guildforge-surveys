@@ -17,6 +17,15 @@ interface TrendsQueryInterface
     public function responseCounts(array $surveyIds): array;
 
     /**
+     * Responses that came with a participation (an account, a guest or a verified address):
+     * the only ones the minimum counts.
+     *
+     * @param  list<string>  $surveyIds
+     * @return array<string, int> survey id => verified responses
+     */
+    public function verifiedResponseCounts(array $surveyIds): array;
+
+    /**
      * Responses that answered each question. "verified" is what the minimum counts.
      *
      * @param  list<string>  $surveyIds

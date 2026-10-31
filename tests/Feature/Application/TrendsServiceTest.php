@@ -171,6 +171,34 @@ final class TrendsServiceTest extends ModuleTestCase
         $this->assertSame(5.0, $stars->mean);
     }
 
+    public function test_open_link_responses_never_reach_the_minimum(): void
+    {
+        // Two verified responses and any number from the open link stay below three
+        $survey = $this->survey(['starts' => '2027-01-10']);
+        $this->answerMany($survey, [['sat' => 1], ['sat' => 1]]);
+        $this->answerMany($survey, [['sat' => 5], ['sat' => 5], ['sat' => 5]], verified: false);
+
+        $this->assertFalse($this->panel()->visible);
+
+        // Shown, they count like any other response
+        $this->answerMany($survey, [['sat' => 1]]);
+        $point = $this->point($this->question($this->panel(), 'satisfaction'), 0, '2027-Q1');
+        $this->assertSame(6, $point->answered);
+        $this->assertSame(3.0, $point->mean);
+    }
+
+    public function test_a_cut_needs_the_minimum_of_verified_answers(): void
+    {
+        $this->answerMany($this->survey(['starts' => '2027-01-10', 'anonymous' => false]), [['sat' => 2], ['sat' => 2]]);
+        $this->answerMany($this->survey(['starts' => '2027-01-11', 'anonymous' => false]), [['sat' => 2], ['sat' => 2], ['sat' => 2]], verified: false);
+        $this->answerMany($this->survey(['starts' => '2027-04-10', 'anonymous' => false]), [['sat' => 4], ['sat' => 4], ['sat' => 4]]);
+
+        $hidden = $this->point($this->question($this->panel(), 'satisfaction'), 0, '2027-Q1');
+
+        $this->assertTrue($hidden->belowMinimum);
+        $this->assertSame(5, $hidden->answered);
+    }
+
     public function test_minimum_zero_shows_single_answers(): void
     {
         config(['modules.settings.surveys.min_responses' => 0]);

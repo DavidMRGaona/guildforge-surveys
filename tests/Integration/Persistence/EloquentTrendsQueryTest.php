@@ -6,6 +6,7 @@ namespace Modules\Surveys\Tests\Integration\Persistence;
 
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use DateTimeImmutable;
+use Illuminate\Support\Str;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
@@ -52,6 +53,23 @@ final class EloquentTrendsQueryTest extends ModuleTestCase
         $this->assertSame(
             [$first->value => ['q-multiple' => ['o-1' => 1, 'o-2' => 1], 'q-single' => [Submission::OTHER => 1, 'o-1' => 1]]],
             $this->sorted($query->optionCounts($ids, $questions)),
+        );
+    }
+
+    public function test_open_link_responses_are_not_verified(): void
+    {
+        $survey = $this->survey();
+        $this->respond($survey, [new AnswerValue('q-scale', number: 4)]);
+        $this->respond($survey, [new AnswerValue('q-scale', number: 2)], verified: false);
+        $this->respond($survey, [new AnswerValue('q-single', optionId: 'o-1')], verified: false);
+
+        $query = new EloquentTrendsQuery;
+
+        $this->assertSame([$survey->value => 3], $query->responseCounts([$survey->value]));
+        $this->assertSame([$survey->value => 1], $query->verifiedResponseCounts([$survey->value]));
+        $this->assertSame(
+            $this->sorted([$survey->value => ['q-scale' => ['all' => 2, 'verified' => 1], 'q-single' => ['all' => 1, 'verified' => 0]]]),
+            $this->sorted($query->answeredCounts([$survey->value], ['q-scale', 'q-single'])),
         );
     }
 
@@ -115,9 +133,9 @@ final class EloquentTrendsQueryTest extends ModuleTestCase
     /**
      * @param  list<AnswerValue>  $values
      */
-    private function respond(SurveyId $id, array $values): void
+    private function respond(SurveyId $id, array $values, bool $verified = true): void
     {
-        $this->app->make(ResponseStoreInterface::class)->record($id, null, null, new DateTimeImmutable('2027-01-12'), null, null, $values);
+        $this->app->make(ResponseStoreInterface::class)->record($id, null, $verified ? hash('sha256', (string) Str::uuid()) : null, new DateTimeImmutable('2027-01-12'), null, null, $values);
     }
 
     /**

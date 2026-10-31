@@ -140,7 +140,10 @@ final readonly class TrendsService
         $template = $this->templates->findOrFail($templateId);
         $minimum = $this->settings->minResponses();
         $candidates = $this->candidates($templateId, $organizerId);
-        $responses = $this->query->responseCounts(array_map(static fn (Survey $survey): string => $survey->id()->value, $candidates));
+        $candidateIds = array_map(static fn (Survey $survey): string => $survey->id()->value, $candidates);
+        $responses = $this->query->responseCounts($candidateIds);
+        // Only verified responses reach a minimum: open link ones could be sent by anyone
+        $verifiedResponses = $this->query->verifiedResponseCounts($candidateIds);
 
         /** @var array<string, Survey> $surveys */
         $surveys = [];
@@ -151,7 +154,7 @@ final readonly class TrendsService
             $count = $responses[$id] ?? 0;
             $date = $this->dateOf($survey);
 
-            if ($count === 0 || ! $date instanceof DateTimeImmutable || $this->results->panelHiddenReason($survey, $count, $now) !== null || ! $this->matches($survey, $date, $filters)) {
+            if ($count === 0 || ! $date instanceof DateTimeImmutable || $this->results->panelHiddenReason($survey, $verifiedResponses[$id] ?? 0, $now) !== null || ! $this->matches($survey, $date, $filters)) {
                 continue;
             }
 
@@ -160,7 +163,7 @@ final readonly class TrendsService
         }
 
         $total = array_sum(array_intersect_key($responses, $surveys));
-        if ($surveys === [] || $total < $minimum) {
+        if ($surveys === [] || array_sum(array_intersect_key($verifiedResponses, $surveys)) < $minimum) {
             return new TemplateTrendsDTO($templateId->value, $template->name(), count($surveys), $total, false);
         }
 

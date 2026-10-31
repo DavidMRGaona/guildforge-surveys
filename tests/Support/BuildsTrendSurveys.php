@@ -115,12 +115,13 @@ trait BuildsTrendSurveys
     }
 
     /**
-     * Stores responses as the public link would: no person on either side.
+     * Stores anonymous responses, each with a guest-like participation so it counts as verified;
+     * unverified ones are what the open public link stores.
      * Keys: sat, stars (numbers), best (option id or ['other' => text]), liked (option ids), grid (row => column).
      *
      * @param  list<array<string, mixed>>  $responses
      */
-    private function answerMany(SurveyId $id, array $responses): void
+    private function answerMany(SurveyId $id, array $responses, bool $verified = true): void
     {
         $store = $this->app->make(ResponseStoreInterface::class);
 
@@ -139,7 +140,7 @@ trait BuildsTrendSurveys
                 };
             }
 
-            $store->record($id, null, null, new DateTimeImmutable('2027-06-01'), null, null, $values);
+            $store->record($id, null, $verified ? hash('sha256', (string) Str::uuid()) : null, new DateTimeImmutable('2027-06-01'), null, null, $values);
         }
     }
 
