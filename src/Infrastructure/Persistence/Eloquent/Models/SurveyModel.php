@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string $audience_type
  * @property list<string> $audience_roles
  * @property bool $public_link_enabled
+ * @property string $public_link_mode
  * @property string|null $public_token
  * @property string|null $public_token_hash
  * @property string|null $template_id
@@ -78,6 +79,7 @@ final class SurveyModel extends Model
         'audience_type',
         'audience_roles',
         'public_link_enabled',
+        'public_link_mode',
         'public_token',
         'public_token_hash',
         'template_id',

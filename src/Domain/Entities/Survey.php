@@ -6,6 +6,7 @@ namespace Modules\Surveys\Domain\Entities;
 
 use DateTimeImmutable;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
@@ -57,6 +58,7 @@ final class Survey
         private ?DateTimeImmutable $subjectEndedAt = null,
         private bool $sendOnEnd = false,
         private int $sendDelayHours = 0,
+        private PublicLinkMode $publicLinkMode = PublicLinkMode::VerifiedEmail,
     ) {}
 
     /**
@@ -367,11 +369,13 @@ final class Survey
      * Who the survey goes to is fixed when it opens.
      *
      * @param  list<string>  $roles  only kept for AudienceType::Roles
+     * @param  PublicLinkMode|null  $publicLinkMode  null keeps the current one
      */
-    public function changeAudience(AudienceType $type, array $roles, bool $publicLinkEnabled): void
+    public function changeAudience(AudienceType $type, array $roles, bool $publicLinkEnabled, ?PublicLinkMode $publicLinkMode = null): void
     {
         $roles = $type === AudienceType::Roles ? $roles : [];
-        if ($type === $this->audienceType && $roles === $this->audienceRoles && $publicLinkEnabled === $this->publicLinkEnabled) {
+        $publicLinkMode ??= $this->publicLinkMode;
+        if ($type === $this->audienceType && $roles === $this->audienceRoles && $publicLinkEnabled === $this->publicLinkEnabled && $publicLinkMode === $this->publicLinkMode) {
             return;
         }
 
@@ -382,6 +386,7 @@ final class Survey
         $this->audienceType = $type;
         $this->audienceRoles = $roles;
         $this->publicLinkEnabled = $publicLinkEnabled;
+        $this->publicLinkMode = $publicLinkMode;
     }
 
     /**
@@ -493,6 +498,11 @@ final class Survey
     public function isPublicLinkEnabled(): bool
     {
         return $this->publicLinkEnabled;
+    }
+
+    public function publicLinkMode(): PublicLinkMode
+    {
+        return $this->publicLinkMode;
     }
 
     public function templateId(): ?SurveyTemplateId

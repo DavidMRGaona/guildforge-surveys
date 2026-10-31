@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
@@ -72,6 +73,7 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             'audience_type' => $survey->audienceType()->value,
             'audience_roles' => $survey->audienceRoles(),
             'public_link_enabled' => $survey->isPublicLinkEnabled(),
+            'public_link_mode' => $survey->publicLinkMode()->value,
             'public_token' => $survey->publicToken(),
             'public_token_hash' => $survey->publicToken() === null ? null : hash('sha256', $survey->publicToken()),
             'audience_size' => $survey->audienceSize(),
@@ -265,6 +267,7 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             subjectEndedAt: $this->instant($model->subject_ended_at),
             sendOnEnd: $model->send_on_end,
             sendDelayHours: $model->send_delay_hours,
+            publicLinkMode: PublicLinkMode::from($model->public_link_mode),
         );
     }
 
