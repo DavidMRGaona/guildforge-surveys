@@ -14,6 +14,7 @@ function props(overrides: Partial<ManageSubjectProps> = {}): ManageSubjectProps 
         },
         surveys: [],
         prepareUrl: null,
+        createUrls: null,
         ...overrides,
     };
 }
@@ -67,5 +68,31 @@ describe('Subject', () => {
         const wrapper = mount(Subject, { props: props() });
 
         expect(wrapper.text()).toContain('Aún no hay encuestas');
+    });
+
+    it('offers a new survey and a new poll while the subject takes them', () => {
+        const wrapper = mount(Subject, {
+            props: props({
+                createUrls: {
+                    form: '/encuestas/sujeto/example-thing/thing-1/nueva/encuesta',
+                    poll: '/encuestas/sujeto/example-thing/thing-1/nueva/sondeo',
+                },
+            }),
+        });
+
+        expect(wrapper.text()).toContain('Pregunta a tu gente');
+        const links = Object.fromEntries(
+            wrapper.findAll('a').map((link) => [link.text(), link.attributes('href')])
+        );
+        expect(links['Nueva encuesta']).toBe(
+            '/encuestas/sujeto/example-thing/thing-1/nueva/encuesta'
+        );
+        expect(links['Nuevo sondeo']).toBe('/encuestas/sujeto/example-thing/thing-1/nueva/sondeo');
+    });
+
+    it('offers nothing new without create links', () => {
+        const wrapper = mount(Subject, { props: props() });
+
+        expect(wrapper.text()).not.toContain('Pregunta a tu gente');
     });
 });

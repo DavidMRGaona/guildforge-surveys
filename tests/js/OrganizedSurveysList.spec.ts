@@ -22,6 +22,7 @@ function survey(overrides: Partial<OrganizedSurvey>): OrganizedSurvey {
         dismissUrl: '/encuestas/s-1/descartar',
         editUrl: '/encuestas/s-1/editar',
         resultsUrl: null,
+        closeUrl: null,
         ...overrides,
     };
 }
@@ -152,6 +153,60 @@ describe('OrganizedSurveysList', () => {
 
         expect(wrapper.text()).toContain('Rechazada');
         expect(wrapper.text()).toContain('Motivo del rechazo: Falta una pregunta');
+    });
+
+    it('lets the organizer send or discard a draft of their own', async () => {
+        vi.mocked(router.post).mockClear();
+        const wrapper = mount(OrganizedSurveysList, {
+            props: { surveys: [survey({ status: 'draft' })] },
+            attachTo: document.body,
+        });
+
+        expect(wrapper.text()).toContain('Borrador');
+        expect(wrapper.text()).toContain('Aún no la has enviado.');
+        expect(wrapper.text()).not.toContain('Puedes enviarla tal cual');
+
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Descartar')
+            ?.trigger('click');
+
+        expect(router.post).not.toHaveBeenCalled();
+        expect(document.body.textContent).toContain('¿Descartar este borrador?');
+        wrapper.unmount();
+    });
+
+    it('closes an open survey once the organizer confirms', async () => {
+        vi.mocked(router.post).mockClear();
+        const wrapper = mount(OrganizedSurveysList, {
+            props: {
+                surveys: [
+                    survey({
+                        status: 'open',
+                        sendUrl: null,
+                        dismissUrl: null,
+                        closeUrl: '/encuestas/s-1/cerrar',
+                    }),
+                ],
+            },
+            attachTo: document.body,
+        });
+
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Cerrar ahora')
+            ?.trigger('click');
+
+        expect(router.post).not.toHaveBeenCalled();
+        expect(document.body.textContent).toContain('¿Cerrar esta encuesta?');
+
+        const dialog = wrapper
+            .findAllComponents({ name: 'ConfirmDialog' })
+            .find((candidate) => candidate.props('title') === '¿Cerrar esta encuesta?');
+        dialog?.vm.$emit('confirm');
+
+        expect(router.post).toHaveBeenCalledWith('/encuestas/s-1/cerrar', {}, expect.any(Object));
+        wrapper.unmount();
     });
 
     it('leaves the subject out on its own page', () => {

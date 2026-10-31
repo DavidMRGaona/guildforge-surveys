@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -21,8 +21,14 @@ const { t, locale } = useI18n();
 const busy = ref<string | null>(null);
 const dismissing = ref<OrganizedSurvey | null>(null);
 const dismissOpen = ref(false);
+const closing = ref<OrganizedSurvey | null>(null);
+const closeOpen = ref(false);
+
+// The organizer's own draft is thrown away; an offered survey is simply not sent
+const dismissIsDiscard = computed(() => dismissing.value?.status === 'draft');
 
 const badgeClasses: Record<OrganizedSurveyStatus, string> = {
+    draft: 'bg-muted text-base-secondary',
     prepared: 'bg-primary-light text-primary',
     to_send: 'bg-primary-light text-primary',
     scheduled: 'bg-primary-light text-primary',
@@ -78,6 +84,19 @@ function confirmDismiss(): void {
     }
     dismissing.value = null;
 }
+
+function askClose(survey: OrganizedSurvey): void {
+    closing.value = survey;
+    closeOpen.value = true;
+}
+
+function confirmClose(): void {
+    const survey = closing.value;
+    if (survey?.closeUrl) {
+        post(survey, survey.closeUrl);
+    }
+    closing.value = null;
+}
 </script>
 
 <template>
@@ -113,6 +132,9 @@ function confirmDismiss(): void {
                 <p v-if="survey.status === 'prepared'" class="text-sm text-base-secondary">
                     {{ preparedHint(survey) }}
                 </p>
+                <p v-if="survey.status === 'draft'" class="text-sm text-base-secondary">
+                    {{ t('surveys.manage.draft_hint') }}
+                </p>
                 <p v-if="survey.status === 'to_send'" class="text-sm text-base-secondary">
                     {{ t('surveys.manage.to_send_hint') }}
                 </p>
@@ -139,7 +161,13 @@ function confirmDismiss(): void {
             </div>
 
             <div
-                v-if="survey.sendUrl || survey.dismissUrl || survey.editUrl || survey.resultsUrl"
+                v-if="
+                    survey.sendUrl ||
+                    survey.dismissUrl ||
+                    survey.editUrl ||
+                    survey.resultsUrl ||
+                    survey.closeUrl
+                "
                 class="flex shrink-0 flex-col gap-2 sm:flex-row"
             >
                 <Link
@@ -163,7 +191,21 @@ function confirmDismiss(): void {
                     :disabled="busy !== null"
                     @click="askDismiss(survey)"
                 >
-                    {{ t('surveys.manage.dismiss') }}
+                    {{
+                        survey.status === 'draft'
+                            ? t('surveys.manage.discard')
+                            : t('surveys.manage.dismiss')
+                    }}
+                </BaseButton>
+                <BaseButton
+                    v-if="survey.closeUrl"
+                    variant="secondary"
+                    size="sm"
+                    :loading="busy === survey.id"
+                    :disabled="busy !== null"
+                    @click="askClose(survey)"
+                >
+                    {{ t('surveys.manage.close') }}
                 </BaseButton>
                 <BaseButton
                     v-if="survey.sendUrl"
@@ -184,11 +226,28 @@ function confirmDismiss(): void {
 
     <ConfirmDialog
         v-model="dismissOpen"
-        :title="t('surveys.manage.dismiss_title')"
-        :message="t('surveys.manage.dismiss_message')"
-        :confirm-label="t('surveys.manage.dismiss')"
+        :title="
+            dismissIsDiscard ? t('surveys.manage.discard_title') : t('surveys.manage.dismiss_title')
+        "
+        :message="
+            dismissIsDiscard
+                ? t('surveys.manage.discard_message')
+                : t('surveys.manage.dismiss_message')
+        "
+        :confirm-label="
+            dismissIsDiscard ? t('surveys.manage.discard') : t('surveys.manage.dismiss')
+        "
         :cancel-label="t('surveys.manage.cancel')"
         confirm-variant="danger"
         @confirm="confirmDismiss"
+    />
+
+    <ConfirmDialog
+        v-model="closeOpen"
+        :title="t('surveys.manage.close_title')"
+        :message="t('surveys.manage.close_message')"
+        :confirm-label="t('surveys.manage.close')"
+        :cancel-label="t('surveys.manage.cancel')"
+        @confirm="confirmClose"
     />
 </template>

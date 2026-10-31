@@ -64,6 +64,12 @@ return [
         'results_title' => 'Resultados de :title',
         'results_saved' => 'Ajustes de los resultados guardados.',
         'prepared' => 'Encuesta preparada. Revísala y elige cómo se envía al terminar.',
+        'new_form' => 'Nueva encuesta',
+        'new_poll' => 'Nuevo sondeo',
+        'created' => 'Encuesta guardada como borrador. Envíala cuando quieras.',
+        'create_unavailable' => 'Se ha cancelado, así que ya no admite encuestas nuevas.',
+        'closed' => 'Encuesta cerrada: ya no admite respuestas.',
+        'not_closable' => 'Esta encuesta no está abierta: no se puede cerrar.',
         'prepare_unavailable' => [
             'no_template' => 'La organización aún no ha elegido una plantilla para estas encuestas.',
             'cancelled' => 'Se ha cancelado, así que no tendrá encuesta al terminar.',

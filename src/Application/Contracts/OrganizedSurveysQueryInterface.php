@@ -12,7 +12,7 @@ namespace Modules\Surveys\Application\Contracts;
  *     id: string,
  *     title: string,
  *     subjectTitle: ?string,
- *     status: 'prepared'|'to_send'|'scheduled'|'pending_review'|'rejected'|'open'|'closed',
+ *     status: 'draft'|'prepared'|'to_send'|'scheduled'|'pending_review'|'rejected'|'open'|'closed',
  *     scheduledSendAt: ?string,
  *     closesAt: ?string,
  *     rejectionReason: ?string,
@@ -24,6 +24,7 @@ namespace Modules\Surveys\Application\Contracts;
  *     dismissUrl: ?string,
  *     editUrl: ?string,
  *     resultsUrl: ?string,
+ *     closeUrl: ?string,
  * }
  */
 interface OrganizedSurveysQueryInterface

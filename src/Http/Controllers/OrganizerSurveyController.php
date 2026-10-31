@@ -7,6 +7,7 @@ namespace Modules\Surveys\Http\Controllers;
 use App\Application\Seo\DTOs\SeoPageDTO;
 use App\Application\Seo\Services\SeoMetadataFactoryInterface;
 use App\Application\Surveys\DTOs\SurveySubjectDTO;
+use App\Application\Surveys\Enums\SurveySubjectStatus;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -25,9 +26,8 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
  * A subject's surveys for whoever organizes it, without the panel: its page (module pages link
- * to it), preparing its end survey ahead, sending an offered survey with one click and choosing
- * not to send it. Who may is
- * asked to the subject's source on every request.
+ * to it), preparing its end survey ahead, sending a survey with one click, choosing not to send
+ * it and closing an open one. Who may is asked to the subject's source on every request.
  */
 final class OrganizerSurveyController extends Controller
 {
@@ -56,6 +56,11 @@ final class OrganizerSurveyController extends Controller
             ],
             'surveys' => $this->organized->forSubject($type, $subject, $userId),
             'prepareUrl' => $this->service->preparationAvailable($found) ? route('surveys.manage.prepare', [$type, $subject]) : null,
+            // A cancelled subject has nobody left to ask
+            'createUrls' => $found->status === SurveySubjectStatus::Cancelled ? null : [
+                'form' => route('surveys.manage.create', [$type, $subject, 'encuesta']),
+                'poll' => route('surveys.manage.create', [$type, $subject, 'sondeo']),
+            ],
             'seo' => $this->seo->forPage(new SeoPageDTO(
                 title: (string) __('surveys::messages.manage.subject_title', ['title' => $found->title]),
                 noindex: true,
@@ -103,6 +108,22 @@ final class OrganizerSurveyController extends Controller
         return $done === null
             ? back()->with('error', __('surveys::messages.manage.not_dismissable'))
             : back()->with('success', __('surveys::messages.manage.dismissed'));
+    }
+
+    /**
+     * Closes an open survey before its date.
+     */
+    public function close(Request $request, string $survey): RedirectResponse
+    {
+        $done = $this->act(function () use ($request, $survey): bool {
+            $this->service->close(SurveyId::fromString($survey), (string) $request->user()?->getAuthIdentifier());
+
+            return true;
+        });
+
+        return $done === null
+            ? back()->with('error', __('surveys::messages.manage.not_closable'))
+            : back()->with('success', __('surveys::messages.manage.closed'));
     }
 
     /**

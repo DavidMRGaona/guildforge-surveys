@@ -29,6 +29,28 @@ const definition = ref<SurveyDefinition>(cloneDefinition(props.definition));
 const errors = ref<Record<string, string>>({});
 const saving = ref<'save' | 'send' | null>(null);
 
+// A new survey is only saved on its first save, by a POST
+const creating = computed(() => props.survey.id === null);
+// A new poll is its question: its title follows the question instead of being asked twice
+const titleFollowsQuestion = computed(() => creating.value && props.survey.kind === 'poll');
+const heading = computed(() => {
+    if (!creating.value) {
+        return t('surveys.editor.heading');
+    }
+
+    return props.survey.kind === 'poll'
+        ? t('surveys.editor.new_poll')
+        : t('surveys.editor.new_form');
+});
+
+function surveyTitle(): string {
+    if (!titleFollowsQuestion.value) {
+        return title.value;
+    }
+
+    return (definition.value.sections[0]?.questions[0]?.title ?? '').slice(0, 255);
+}
+
 const locks = computed<EditorLocks>(() => ({
     structure: props.locked || props.survey.pendingReview,
     help: props.survey.pendingReview,
@@ -39,10 +61,10 @@ const detailsLocked = computed(() => locks.value.structure);
 const anonymityLocked = computed(() => props.survey.anonymous || props.locked);
 
 function submit(send: boolean): void {
-    router.put(
-        send ? `${props.updateUrl}?send=1` : props.updateUrl,
+    router[props.submitMethod](
+        send ? `${props.submitUrl}?send=1` : props.submitUrl,
         {
-            title: title.value,
+            title: surveyTitle(),
             description: description.value === '' ? null : description.value,
             definition: definition.value,
             anonymous: anonymous.value,
@@ -83,7 +105,7 @@ function submit(send: boolean): void {
                 {{ t('surveys.editor.back', { title: props.subject.title }) }}
             </Link>
             <h1 class="text-2xl font-semibold break-words text-base-primary">
-                {{ t('surveys.editor.heading') }}
+                {{ heading }}
             </h1>
         </header>
 
@@ -109,9 +131,12 @@ function submit(send: boolean): void {
             {{ t('surveys.editor.locked_notice') }}
         </p>
         <p v-if="errors.survey" class="text-sm text-error" role="alert">{{ errors.survey }}</p>
+        <p v-if="titleFollowsQuestion && errors.title" class="text-sm text-error" role="alert">
+            {{ errors.title }}
+        </p>
 
         <form class="space-y-8" @submit.prevent="submit(false)">
-            <section class="space-y-4">
+            <section v-if="!titleFollowsQuestion" class="space-y-4">
                 <div>
                     <label for="survey-title" class="block text-sm font-medium text-base-primary">
                         {{ t('surveys.editor.title') }}
@@ -287,7 +312,7 @@ function submit(send: boolean): void {
                     :loading="saving === 'save'"
                     :disabled="saving !== null"
                 >
-                    {{ t('surveys.editor.save') }}
+                    {{ creating ? t('surveys.editor.save_draft') : t('surveys.editor.save') }}
                 </BaseButton>
                 <BaseButton
                     v-if="props.survey.sendable"

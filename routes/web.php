@@ -51,10 +51,16 @@ Route::prefix('encuestas')
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('subject');
         Route::post('sujeto/{type}/{subject}/preparar', [OrganizerSurveyController::class, 'prepare'])
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('manage.prepare');
+        Route::get('sujeto/{type}/{subject}/nueva/{kind}', [OrganizerSurveyEditorController::class, 'create'])
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo')->name('manage.create');
+        Route::post('sujeto/{type}/{subject}/nueva/{kind}', [OrganizerSurveyEditorController::class, 'store'])
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo')
+            ->middleware('throttle:10,1')->name('manage.store');
         Route::get('{survey}/editar', [OrganizerSurveyEditorController::class, 'edit'])->whereUuid('survey')->name('manage.edit');
         Route::put('{survey}/editar', [OrganizerSurveyEditorController::class, 'update'])->whereUuid('survey')->name('manage.update');
         Route::get('{survey}/resultados', [OrganizerSurveyResultsController::class, 'show'])->whereUuid('survey')->name('manage.results');
         Route::put('{survey}/resultados', [OrganizerSurveyResultsController::class, 'update'])->whereUuid('survey')->name('manage.results.update');
         Route::post('{survey}/enviar', [OrganizerSurveyController::class, 'send'])->whereUuid('survey')->name('manage.send');
         Route::post('{survey}/descartar', [OrganizerSurveyController::class, 'dismiss'])->whereUuid('survey')->name('manage.dismiss');
+        Route::post('{survey}/cerrar', [OrganizerSurveyController::class, 'close'])->whereUuid('survey')->name('manage.close');
     });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
@@ -76,6 +76,35 @@ function prepare(): void {
             <BaseButton class="shrink-0" :loading="preparing" @click="prepare">
                 {{ t('surveys.manage.prepare') }}
             </BaseButton>
+        </section>
+
+        <section
+            v-if="props.createUrls"
+            class="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+            aria-labelledby="create-survey-title"
+        >
+            <div class="space-y-1">
+                <h2 id="create-survey-title" class="font-medium text-base-primary">
+                    {{ t('surveys.manage.create_title') }}
+                </h2>
+                <p class="text-sm text-base-secondary">
+                    {{ t('surveys.manage.create_description') }}
+                </p>
+            </div>
+            <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+                <Link
+                    :href="props.createUrls.poll"
+                    class="inline-flex items-center justify-center rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
+                >
+                    {{ t('surveys.manage.new_poll') }}
+                </Link>
+                <Link
+                    :href="props.createUrls.form"
+                    class="inline-flex items-center justify-center rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
+                >
+                    {{ t('surveys.manage.new_form') }}
+                </Link>
+            </div>
         </section>
 
         <EmptyState
