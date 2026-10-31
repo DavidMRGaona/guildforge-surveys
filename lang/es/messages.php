@@ -42,6 +42,14 @@ return [
         'anonymous' => 'Anónima',
     ],
 
+    'editor' => [
+        'title' => 'título',
+        'description' => 'descripción',
+        'duration_days' => 'días abierta',
+        'closes_at' => 'fecha de cierre',
+        'reminder_hours_before' => 'recordatorio',
+    ],
+
     'manage' => [
         'subject_title' => 'Encuestas de :title',
         'sent' => 'Encuesta enviada.',
@@ -49,6 +57,9 @@ return [
         'not_sendable' => 'Esta encuesta ya no se puede enviar: puede que ya se haya enviado.',
         'dismissed' => 'No se enviará esta encuesta.',
         'not_dismissable' => 'Esta encuesta ya se ha enviado: no se puede descartar.',
+        'saved' => 'Cambios guardados.',
+        'saved_and_sent_for_review' => 'Cambios guardados. La encuesta ha vuelto a revisión y no admite respuestas hasta que la aprueben.',
+        'not_editable' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
     ],
 
     'definition_errors' => [
