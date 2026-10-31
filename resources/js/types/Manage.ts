@@ -20,6 +20,8 @@ export interface OrganizedSurvey {
     dismissUrl: string | null;
     /** Until it closes. */
     editUrl: string | null;
+    /** Once it opened. */
+    resultsUrl: string | null;
 }
 
 export interface ManageSubjectProps {

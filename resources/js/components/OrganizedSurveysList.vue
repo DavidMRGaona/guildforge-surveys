@@ -125,9 +125,16 @@ function confirmDismiss(): void {
             </div>
 
             <div
-                v-if="survey.sendUrl || survey.dismissUrl || survey.editUrl"
+                v-if="survey.sendUrl || survey.dismissUrl || survey.editUrl || survey.resultsUrl"
                 class="flex shrink-0 flex-col gap-2 sm:flex-row"
             >
+                <Link
+                    v-if="survey.resultsUrl"
+                    :href="survey.resultsUrl"
+                    class="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-primary hover:underline"
+                >
+                    {{ t('surveys.manage.results') }}
+                </Link>
                 <Link
                     v-if="survey.editUrl"
                     :href="survey.editUrl"

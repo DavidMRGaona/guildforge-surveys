@@ -19,6 +19,7 @@ function survey(overrides: Partial<OrganizedSurvey>): OrganizedSurvey {
         sendUrl: '/encuestas/s-1/enviar',
         dismissUrl: '/encuestas/s-1/descartar',
         editUrl: '/encuestas/s-1/editar',
+        resultsUrl: null,
         ...overrides,
     };
 }
@@ -85,6 +86,27 @@ describe('OrganizedSurveysList', () => {
 
         expect(wrapper.text()).toContain('3 de 4 han respondido');
         expect(wrapper.find('button').exists()).toBe(false);
+    });
+
+    it('links to the results once the survey opened', () => {
+        const wrapper = mount(OrganizedSurveysList, {
+            props: {
+                surveys: [
+                    survey({
+                        status: 'closed',
+                        sendUrl: null,
+                        dismissUrl: null,
+                        editUrl: null,
+                        resultsUrl: '/encuestas/gestionar/s-1/resultados',
+                    }),
+                    survey({ id: 's-2' }),
+                ],
+            },
+        });
+
+        const links = wrapper.findAll('a').filter((link) => link.text() === 'Resultados');
+        expect(links).toHaveLength(1);
+        expect(links[0]?.attributes('href')).toBe('/encuestas/gestionar/s-1/resultados');
     });
 
     it('shows why a survey was rejected', () => {
