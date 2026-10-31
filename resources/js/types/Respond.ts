@@ -44,7 +44,7 @@ export interface SurveyDefinition {
     sections: SurveySection[];
 }
 
-export type RespondState = 'open' | 'answered' | 'closed' | 'not_invited';
+export type RespondState = 'open' | 'answered' | 'closed' | 'paused' | 'not_invited';
 
 export interface RespondSurvey {
     id: string;

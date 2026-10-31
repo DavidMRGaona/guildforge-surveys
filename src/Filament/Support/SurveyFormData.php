@@ -7,6 +7,7 @@ namespace Modules\Surveys\Filament\Support;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use Modules\Surveys\Domain\Enums\AudienceType;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 
 /**
@@ -14,6 +15,25 @@ use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
  */
 final class SurveyFormData
 {
+    /**
+     * The stored survey as the form shows it: the definition as editor state and the two results
+     * switches on their own fields.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function forFill(array $data): array
+    {
+        $definition = is_array($data['definition'] ?? null) ? $data['definition'] : ['sections' => []];
+        $results = ResultsSettings::fromArray(is_array($data['results_settings'] ?? null) ? $data['results_settings'] : []);
+
+        $data['sections'] = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray($definition));
+        $data['live_results'] = $results->liveResults;
+        $data['visible_to_respondents'] = $results->visibleToRespondents;
+
+        return $data;
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */

@@ -7,8 +7,10 @@ namespace Modules\Surveys\Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
+use Modules\Surveys\Application\Services\SurveyReviewService;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
@@ -16,7 +18,7 @@ use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 
 /**
- * Actions shared by the survey list and the edit page.
+ * Actions shared by the survey list, the edit page and the read-only page.
  */
 final class SurveyActions
 {
@@ -80,9 +82,75 @@ final class SurveyActions
     }
 
     /**
+     * Approving sends a survey that never went out (its duration counted from now) or lets an open
+     * one take responses again.
+     */
+    public static function approve(): Action
+    {
+        return Action::make('approve')
+            ->label(__('surveys::filament.review.approve'))
+            ->icon('heroicon-o-check-circle')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading(__('surveys::filament.review.approve_heading'))
+            ->modalDescription(__('surveys::filament.review.approve_description'))
+            ->visible(static fn (SurveyModel $record): bool => $record->status === SurveyStatus::PendingReview->value)
+            ->authorize(static fn (SurveyModel $record): bool => auth()->user()?->can('moderate', $record) === true)
+            ->action(static function (SurveyModel $record): void {
+                self::review(static fn () => app(SurveyReviewService::class)->approve(SurveyId::fromString($record->id), (string) auth()->id()), 'approved');
+                $record->refresh();
+            });
+    }
+
+    /**
+     * Rejecting returns the survey to its organizer with the reason, which they receive by mail.
+     */
+    public static function reject(): Action
+    {
+        return Action::make('reject')
+            ->label(__('surveys::filament.review.reject'))
+            ->icon('heroicon-o-x-circle')
+            ->color('danger')
+            ->modalHeading(__('surveys::filament.review.reject_heading'))
+            ->modalDescription(__('surveys::filament.review.reject_description'))
+            ->schema([
+                Textarea::make('reason')
+                    ->label(__('surveys::filament.review.reason'))
+                    ->placeholder(__('surveys::filament.review.reason_placeholder'))
+                    ->required()
+                    ->maxLength(2000),
+            ])
+            ->visible(static fn (SurveyModel $record): bool => $record->status === SurveyStatus::PendingReview->value)
+            ->authorize(static fn (SurveyModel $record): bool => auth()->user()?->can('moderate', $record) === true)
+            ->action(static function (SurveyModel $record, array $data): void {
+                $reason = is_string($data['reason'] ?? null) ? $data['reason'] : '';
+                self::review(static fn () => app(SurveyReviewService::class)->reject(SurveyId::fromString($record->id), (string) auth()->id(), $reason), 'rejected');
+                $record->refresh();
+            });
+    }
+
+    /**
+     * @param  callable(): mixed  $decision
+     */
+    private static function review(callable $decision, string $done): void
+    {
+        try {
+            $decision();
+        } catch (InvalidSurveyStateException) {
+            // Another moderator decided first, or the survey changed meanwhile
+            Notification::make()->warning()->title(__('surveys::filament.review.already_reviewed'))->send();
+
+            return;
+        }
+
+        Notification::make()->success()->title(__("surveys::filament.review.{$done}"))->send();
+    }
+
+    /**
      * @param  callable(): mixed  $change
      */
-    private static function run(callable $change, string $action): void
+    private static function run(
+        callable $change, string $action): void
     {
         try {
             $change();

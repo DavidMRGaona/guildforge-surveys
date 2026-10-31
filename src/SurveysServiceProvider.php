@@ -38,6 +38,7 @@ use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
+use Modules\Surveys\Filament\Widgets\PendingSurveyReviewsWidget;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentOrganizedSurveysQuery;
@@ -383,7 +384,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      */
     public function registerFilamentWidgets(): array
     {
-        return [];
+        return [PendingSurveyReviewsWidget::class];
     }
 
     /**

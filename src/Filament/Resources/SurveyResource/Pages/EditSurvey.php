@@ -10,8 +10,6 @@ use Illuminate\Validation\ValidationException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
-use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
-use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Concerns\HandlesDefinitionErrors;
@@ -28,6 +26,8 @@ final class EditSurvey extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            SurveyActions::approve()->after(fn () => $this->refreshFormData(['status'])),
+            SurveyActions::reject()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::results(),
             SurveyActions::open()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::close()->after(fn () => $this->refreshFormData(['status'])),
@@ -41,14 +41,7 @@ final class EditSurvey extends EditRecord
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $definition = is_array($data['definition'] ?? null) ? $data['definition'] : ['sections' => []];
-        $results = ResultsSettings::fromArray(is_array($data['results_settings'] ?? null) ? $data['results_settings'] : []);
-
-        $data['sections'] = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray($definition));
-        $data['live_results'] = $results->liveResults;
-        $data['visible_to_respondents'] = $results->visibleToRespondents;
-
-        return $data;
+        return SurveyFormData::forFill($data);
     }
 
     /**

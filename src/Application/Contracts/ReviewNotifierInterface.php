@@ -15,4 +15,14 @@ interface ReviewNotifierInterface
      * A survey waits for review: tell whoever may approve it in the panel.
      */
     public function submittedForReview(Survey $survey): void;
+
+    /**
+     * A moderator approved it: tell whoever sent it.
+     */
+    public function approved(Survey $survey): void;
+
+    /**
+     * A moderator rejected it: tell whoever sent it, with the reason.
+     */
+    public function rejected(Survey $survey): void;
 }
