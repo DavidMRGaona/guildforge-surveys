@@ -90,15 +90,18 @@ final class QuestionResultChart extends ChartWidget
     }
 
     /**
-     * @return array<string, mixed>
+     * Null rather than [] when there is nothing to set: an empty array reaches Chart.js as the
+     * JSON list [], which it cannot read as options, and Filament turns null into {}.
+     *
+     * @return array<string, mixed>|null
      */
-    protected function getOptions(): array
+    protected function getOptions(): ?array
     {
         $result = $this->result();
         $wholeNumbers = ['ticks' => ['precision' => 0]];
 
         return match (true) {
-            ! $result instanceof QuestionResultDTO, $result->chartType === ChartType::Pie => [],
+            ! $result instanceof QuestionResultDTO, $result->chartType === ChartType::Pie => null,
             $result->chartType === ChartType::StackedBar => [
                 'indexAxis' => 'y',
                 'scales' => ['x' => ['stacked' => true, ...$wholeNumbers], 'y' => ['stacked' => true]],
