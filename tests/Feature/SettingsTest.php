@@ -107,5 +107,4 @@ final class SettingsTest extends ModuleTestCase
         $this->assertSame(12, $type->sendDelayHours);
         $this->assertSame(7, $type->closeDays);
     }
-
 }
