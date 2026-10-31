@@ -74,8 +74,10 @@ final class RespondPublicLinkTest extends ModuleTestCase
     {
         [$id, $opened] = $this->openPoll(anonymous: true, publicLink: true, publicLinkMode: PublicLinkMode::VerifiedEmail);
 
-        $this->post(route('surveys.public.request', [$id->value, (string) $opened->publicToken]), ['email' => 'no es un correo'])
-            ->assertSessionHasErrors('email');
+        foreach (['no es un correo', '"ana"@example.test', 'ana(comentario)@example.test'] as $email) {
+            $this->post(route('surveys.public.request', [$id->value, (string) $opened->publicToken]), ['email' => $email])
+                ->assertSessionHasErrors('email');
+        }
 
         Notification::assertNothingSent();
     }

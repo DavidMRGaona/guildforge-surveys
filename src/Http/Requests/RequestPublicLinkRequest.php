@@ -23,7 +23,8 @@ final class RequestPublicLinkRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:254'],
+            // Strict: a quoted or commented local part would be another address to tell apart
+            'email' => ['required', 'string', 'email:strict,filter', 'max:254'],
         ];
     }
 
