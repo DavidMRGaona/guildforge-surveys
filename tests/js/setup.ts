@@ -12,7 +12,14 @@ vi.mock('@inertiajs/vue3', async () => {
 
     return {
         usePage: () => currentPage,
-        router: { visit: vi.fn(), reload: vi.fn(), delete: vi.fn(), post: vi.fn(), get: vi.fn() },
+        router: {
+            visit: vi.fn(),
+            reload: vi.fn(),
+            delete: vi.fn(),
+            post: vi.fn(),
+            put: vi.fn(),
+            get: vi.fn(),
+        },
         Link: defineComponent({
             name: 'Link',
             props: { href: { type: String, required: true } },

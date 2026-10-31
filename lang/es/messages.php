@@ -42,6 +42,14 @@ return [
         'anonymous' => 'Anónima',
     ],
 
+    'editor' => [
+        'title' => 'título',
+        'description' => 'descripción',
+        'duration_days' => 'días abierta',
+        'closes_at' => 'fecha de cierre',
+        'reminder_hours_before' => 'recordatorio',
+    ],
+
     'manage' => [
         'subject_title' => 'Encuestas de :title',
         'sent' => 'Encuesta enviada.',
@@ -49,6 +57,9 @@ return [
         'not_sendable' => 'Esta encuesta ya no se puede enviar: puede que ya se haya enviado.',
         'dismissed' => 'No se enviará esta encuesta.',
         'not_dismissable' => 'Esta encuesta ya se ha enviado: no se puede descartar.',
+        'saved' => 'Cambios guardados.',
+        'saved_and_sent_for_review' => 'Cambios guardados. La encuesta ha vuelto a revisión y no admite respuestas hasta que la aprueben.',
+        'not_editable' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
     ],
 
     'definition_errors' => [
@@ -83,6 +94,8 @@ return [
         'audience_fixed' => 'La audiencia se fija al abrir la encuesta: ya no se puede cambiar.',
         'closing_date' => 'El cierre de una encuesta abierta no puede quedar en el pasado, y una encuesta cerrada no se reprograma.',
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
+        'closed' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
+        'pending_review' => 'La encuesta está esperando revisión: su contenido no se puede cambiar hasta que la aprueben o la rechacen.',
     ],
 
     'response' => [

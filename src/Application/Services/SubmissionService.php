@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Application\Services;
 
 use App\Application\Services\TimezoneServiceInterface;
+use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\DTOs\Respondent;
 use Modules\Surveys\Domain\Entities\Survey;
@@ -49,7 +50,22 @@ final readonly class SubmissionService
      */
     public function submit(SurveyId $id, Respondent $respondent, array $input): void
     {
-        $survey = $this->surveys->findOrFail($id);
+        // The survey's row stays locked until the response is stored, so an organizer's edit
+        // (which locks it too) never changes the content under a first response
+        DB::transaction(fn () => $this->submitLocked($id, $respondent, $input));
+    }
+
+    /**
+     * @param  array<mixed>  $input
+     *
+     * @throws SurveyNotAcceptingResponsesException
+     * @throws NotInvitedException
+     * @throws InvalidSubmissionException
+     * @throws AlreadyAnsweredException
+     */
+    private function submitLocked(SurveyId $id, Respondent $respondent, array $input): void
+    {
+        $survey = $this->surveys->findForUpdate($id);
         $now = now()->toDateTimeImmutable();
         if (! $survey->isAcceptingResponses($now)) {
             throw SurveyNotAcceptingResponsesException::for($id->value);

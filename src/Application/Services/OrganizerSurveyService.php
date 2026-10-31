@@ -8,10 +8,17 @@ use DateTimeImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\ReviewNotifierInterface;
+use Modules\Surveys\Application\DTOs\OrganizerSurveyInput;
 use Modules\Surveys\Application\Enums\SendOutcome;
+use Modules\Surveys\Application\Enums\UpdateOutcome;
+use Modules\Surveys\Application\Exceptions\OrganizerChangeRejectedException;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\SurveyStatus;
+use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
+use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
@@ -96,6 +103,90 @@ final readonly class OrganizerSurveyService
             $survey->dismiss($now ?? now()->toDateTimeImmutable());
             $this->surveys->save($survey);
         });
+    }
+
+    /**
+     * Saves the editor's changes. Changed content is marked as unreviewed in the organizer's name;
+     * an open survey changed while the review setting is on goes back to review and stops taking
+     * responses; while it waits for a moderator its content stays as sent. Dates, anonymity and
+     * results settings are not content. Once someone answered,
+     * only help texts and the closing date may change: the check runs with the row locked, and
+     * submissions lock it too, so no response slips in between.
+     *
+     * @throws AuthorizationException
+     * @throws InvalidSurveyDefinitionException
+     * @throws OrganizerChangeRejectedException
+     */
+    public function update(SurveyId $id, string $userId, OrganizerSurveyInput $input, ?DateTimeImmutable $now = null): UpdateOutcome
+    {
+        $now ??= now()->toDateTimeImmutable();
+
+        [$outcome, $survey] = DB::transaction(function () use ($id, $userId, $input, $now): array {
+            $survey = $this->surveys->findForUpdate($id);
+            $this->authorize($userId, $survey);
+
+            if ($survey->status() === SurveyStatus::Closed || $survey->dismissedAt() instanceof DateTimeImmutable) {
+                throw new OrganizerChangeRejectedException('survey', 'closed');
+            }
+
+            $hasResponses = $this->surveys->hasResponses($id);
+            $contentChanged = $survey->contentDiffers($input->title, $input->description, $input->definition);
+
+            // A moderator approves the content they saw: it never changes while it waits for them
+            if ($contentChanged && $survey->status() === SurveyStatus::PendingReview) {
+                throw new OrganizerChangeRejectedException('survey', 'pending_review');
+            }
+
+            $survey->replaceDefinition($input->definition, $hasResponses, new SurveyDefinitionValidator);
+            $this->onField('title', 'locked_by_responses', fn () => $survey->editDetails($input->title, $input->description, $hasResponses));
+            $this->onField('anonymous', 'anonymity', fn () => $survey->changeAnonymity($input->anonymous, $hasResponses));
+            if ($survey->wasOpened()) {
+                $this->onField('closes_at', 'closing_date', fn () => $survey->reschedule($input->closesAt, $input->reminderHoursBefore, $now));
+            } else {
+                $this->onField('duration_days', 'closing_date', fn () => $survey->changeDuration($input->durationDays));
+                $this->onField('reminder_hours_before', 'closing_date', fn () => $survey->reschedule($survey->closesAt(), $input->reminderHoursBefore, $now));
+            }
+            $survey->changeResults(new ResultsSettings(
+                liveResults: $input->liveResults,
+                visibleToRespondents: $input->visibleToRespondents,
+                chartTypes: $survey->results()->chartTypes,
+                hiddenQuestionIds: $survey->results()->hiddenQuestionIds,
+            ));
+
+            $outcome = UpdateOutcome::Saved;
+            if ($contentChanged) {
+                $survey->markUnreviewedChanges($userId);
+
+                if ($survey->status() === SurveyStatus::Open && $this->review->needsReview($survey)) {
+                    $survey->submitForReview($userId, $now);
+                    $outcome = UpdateOutcome::SentForReview;
+                }
+            }
+
+            $this->surveys->save($survey);
+
+            return [$outcome, $survey];
+        });
+
+        if ($outcome === UpdateOutcome::SentForReview) {
+            $this->reviewNotifier->submittedForReview($survey);
+        }
+
+        return $outcome;
+    }
+
+    /**
+     * @param  callable(): void  $change
+     *
+     * @throws OrganizerChangeRejectedException
+     */
+    private function onField(string $field, string $messageKey, callable $change): void
+    {
+        try {
+            $change();
+        } catch (InvalidSurveyStateException) {
+            throw new OrganizerChangeRejectedException($field, $messageKey);
+        }
     }
 
     /**

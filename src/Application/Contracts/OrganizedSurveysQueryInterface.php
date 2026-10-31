@@ -20,6 +20,7 @@ namespace Modules\Surveys\Application\Contracts;
  *     audienceSize: int,
  *     sendUrl: ?string,
  *     dismissUrl: ?string,
+ *     editUrl: ?string,
  * }
  */
 interface OrganizedSurveysQueryInterface

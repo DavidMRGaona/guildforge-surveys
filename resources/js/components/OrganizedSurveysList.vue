@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -125,9 +125,16 @@ function confirmDismiss(): void {
             </div>
 
             <div
-                v-if="survey.sendUrl || survey.dismissUrl"
+                v-if="survey.sendUrl || survey.dismissUrl || survey.editUrl"
                 class="flex shrink-0 flex-col gap-2 sm:flex-row"
             >
+                <Link
+                    v-if="survey.editUrl"
+                    :href="survey.editUrl"
+                    class="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-primary hover:underline"
+                >
+                    {{ t('surveys.manage.edit') }}
+                </Link>
                 <BaseButton
                     v-if="survey.dismissUrl"
                     variant="secondary"
