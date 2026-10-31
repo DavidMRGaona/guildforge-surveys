@@ -28,6 +28,8 @@ use Modules\Surveys\Application\Contracts\PendingSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
+use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
+use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
@@ -38,6 +40,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentPen
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentResponseStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRecipientStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRepository;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyResultsQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
 use Modules\Surveys\Infrastructure\Services\SurveyInvitationSender;
@@ -77,6 +80,8 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
         $this->app->bind(SurveyNotifierInterface::class, SurveyInvitationSender::class);
         $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
+        $this->app->bind(SurveyResultsQueryInterface::class, EloquentSurveyResultsQuery::class);
+        $this->app->bind(SurveySettingsInterface::class, SurveySettings::class);
     }
 
     /**

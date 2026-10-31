@@ -12,6 +12,7 @@ use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 
 /**
@@ -19,6 +20,17 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
  */
 final class SurveyActions
 {
+    public static function results(): Action
+    {
+        return Action::make('results')
+            ->label(__('surveys::filament.results.action'))
+            ->icon('heroicon-o-chart-pie')
+            ->color('gray')
+            ->visible(static fn (SurveyModel $record): bool => $record->status !== SurveyStatus::Draft->value)
+            ->authorize(static fn (SurveyModel $record): bool => auth()->user()?->can('viewResults', $record) === true)
+            ->url(static fn (SurveyModel $record): string => SurveyResource::getUrl('results', ['record' => $record]));
+    }
+
     public static function open(): Action
     {
         return Action::make('open')

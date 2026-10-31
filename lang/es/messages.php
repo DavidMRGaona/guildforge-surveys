@@ -78,4 +78,10 @@ return [
         'grid_incomplete' => 'Responde todas las filas.',
         'too_long' => 'La respuesta es demasiado larga.',
     ],
+
+    'export' => [
+        'date' => 'Fecha',
+        'person' => 'Persona',
+        'other' => 'Otra: :text',
+    ],
 ];

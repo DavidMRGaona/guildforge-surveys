@@ -61,6 +61,38 @@ export interface RespondProps {
     survey?: RespondSurvey;
     definition?: SurveyDefinition;
     submitUrl?: string;
+    /** Only when the survey shares its results with the people who answer, and they may be seen. */
+    results?: RespondResults;
+}
+
+/** One bar: an option (label null for "Other"), a scale value, a day or an hour. */
+export interface ResultBucket {
+    key: string;
+    label: string | null;
+    count: number;
+    /** Names, only on named polls. */
+    voters: string[];
+}
+
+export interface QuestionResult {
+    id: string;
+    title: string;
+    type: QuestionType;
+    answered: number;
+    belowMinimum: boolean;
+    buckets: ResultBucket[];
+    grid: {
+        rows: SurveyOption[];
+        columns: SurveyOption[];
+        counts: Record<string, Record<string, number>>;
+    } | null;
+    mean: number | null;
+    median: number | null;
+}
+
+export interface RespondResults {
+    responses: number;
+    questions: QuestionResult[];
 }
 
 /** What one question holds while it is being answered. */

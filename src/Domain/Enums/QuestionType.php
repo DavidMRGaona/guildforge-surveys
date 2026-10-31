@@ -37,4 +37,24 @@ enum QuestionType: string
     {
         return $this === self::ShortText || $this === self::Paragraph;
     }
+
+    /**
+     * Charts that fit the question's answers, the default first.
+     *
+     * @return non-empty-list<ChartType>
+     */
+    public function chartTypes(): array
+    {
+        return match ($this) {
+            self::SingleChoice, self::Dropdown => [ChartType::Bar, ChartType::Pie],
+            self::Grid => [ChartType::StackedBar],
+            self::ShortText, self::Paragraph => [ChartType::List],
+            default => [ChartType::Bar],
+        };
+    }
+
+    public function defaultChartType(): ChartType
+    {
+        return $this->chartTypes()[0];
+    }
 }

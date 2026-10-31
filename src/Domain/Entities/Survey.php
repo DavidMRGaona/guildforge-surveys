@@ -86,6 +86,15 @@ final class Survey
     }
 
     /**
+     * Closed, or past its closing date while the scheduled close has not run yet.
+     */
+    public function hasEnded(DateTimeImmutable $now): bool
+    {
+        return $this->status === SurveyStatus::Closed
+            || ($this->status === SurveyStatus::Open && $this->closesAt instanceof DateTimeImmutable && $this->closesAt <= $now);
+    }
+
+    /**
      * Title and description are content too: once there are responses they stay as answered.
      */
     public function editDetails(string $title, ?string $description, bool $hasResponses): void
