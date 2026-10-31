@@ -91,19 +91,9 @@ final class SurveyResourceTest extends ModuleTestCase
 
     public function test_creates_a_quick_poll(): void
     {
-        $page = Livewire::test(ListSurveys::class)->assertActionExists('quick_poll');
-
-        // Runs the action's own callback with the data its modal would hand over
-        $list = $page->instance();
-        $this->assertInstanceOf(ListSurveys::class, $list);
-        $list->getAction('quick_poll')?->call(['data' => [
-            'question' => '¿Qué día hacemos la asamblea?',
-            'options' => [['label' => 'Viernes'], ['label' => 'Sábado'], ['label' => 'Domingo']],
-            'multiple' => true,
-            'anonymous' => false,
-            'live_results' => false,
-            'closes_at' => '2030-01-10 20:00:00',
-        ]]);
+        Livewire::test(ListSurveys::class)
+            ->callAction('quick_poll', data: $this->quickPollData())
+            ->assertHasNoActionErrors();
 
         $poll = $this->stored();
         $this->assertFalse($poll->results()->liveResults);
@@ -113,6 +103,18 @@ final class SurveyResourceTest extends ModuleTestCase
         $question = $poll->definition()->questions()[0];
         $this->assertSame(QuestionType::MultipleChoice, $question->type);
         $this->assertSame(['Viernes', 'Sábado', 'Domingo'], array_map(static fn ($option): string => $option->label, $question->options));
+    }
+
+    public function test_creates_a_quick_poll_after_another_action_was_mounted(): void
+    {
+        // Under Xdebug's develop mode, an action mounted earlier in the process made callAction skip this one
+        Livewire::test(ListSurveys::class)->mountAction('quick_poll');
+
+        Livewire::test(ListSurveys::class)
+            ->callAction('quick_poll', data: $this->quickPollData())
+            ->assertHasNoActionErrors();
+
+        $this->assertSame(SurveyKind::Poll, $this->stored()->kind());
     }
 
     public function test_with_responses_only_help_texts_change(): void
@@ -166,6 +168,21 @@ final class SurveyResourceTest extends ModuleTestCase
         $this->surveys->save($survey);
 
         return $survey;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function quickPollData(): array
+    {
+        return [
+            'question' => '¿Qué día hacemos la asamblea?',
+            'options' => [['label' => 'Viernes'], ['label' => 'Sábado'], ['label' => 'Domingo']],
+            'multiple' => true,
+            'anonymous' => false,
+            'live_results' => false,
+            'closes_at' => '2030-01-10 20:00:00',
+        ];
     }
 
     private function stored(): Survey
