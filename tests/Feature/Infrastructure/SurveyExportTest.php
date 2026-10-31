@@ -86,6 +86,21 @@ final class SurveyExportTest extends ModuleTestCase
         $this->assertCount(3, $this->rows($table));
     }
 
+    public function test_open_link_responses_do_not_reach_the_minimum_of_an_export(): void
+    {
+        [$id, $opened] = $this->openForm(anonymous: true, publicLink: true);
+        $this->answer($id, 0);
+        $this->answer($id, 1);
+        foreach (range(1, 3) as $ignored) {
+            $this->answerPublicly($id, $opened);
+        }
+        $this->app->make(SurveyLifecycleService::class)->close($id);
+
+        $this->expectException(ResultsNotAvailableException::class);
+
+        $this->app->make(SurveyExportTable::class)->build($id);
+    }
+
     public function test_the_csv_neutralises_formulas_and_keeps_accents(): void
     {
         [$id] = $this->openForm(anonymous: false);

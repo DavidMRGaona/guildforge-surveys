@@ -117,6 +117,55 @@ final class ResultsServiceTest extends ModuleTestCase
         $this->assertFalse($this->question($results, 'q-single')->belowMinimum);
     }
 
+    public function test_open_link_responses_do_not_reach_the_minimum(): void
+    {
+        [$id, $opened] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()), true, new ResultsSettings(liveResults: true), publicLink: true);
+        $this->answer($id, 0);
+        $this->answer($id, 1);
+        foreach (range(1, 5) as $ignored) {
+            $this->answerPublicly($id, $opened);
+        }
+
+        $results = $this->results->forPanel($id);
+
+        $this->assertSame('below_minimum', $results->hiddenReason);
+        $this->assertSame(7, $results->responses);
+    }
+
+    public function test_open_link_answers_do_not_reach_a_question_minimum(): void
+    {
+        $definition = SurveyDefinitionTest::everyTypeDefinition();
+        $definition['sections'][0]['questions'][0]['required'] = false;
+        [$id, $opened] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray($definition), true, new ResultsSettings(liveResults: true), publicLink: true);
+        $this->answer($id, 0, ['q-short' => 'Solo lo escribo yo']);
+        $this->answer($id, 1, ['q-short' => '']);
+        $this->answer($id, 2, ['q-short' => '']);
+        $this->answerPublicly($id, $opened, ['q-short' => 'Relleno']);
+        $this->answerPublicly($id, $opened, ['q-short' => 'Más relleno']);
+
+        $results = $this->results->forPanel($id);
+
+        $this->assertTrue($results->visible);
+        $short = $this->question($results, 'q-short');
+        $this->assertTrue($short->belowMinimum);
+        $this->assertSame([], $short->texts);
+    }
+
+    public function test_open_link_responses_count_in_the_results_once_verified_ones_reach_the_minimum(): void
+    {
+        [$id, $opened] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()), true, new ResultsSettings(liveResults: true), publicLink: true);
+        $this->answer($id, 0);
+        $this->answer($id, 1);
+        $this->answer($id, 2);
+        $this->answerPublicly($id, $opened, ['q-single' => 'o-1']);
+
+        $results = $this->results->forPanel($id);
+
+        $this->assertTrue($results->visible);
+        $this->assertSame(4, $results->responses);
+        $this->assertSame(4, $this->question($results, 'q-single')->answered);
+    }
+
     public function test_live_results_show_an_anonymous_survey_while_open_but_keep_the_minimum(): void
     {
         [$id] = $this->openForm(anonymous: true, results: new ResultsSettings(liveResults: true));

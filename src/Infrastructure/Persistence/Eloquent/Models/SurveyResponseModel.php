@@ -18,6 +18,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Concerns\UsesRandomUuids
  * @property Carbon $submitted_on
  * @property string|null $user_id
  * @property string|null $guest_name
+ * @property bool $verified
  */
 final class SurveyResponseModel extends Model
 {
@@ -34,7 +35,7 @@ final class SurveyResponseModel extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['survey_id', 'submitted_on', 'user_id', 'guest_name'];
+    protected $fillable = ['survey_id', 'submitted_on', 'user_id', 'guest_name', 'verified'];
 
     /**
      * @return HasMany<SurveyAnswerModel, $this>
@@ -49,6 +50,6 @@ final class SurveyResponseModel extends Model
      */
     protected function casts(): array
     {
-        return ['submitted_on' => 'date'];
+        return ['submitted_on' => 'date', 'verified' => 'boolean'];
     }
 }

@@ -14,10 +14,22 @@ interface SurveyResultsQueryInterface
     public function responseCount(SurveyId $surveyId): int;
 
     /**
+     * Responses that came with a participation (an account, a guest or a verified address): the
+     * only ones that count towards the minimum of an anonymous survey.
+     */
+    public function verifiedResponseCount(SurveyId $surveyId): int;
+
+    /**
      * @param  list<string>  $questionIds
      * @return array<string, int> question id => responses that answered it
      */
     public function answeredCounts(SurveyId $surveyId, array $questionIds): array;
+
+    /**
+     * @param  list<string>  $questionIds
+     * @return array<string, int> question id => verified responses that answered it
+     */
+    public function verifiedAnsweredCounts(SurveyId $surveyId, array $questionIds): array;
 
     /**
      * @param  list<string>  $questionIds

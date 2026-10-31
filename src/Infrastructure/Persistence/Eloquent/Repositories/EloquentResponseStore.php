@@ -56,7 +56,8 @@ final class EloquentResponseStore implements ResponseStoreInterface
     ): void {
         try {
             DB::transaction(static function () use ($surveyId, $participantUserId, $participantTokenHash, $submittedOn, $responseUserId, $responseGuestName, $values): void {
-                if ($participantUserId !== null || $participantTokenHash !== null) {
+                $verified = $participantUserId !== null || $participantTokenHash !== null;
+                if ($verified) {
                     // The unique indexes settle a race between two submissions of the same person
                     SurveyParticipationModel::query()->create([
                         'survey_id' => $surveyId->value,
@@ -70,6 +71,8 @@ final class EloquentResponseStore implements ResponseStoreInterface
                     'submitted_on' => $submittedOn->format('Y-m-d'),
                     'user_id' => $responseUserId,
                     'guest_name' => $responseGuestName,
+                    // Only says whether it came with a participation, never whose
+                    'verified' => $verified,
                 ]);
 
                 foreach ($values as $value) {

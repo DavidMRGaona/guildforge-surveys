@@ -21,14 +21,19 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
         return SurveyResponseModel::query()->where('survey_id', $surveyId->value)->count();
     }
 
+    public function verifiedResponseCount(SurveyId $surveyId): int
+    {
+        return SurveyResponseModel::query()->where('survey_id', $surveyId->value)->where('verified', true)->count();
+    }
+
     public function answeredCounts(SurveyId $surveyId, array $questionIds): array
     {
-        $counts = [];
-        foreach ($this->answers($surveyId, $questionIds)->selectRaw('a.question_id, count(distinct a.response_id) as total')->groupBy('a.question_id')->get() as $row) {
-            $counts[$this->string($row->question_id)] = $this->int($row->total);
-        }
+        return $this->answeredBy($this->answers($surveyId, $questionIds));
+    }
 
-        return $counts;
+    public function verifiedAnsweredCounts(SurveyId $surveyId, array $questionIds): array
+    {
+        return $this->answeredBy($this->answers($surveyId, $questionIds)->where('r.verified', true));
     }
 
     public function optionCounts(SurveyId $surveyId, array $questionIds): array
@@ -145,6 +150,19 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
     /**
      * @param  list<string>  $questionIds
      */
+    /**
+     * @return array<string, int>
+     */
+    private function answeredBy(Builder $answers): array
+    {
+        $counts = [];
+        foreach ($answers->selectRaw('a.question_id, count(distinct a.response_id) as total')->groupBy('a.question_id')->get() as $row) {
+            $counts[$this->string($row->question_id)] = $this->int($row->total);
+        }
+
+        return $counts;
+    }
+
     private function answers(SurveyId $surveyId, array $questionIds): Builder
     {
         return DB::table('surveys_answers as a')
