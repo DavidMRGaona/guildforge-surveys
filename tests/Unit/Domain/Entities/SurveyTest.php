@@ -192,6 +192,39 @@ final class SurveyTest extends TestCase
         $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::VerifiedEmail);
     }
 
+    public function test_an_open_survey_renews_its_public_link(): void
+    {
+        $survey = $this->survey();
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $survey->open($this->now, publicToken: 'old-token');
+
+        $survey->renewPublicToken('new-token');
+
+        $this->assertSame('new-token', $survey->publicToken());
+    }
+
+    public function test_a_survey_without_a_public_link_cannot_renew_it(): void
+    {
+        $survey = $this->survey();
+        $survey->open($this->now, publicToken: 'ignored-token');
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->renewPublicToken('new-token');
+    }
+
+    public function test_a_closed_survey_cannot_renew_its_public_link(): void
+    {
+        $survey = $this->survey();
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $survey->open($this->now, publicToken: 'old-token');
+        $survey->close($this->now);
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->renewPublicToken('new-token');
+    }
+
     public function test_an_open_survey_can_be_rescheduled_but_not_into_the_past(): void
     {
         $survey = $this->survey(closesAt: $this->now->modify('+1 day'));

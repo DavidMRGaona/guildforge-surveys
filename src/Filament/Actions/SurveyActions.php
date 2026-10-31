@@ -9,6 +9,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Js;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Application\Services\SurveyReviewService;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
@@ -61,6 +62,49 @@ final class SurveyActions
             ->authorize(static fn (SurveyModel $record): bool => auth()->user()?->can('update', $record) === true)
             ->action(static function (SurveyModel $record): void {
                 self::run(static fn () => app(SurveyLifecycleService::class)->close(SurveyId::fromString($record->id)), 'close');
+                $record->refresh();
+            });
+    }
+
+    /**
+     * Copies the public link shown next to it; nothing goes to the server.
+     */
+    public static function copyPublicLink(): Action
+    {
+        return Action::make('copy_public_link')
+            ->label(__('surveys::filament.survey.public_link.copy'))
+            ->icon('heroicon-o-clipboard-document')
+            ->color('gray')
+            ->size('sm')
+            ->alpineClickHandler(static function (SurveyModel $record): string {
+                $url = Js::from(SurveyResource::publicLinkUrl($record));
+                $message = Js::from(__('surveys::filament.survey.public_link.copied'));
+
+                return "window.navigator.clipboard.writeText({$url}); \$tooltip({$message}, { theme: \$store.theme, timeout: 2000 })";
+            });
+    }
+
+    /**
+     * A new public link when the old one went where it should not. The old one stops working for
+     * everybody at once, so a modal and a ticked checkbox naming that consequence.
+     */
+    public static function renewPublicLink(): Action
+    {
+        return Action::make('renew_public_link')
+            ->label(__('surveys::filament.actions.renew_public_link'))
+            ->icon('heroicon-o-arrow-path')
+            ->color('warning')
+            ->modalDescription(__('surveys::filament.actions.renew_public_link_description'))
+            ->schema([
+                Checkbox::make('confirmation')
+                    ->label(__('surveys::filament.actions.renew_public_link_confirmation'))
+                    ->accepted()
+                    ->required(),
+            ])
+            ->visible(static fn (SurveyModel $record): bool => SurveyResource::publicLinkUrl($record) !== null)
+            ->authorize(static fn (SurveyModel $record): bool => auth()->user()?->can('update', $record) === true)
+            ->action(static function (SurveyModel $record): void {
+                self::run(static fn () => app(SurveyLifecycleService::class)->renewPublicLink(SurveyId::fromString($record->id)), 'renew_public_link');
                 $record->refresh();
             });
     }

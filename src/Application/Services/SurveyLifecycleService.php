@@ -13,6 +13,7 @@ use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
+use Modules\Surveys\Application\DTOs\PublicLinkDTO;
 use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
@@ -158,6 +159,36 @@ final readonly class SurveyLifecycleService
         }
 
         return new OpenedSurveyDTO($survey->id(), $guestTokens, $survey->publicToken());
+    }
+
+    /**
+     * The public link to share, only while the survey takes responses: a draft has none yet, and
+     * a closed survey (or one waiting for review) would only show a link that refuses answers.
+     */
+    public function publicLink(SurveyId $id, ?DateTimeImmutable $now = null): ?PublicLinkDTO
+    {
+        $survey = $this->surveys->find($id);
+        $token = $survey?->publicToken();
+        if (! $survey instanceof Survey || $token === null || ! $survey->isAcceptingResponses($now ?? now()->toDateTimeImmutable())) {
+            return null;
+        }
+
+        return new PublicLinkDTO($token, $survey->publicLinkMode());
+    }
+
+    /**
+     * Replaces the public link's token: the old link stops working, the personal links already
+     * mailed from it keep theirs.
+     *
+     * @throws InvalidSurveyStateException
+     */
+    public function renewPublicLink(SurveyId $id): PublicLinkDTO
+    {
+        $survey = $this->surveys->findOrFail($id);
+        $survey->renewPublicToken($this->token());
+        $this->surveys->save($survey);
+
+        return new PublicLinkDTO((string) $survey->publicToken(), $survey->publicLinkMode());
     }
 
     /**
