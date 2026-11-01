@@ -78,6 +78,15 @@ Una encuesta general (no la de un sujeto) puede anunciarse al abrirse en los can
 
 Los módulos no dependen entre sí: este despacha el evento del core `GeneralSurveyOpened` (core ≥ 3.30) y el de notificaciones a canales lo escucha si está instalado, siempre que cada canal tenga activo el tipo «Encuestas».
 
+## Resumen al cerrar
+
+Cuando una encuesta se cierra (por fecha, desde el panel o con «Cerrar ahora»), puede enviar por correo un resumen de sus resultados. Se elige en cada encuesta con la casilla «Resumen por correo al cerrar» (en el panel y en el editor de la web), que parte del ajuste y se puede cambiar hasta que la encuesta se cierra.
+
+- **Quién lo recibe**: quienes organizan el sujeto y siguen pudiendo gestionarlo, con el enlace a los resultados en la web; quien creó la encuesta, solo si todavía puede ver los resultados (en la web si gestiona el sujeto, o en el panel si tiene acceso y `surveys.view_results`); y, si el ajuste lo pide, quien tiene acceso al panel y `surveys.view_results`, con el enlace del panel. Nadie lo recibe dos veces, y las cuentas anonimizadas no lo reciben.
+- **Qué dice**: la tasa de respuesta (o las respuestas recibidas si no hay audiencia fija), la opción más votada de cada pregunta de opción (todas si empatan; «Otra» por su nombre, nunca con su texto), la media de cada escala y valoración con estrellas, y cuántas preguntas más hay en los resultados completos. Nunca lleva texto libre. Usa lo mismo que ve quien organiza: sin las preguntas ocultas y con el mínimo de respuestas aplicado a la encuesta y a cada pregunta.
+- **Anónimas bajo el mínimo**: el correo lo dice y no da ningún dato, ni siquiera cuántas respuestas hubo.
+- Las cuadrículas, las fechas, las horas y los tipos de pregunta que el resumen no conoce no se resumen: cuentan entre las preguntas que hay en los resultados completos.
+
 ## Revisión
 
 Con el ajuste «Las encuestas cambiadas fuera del panel requieren revisión», una encuesta cuyo contenido se ha cambiado o escrito desde la web (los sondeos y encuestas propios de quien organiza, siempre) queda «En revisión» al enviarla y no sale hasta que alguien con `surveys.moderate` la apruebe en el panel (o la rechace con un motivo, que vuelve a quien la organiza). Una encuesta ya abierta que se cambia vuelve a revisión y deja de aceptar respuestas mientras tanto; mientras espera, su contenido no se puede tocar. Las fechas y los ajustes no son contenido y nunca pasan por revisión. Apagar el ajuste no aprueba las que ya esperan.
@@ -111,7 +120,7 @@ Ninguno se concede solo; se dan en el editor de roles.
 
 ## Ajustes
 
-En «Ajustes de encuestas», en el panel (con `surveys.manage`): mínimo de respuestas de las encuestas anónimas (3 por defecto; 0 lo quita), días hasta el cierre por defecto (7), si las encuestas nuevas son anónimas, si las encuestas generales nuevas marcan «Anunciar en los canales» (no por defecto) y si los cambios hechos fuera del panel se revisan.
+En «Ajustes de encuestas», en el panel (con `surveys.manage`): mínimo de respuestas de las encuestas anónimas (3 por defecto; 0 lo quita), días hasta el cierre por defecto (7), si las encuestas nuevas son anónimas, si las encuestas generales nuevas marcan «Anunciar en los canales» (no por defecto), si las encuestas nuevas marcan «Resumen por correo al cerrar» (sí por defecto), si ese resumen va también a quien puede ver resultados en el panel (no por defecto) y si los cambios hechos fuera del panel se revisan.
 
 Por cada tipo de sujeto que ofrezcan los módulos activos: la plantilla de su encuesta (sin plantilla no se prepara ninguna), si se envía sola y con cuántas horas de retraso, los días que queda abierta y si es anónima.
 

@@ -158,6 +158,8 @@ return [
             'public_link_mode' => 'Quién responde con el enlace',
             'public_link_url' => 'Enlace para compartir',
             'announce_in_channels' => 'Anunciar en los canales',
+            'closing_summary' => 'Resumen por correo al cerrar',
+            'closing_summary_help' => 'Al cerrarse, los organizadores y quien la creó reciben la tasa de respuesta, las medias y las opciones más votadas, con el enlace a los resultados; nunca texto libre. Si es anónima y no llega al mínimo, el correo lo dice sin dar datos.',
             'announce_in_channels_help' => 'Al abrirla, se publica en los canales configurados en «Notificaciones a canales» con el título, el cierre y el enlace: el público si lo tiene; si no, el de responder, que pide iniciar sesión y solo deja responder a la audiencia. Si luego cambias el enlace público, el anuncio deja de funcionar.',
             'closes_at' => 'Cierre',
             'reminder' => 'Recordatorio',

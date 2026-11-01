@@ -183,6 +183,7 @@ final readonly class OrganizerSurveyService
             reminderHoursBefore: $input->reminderHoursBefore,
             createdBy: $userId,
             durationDays: $input->durationDays,
+            closingSummary: $input->closingSummary ?? $this->settings->closingSummaryByDefault(),
         );
         $survey->markUnreviewedChanges($userId);
         $this->surveys->save($survey);
@@ -194,7 +195,7 @@ final readonly class OrganizerSurveyService
      * What the editor starts a new survey of the subject's type with: the type's anonymity and
      * duration, and the kind's results settings (a poll shows them live to whoever voted).
      *
-     * @return array{anonymous: bool, durationDays: int, liveResults: bool, visibleToRespondents: bool}
+     * @return array{anonymous: bool, durationDays: int, liveResults: bool, visibleToRespondents: bool, closingSummary: bool}
      */
     public function defaultsFor(string $sourceType, SurveyKind $kind): array
     {
@@ -206,6 +207,7 @@ final readonly class OrganizerSurveyService
             'durationDays' => $type->closeDays,
             'liveResults' => $results->liveResults,
             'visibleToRespondents' => $results->visibleToRespondents,
+            'closingSummary' => $this->settings->closingSummaryByDefault(),
         ];
     }
 
@@ -426,6 +428,9 @@ final readonly class OrganizerSurveyService
             }
             if ($input->sendOnEnd !== null && $survey->isAwaitingSubjectEnd()) {
                 $this->onField('send_delay_hours', 'send_delay', fn () => $survey->chooseEndSending($input->sendOnEnd, $input->sendDelayHours ?? 0));
+            }
+            if ($input->closingSummary !== null) {
+                $survey->chooseClosingSummary($input->closingSummary);
             }
             $survey->changeResults(new ResultsSettings(
                 liveResults: $input->liveResults,

@@ -26,5 +26,7 @@ final readonly class OrganizerSurveyInput
         /** How a survey prepared for its subject's end goes out; null leaves it as it is */
         public ?bool $sendOnEnd = null,
         public ?int $sendDelayHours = null,
+        /** Whether closing mails a summary; null takes the setting on a new survey and leaves it as it is otherwise */
+        public ?bool $closingSummary = null,
     ) {}
 }

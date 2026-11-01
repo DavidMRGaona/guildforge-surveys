@@ -82,6 +82,10 @@ final class EditSurvey extends EditRecord
         if (array_key_exists('announce_in_channels', $data)) {
             $this->onField('data.announce_in_channels', fn () => $survey->chooseChannelAnnouncement((bool) $data['announce_in_channels']));
         }
+        // Not in the data once the survey closed: the box is disabled then
+        if (array_key_exists('closing_summary', $data)) {
+            $this->onField('data.closing_summary', fn () => $survey->chooseClosingSummary((bool) $data['closing_summary']));
+        }
         $this->onField('data.closes_at', fn () => $survey->reschedule(SurveyFormData::closesAt($data), SurveyFormData::reminderHoursBefore($data), now()->toDateTimeImmutable()));
         $survey->changeResults(SurveyFormData::results($data, $survey->results()));
 
@@ -111,6 +115,7 @@ final class EditSurvey extends EditRecord
             'data.audience_type' => 'audience_fixed',
             'data.closes_at' => 'closing_date',
             'data.announce_in_channels' => 'announcement_fixed',
+            'data.closing_summary' => 'closing_summary_fixed',
             default => 'locked_by_responses',
         };
     }

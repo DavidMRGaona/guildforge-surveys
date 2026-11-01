@@ -143,6 +143,7 @@ function props(
             reminderHoursBefore: null,
             liveResults: false,
             visibleToRespondents: false,
+            closingSummary: true,
             opened: false,
             pendingReview: false,
             rejectionReason: null,
@@ -355,6 +356,20 @@ describe('Edit', () => {
             ?.trigger('click');
 
         expect(wrapper.text()).toContain('Pregunta 3');
+    });
+
+    it('saves whether closing mails a summary', async () => {
+        vi.mocked(router.put).mockClear();
+        const wrapper = mount(Edit, { props: props() });
+
+        await wrapper.find('#survey-closing-summary').setValue(false);
+        await wrapper.find('form').trigger('submit');
+
+        expect(router.put).toHaveBeenCalledWith(
+            '/encuestas/sv-1/editar',
+            expect.objectContaining({ closing_summary: false }),
+            expect.any(Object)
+        );
     });
 
     it('warns that live results weaken anonymity', async () => {

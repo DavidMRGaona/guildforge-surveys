@@ -23,6 +23,16 @@ interface SurveySettingsInterface
     public function announceInChannelsByDefault(): bool;
 
     /**
+     * Whether a new survey mails a summary of its results when it closes, unless unticked.
+     */
+    public function closingSummaryByDefault(): bool;
+
+    /**
+     * Whether closing summaries also go to everyone who may see results in the panel.
+     */
+    public function closingSummaryToResultsViewers(): bool;
+
+    /**
      * Whether content changed outside the panel waits for a moderator before it goes out.
      */
     public function reviewRequired(): bool;

@@ -10,9 +10,11 @@ use DateTimeImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\ClosingSummaryNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyAnnouncerInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
+use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
 use Modules\Surveys\Application\DTOs\PublicLinkDTO;
 use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
@@ -29,6 +31,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Throwable;
 
 /**
  * Creates subject surveys, opens surveys (fixing who they go to) and closes them.
@@ -42,6 +45,8 @@ final readonly class SurveyLifecycleService
         private SurveySubjectSourceRegistryInterface $sources,
         private SurveyNotifierInterface $notifier,
         private SurveyAnnouncerInterface $announcer,
+        private SurveySettingsInterface $settings,
+        private ClosingSummaryNotifierInterface $closingSummaries,
     ) {}
 
     /**
@@ -76,6 +81,7 @@ final readonly class SurveyLifecycleService
             audienceType: AudienceType::Subject,
             subject: SubjectSnapshotFactory::fromDto($subject),
             closesAt: $closesAt,
+            closingSummary: $this->settings->closingSummaryByDefault(),
         );
         $this->surveys->save($survey);
 
@@ -120,6 +126,7 @@ final readonly class SurveyLifecycleService
             durationDays: $durationDays,
             subjectEndKey: $subjectEndKey,
             subjectEndedAt: $subjectEndedAt,
+            closingSummary: $this->settings->closingSummaryByDefault(),
         );
         $this->surveys->save($survey);
 
@@ -200,18 +207,31 @@ final readonly class SurveyLifecycleService
     }
 
     /**
-     * Closes the survey and forgets its guests' email addresses.
+     * Closes the survey, forgets its guests' email addresses and, once that is committed, mails
+     * the summary of its results if it asked for one. The row is locked, so a scheduled close and
+     * a close by hand at the same time close (and mail) once. A summary that fails is reported
+     * and leaves the survey closed.
      *
      * @throws InvalidSurveyStateException
      */
     public function close(SurveyId $id, ?DateTimeImmutable $now = null): void
     {
-        $survey = $this->surveys->findOrFail($id);
-        $survey->close($now ?? now()->toDateTimeImmutable());
+        $survey = DB::transaction(function () use ($id, $now): Survey {
+            $survey = $this->surveys->findForUpdate($id);
+            $survey->close($now ?? now()->toDateTimeImmutable());
 
-        DB::transaction(function () use ($survey): void {
             $this->surveys->save($survey);
             $this->recipients->forgetGuestEmails($survey->id());
+
+            return $survey;
+        });
+
+        DB::afterCommit(function () use ($survey): void {
+            try {
+                $this->closingSummaries->surveyClosed($survey);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         });
     }
 

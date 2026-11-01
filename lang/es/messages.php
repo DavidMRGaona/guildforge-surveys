@@ -28,6 +28,11 @@ return [
         'announce_in_channels_by_default_help' => 'Marca de entrada «Anunciar en los canales» en las encuestas generales nuevas. Necesita el módulo de notificaciones a canales con el tipo «Encuestas» activo en cada canal.',
         'title' => 'Ajustes de encuestas',
         'saved' => 'Ajustes guardados',
+        'closing_summary' => 'Resumen al cerrar',
+        'closing_summary_by_default' => 'Resumen por correo al cerrar por defecto',
+        'closing_summary_by_default_help' => 'Marca de entrada «Resumen por correo al cerrar» en las encuestas nuevas: al cerrarse, sus organizadores y quien la creó reciben la tasa de respuesta, las medias y las opciones más votadas, nunca texto libre.',
+        'closing_summary_to_results_viewers' => 'Enviar el resumen también a quien puede ver resultados',
+        'closing_summary_to_results_viewers_help' => 'Además, lo recibe quien tiene acceso al panel y el permiso de ver resultados de encuestas.',
         'review' => 'Revisión',
         'review_required' => 'Las encuestas cambiadas fuera del panel requieren revisión',
         'review_required_help' => 'Las encuestas cambiadas fuera del panel esperan a que alguien con permiso de revisión las apruebe. Desactivarlo no aprueba lo pendiente.',
@@ -157,6 +162,7 @@ return [
         'pending_review' => 'La encuesta está esperando revisión: su contenido no se puede cambiar hasta que la aprueben o la rechacen.',
         'send_delay' => 'Las horas tras terminar no pueden ser negativas.',
         'announcement_fixed' => 'Si se anuncia en los canales se decide mientras la encuesta es un borrador general.',
+        'closing_summary_fixed' => 'Si se envía el resumen al cerrar ya no se puede cambiar: la encuesta está cerrada.',
     ],
 
     'response' => [

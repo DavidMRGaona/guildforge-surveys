@@ -175,6 +175,9 @@ final class SurveyResource extends BaseResource
                             ->minValue(1)
                             ->maxValue(168)
                             ->suffix(__('surveys::filament.survey.fields.hours')),
+                        self::closingSummaryToggle()
+                            ->disabled(static fn (?SurveyModel $record): bool => $record instanceof SurveyModel && $record->status === SurveyStatus::Closed->value)
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
                 Section::make(__('surveys::filament.survey.sections.results'))
@@ -315,6 +318,18 @@ final class SurveyResource extends BaseResource
             ->label(__('surveys::filament.survey.fields.announce_in_channels'))
             ->helperText(__('surveys::filament.survey.fields.announce_in_channels_help'))
             ->default(static fn (): bool => app(SurveySettings::class)->announceInChannelsByDefault());
+    }
+
+    /**
+     * Whether closing mails a summary of the results: it starts from the setting and is chosen
+     * until the survey closes.
+     */
+    public static function closingSummaryToggle(): Toggle
+    {
+        return Toggle::make('closing_summary')
+            ->label(__('surveys::filament.survey.fields.closing_summary'))
+            ->helperText(__('surveys::filament.survey.fields.closing_summary_help'))
+            ->default(static fn (): bool => app(SurveySettings::class)->closingSummaryByDefault());
     }
 
     /**

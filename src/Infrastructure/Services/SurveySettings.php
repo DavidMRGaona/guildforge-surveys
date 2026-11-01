@@ -46,6 +46,16 @@ final readonly class SurveySettings implements SurveySettingsInterface
         return (bool) config('modules.settings.surveys.announce_in_channels_by_default', false);
     }
 
+    public function closingSummaryByDefault(): bool
+    {
+        return (bool) config('modules.settings.surveys.closing_summary_by_default', true);
+    }
+
+    public function closingSummaryToResultsViewers(): bool
+    {
+        return (bool) config('modules.settings.surveys.closing_summary_to_results_viewers', false);
+    }
+
     public function reviewRequired(): bool
     {
         return (bool) config('modules.settings.surveys.review_required', false);

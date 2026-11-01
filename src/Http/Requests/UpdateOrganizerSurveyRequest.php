@@ -33,6 +33,7 @@ final class UpdateOrganizerSurveyRequest extends FormRequest
             'live_results' => ['required', 'boolean'],
             'visible_to_respondents' => ['required', 'boolean'],
             'send_on_end' => ['sometimes', 'boolean'],
+            'closing_summary' => ['sometimes', 'boolean'],
             'send_delay_hours' => ['nullable', 'integer', 'min:0', 'max:8760'],
         ];
     }

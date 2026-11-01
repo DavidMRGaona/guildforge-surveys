@@ -31,6 +31,9 @@ export default {
             anonymous_help:
                 'Una encuesta anónima no guarda quién respondió qué y nunca puede dejar de serlo.',
             visible_to_respondents: 'Quien responde ve los resultados',
+            closing_summary: 'Resumen por correo al cerrar',
+            closing_summary_help:
+                'Al cerrarse, te llega un correo con la tasa de respuesta, las medias y las opciones más votadas; nunca texto libre.',
             live_results: 'Resultados en directo',
             live_results_warning:
                 'Ver los resultados antes del cierre debilita el anonimato: comparando antes y después de cada respuesta se puede adivinar quién respondió qué.',

@@ -50,6 +50,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $subject_ended_at
  * @property bool $send_on_end
  * @property bool $announce_in_channels
+ * @property bool $closing_summary
  * @property int $send_delay_hours
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -108,6 +109,7 @@ final class SurveyModel extends Model
         'subject_ended_at',
         'send_on_end',
         'announce_in_channels',
+        'closing_summary',
         'send_delay_hours',
     ];
 
@@ -147,6 +149,7 @@ final class SurveyModel extends Model
             'subject_ended_at' => 'datetime',
             'send_on_end' => 'boolean',
             'announce_in_channels' => 'boolean',
+            'closing_summary' => 'boolean',
             'send_delay_hours' => 'integer',
         ];
     }
