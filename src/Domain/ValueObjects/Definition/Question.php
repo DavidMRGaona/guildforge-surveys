@@ -9,12 +9,15 @@ use Modules\Surveys\Domain\Enums\QuestionType;
 /**
  * One question. The id is stable within its survey (answers point at it); the key is only
  * set on questions coming from a template and stays the same across every survey made from
- * it, so trends can compare them over time.
+ * it, so trends can compare them over time. $nextByOption sends
+ * the respondent elsewhere after this question's section depending on the option chosen;
+ * only types that canBranch() use it.
  */
 final readonly class Question
 {
     /**
      * @param  list<Option>  $options
+     * @param  list<OptionJump>  $nextByOption
      */
     public function __construct(
         public string $id,
@@ -28,7 +31,22 @@ final readonly class Question
         public ?ScaleSettings $scale = null,
         public ?int $stars = null,
         public ?GridSettings $grid = null,
+        public array $nextByOption = [],
     ) {}
+
+    /**
+     * Where the given option leads, or null when it follows its section.
+     */
+    public function nextFor(string $optionId): ?string
+    {
+        foreach ($this->nextByOption as $jump) {
+            if ($jump->optionId === $optionId) {
+                return $jump->next;
+            }
+        }
+
+        return null;
+    }
 
     /**
      * @return array<string, mixed>
@@ -47,6 +65,7 @@ final readonly class Question
             'scale' => $this->scale?->toArray(),
             'stars' => $this->stars,
             'grid' => $this->grid?->toArray(),
+            'next_by_option' => array_map(static fn (OptionJump $jump): array => $jump->toArray(), $this->nextByOption),
         ];
     }
 }

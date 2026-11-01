@@ -56,6 +56,7 @@ final class DefinitionArrayReader
             title: $this->nullableString($data, 'title', $path),
             description: $this->nullableString($data, 'description', $path),
             questions: $questions,
+            next: $this->nullableString($data, 'next', $path),
         );
     }
 
@@ -100,7 +101,25 @@ final class DefinitionArrayReader
                 rows: $this->options($grid, 'rows', "{$path}.grid.rows"),
                 columns: $this->options($grid, 'columns', "{$path}.grid.columns"),
             ),
+            nextByOption: $this->jumps($data, "{$path}.next_by_option"),
         );
+    }
+
+    /**
+     * @param  array<mixed>  $data
+     * @return list<OptionJump>
+     */
+    private function jumps(array $data, string $path): array
+    {
+        $jumps = [];
+        foreach ($this->list($data, 'next_by_option', $path) as $index => $jump) {
+            $jumps[] = new OptionJump(
+                optionId: $this->string($jump, 'option_id', "{$path}.{$index}"),
+                next: $this->requiredString($jump, 'next', "{$path}.{$index}"),
+            );
+        }
+
+        return $jumps;
     }
 
     /**
@@ -170,6 +189,23 @@ final class DefinitionArrayReader
     private function string(array $data, string $key, string $path): string
     {
         return $this->nullableString($data, $key, $path) ?? '';
+    }
+
+    /**
+     * A string that has no default: missing is as malformed as the wrong type.
+     *
+     * @param  array<mixed>  $data
+     */
+    private function requiredString(array $data, string $key, string $path): string
+    {
+        $value = $data[$key] ?? null;
+        if (is_string($value)) {
+            return $value;
+        }
+
+        $this->violate("{$path}.{$key}", 'malformed');
+
+        return '';
     }
 
     /**

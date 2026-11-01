@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Tests\Unit\Filament;
 
+use Modules\Surveys\Domain\ValueObjects\Definition\OptionJump;
+use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use PHPUnit\Framework\TestCase;
@@ -78,6 +81,19 @@ final class DefinitionFormStateTest extends TestCase
         $this->assertSame("sections.{$sectionKeys[0]}.questions.{$questionKeys[1]}.data.title", DefinitionFormState::formPath($state, 'sections.0.questions.1.id'));
         $this->assertSame("sections.{$sectionKeys[0]}.questions.{$questionKeys[2]}.data.options.{$optionKeys[0]}.label", DefinitionFormState::formPath($state, 'sections.0.questions.2.options.0.id'));
         $this->assertSame("sections.{$sectionKeys[1]}.title", DefinitionFormState::formPath($state, 'sections.1.id'));
+    }
+
+    public function test_fresh_ids_keep_jumps_pointing_at_the_copied_sections(): void
+    {
+        $original = SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition());
+
+        $copy = DefinitionFormState::withFreshQuestionIds($original);
+
+        [$start, $campaign, $end] = $copy->sections;
+        $this->assertNotSame('s-end', $end->id);
+        $this->assertSame($end->id, $campaign->next);
+        $this->assertEquals([new OptionJump('o-no', $end->id), new OptionJump(Submission::OTHER, Section::SUBMIT)], $start->questions[0]->nextByOption);
+        $this->assertNull($start->next);
     }
 
     public function test_fresh_question_ids_keep_the_keys_options_rows_and_columns(): void

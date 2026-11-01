@@ -12,7 +12,9 @@ use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\ScaleSettings;
+use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 
 /**
  * The single set of rules for survey content. Every editor (panel and public site) goes
@@ -48,10 +50,21 @@ final class SurveyDefinitionValidator
 
         foreach ($definition->sections as $s => $section) {
             $this->checkId($section->id, "sections.{$s}.id", $sectionIds, $violations);
+            if ($section->id === Section::SUBMIT) {
+                $violations[] = new DefinitionViolation("sections.{$s}.id", 'reserved_id');
+            }
+            if ($section->next !== null) {
+                array_push($violations, ...$this->checkTarget($definition, $s, $section->next, "sections.{$s}.next"));
+            }
 
+            $branching = 0;
             foreach ($section->questions as $q => $question) {
                 $path = "sections.{$s}.questions.{$q}";
                 $this->checkId($question->id, "{$path}.id", $questionIds, $violations);
+
+                if ($question->nextByOption !== []) {
+                    array_push($violations, ...$this->checkJumps($definition, $s, $question, "{$path}.next_by_option", ++$branching));
+                }
 
                 if (trim($question->title) === '') {
                     $violations[] = new DefinitionViolation("{$path}.title", 'required_title');
@@ -189,6 +202,61 @@ final class SurveyDefinitionValidator
     }
 
     /**
+     * The answer-dependent jumps of a question: only types that canBranch(), one such question
+     * per section ($ordinal counts them), each option once, and forward targets.
+     *
+     * @return list<DefinitionViolation>
+     */
+    private function checkJumps(SurveyDefinition $definition, int $sectionIndex, Question $question, string $path, int $ordinal): array
+    {
+        if (! $question->type->canBranch()) {
+            return [new DefinitionViolation($path, 'branching_not_allowed')];
+        }
+        if ($ordinal > 1) {
+            return [new DefinitionViolation($path, 'one_branching_question_per_section')];
+        }
+
+        $violations = [];
+        $optionIds = array_map(static fn (Option $option): string => $option->id, $question->options);
+        if ($question->allowOther) {
+            $optionIds[] = Submission::OTHER;
+        }
+
+        $seen = [];
+        foreach ($question->nextByOption as $j => $jump) {
+            if (! in_array($jump->optionId, $optionIds, true)) {
+                $violations[] = new DefinitionViolation("{$path}.{$j}.option_id", 'unknown_option_target');
+            } elseif (isset($seen[$jump->optionId])) {
+                $violations[] = new DefinitionViolation("{$path}.{$j}.option_id", 'duplicate_id');
+            }
+            $seen[$jump->optionId] = true;
+
+            array_push($violations, ...$this->checkTarget($definition, $sectionIndex, $jump->next, "{$path}.{$j}.next"));
+        }
+
+        return $violations;
+    }
+
+    /**
+     * A jump goes to the end or to a later section, so a survey never loops.
+     *
+     * @return list<DefinitionViolation>
+     */
+    private function checkTarget(SurveyDefinition $definition, int $sectionIndex, string $target, string $path): array
+    {
+        if ($target === Section::SUBMIT) {
+            return [];
+        }
+
+        $index = $definition->sectionIndex($target);
+        if ($index === null) {
+            return [new DefinitionViolation($path, 'unknown_section')];
+        }
+
+        return $index <= $sectionIndex ? [new DefinitionViolation($path, 'jump_backwards')] : [];
+    }
+
+    /**
      * @param  list<Option>  $options
      * @return list<DefinitionViolation>
      */
@@ -215,7 +283,7 @@ final class SurveyDefinitionValidator
             return [new DefinitionViolation('sections', 'poll_single_question')];
         }
 
-        $violations = [];
+        $violations = $definition->hasBranching() ? [new DefinitionViolation('sections', 'branching_not_allowed_in_poll')] : [];
         foreach ($definition->sections as $s => $section) {
             foreach ($section->questions as $q => $question) {
                 $path = "sections.{$s}.questions.{$q}";
