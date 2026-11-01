@@ -572,6 +572,7 @@ final class Survey
             durationDays: $this->durationDays,
             publicLinkMode: $this->publicLinkMode,
             announceInChannels: $this->announceInChannels,
+            closingSummary: $this->closingSummary,
         );
     }
 

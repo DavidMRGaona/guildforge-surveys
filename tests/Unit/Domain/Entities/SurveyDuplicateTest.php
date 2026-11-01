@@ -55,6 +55,7 @@ final class SurveyDuplicateTest extends TestCase
         $this->assertSame('3f0d9c52-4b8a-4d8e-9b1c-6a2f3e4d5c6b', $copy->templateId()?->value);
         $this->assertSame(24, $copy->reminderHoursBefore());
         $this->assertTrue($copy->announceInChannels());
+        $this->assertTrue($copy->sendsClosingSummary());
         $this->assertSame('user-2', $copy->createdBy());
         $this->assertNull($copy->subject());
     }
@@ -168,6 +169,7 @@ final class SurveyDuplicateTest extends TestCase
             createdBy: 'user-1',
             publicLinkMode: PublicLinkMode::Open,
             announceInChannels: true,
+            closingSummary: true,
         );
     }
 
