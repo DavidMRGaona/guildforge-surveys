@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import type { VNode } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Results from '../../resources/js/pages/Surveys/Manage/Results.vue';
 import type { ManageResultsProps, OrganizerQuestionResult } from '../../resources/js/types/Results';
@@ -15,7 +16,7 @@ vi.mock('../../resources/js/components/results/QuestionChart.vue', async () => {
                 chartType: { type: String, required: true },
             },
             setup(props) {
-                return () => h('div', { 'data-chart': props.chartType });
+                return (): VNode => h('div', { 'data-chart': props.chartType });
             },
         }),
     };

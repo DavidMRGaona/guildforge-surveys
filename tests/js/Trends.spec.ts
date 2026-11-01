@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import type { VNode } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Trends from '../../resources/js/pages/Surveys/Manage/Trends.vue';
 import type { TrendsPageProps } from '../../resources/js/types/Trends';
@@ -12,7 +13,7 @@ vi.mock('../../resources/js/components/results/TrendChart.vue', async () => {
             name: 'TrendChart',
             props: { trend: { type: Object, required: true } },
             setup() {
-                return () => h('div', { 'data-chart': 'trend' });
+                return (): VNode => h('div', { 'data-chart': 'trend' });
             },
         }),
     };

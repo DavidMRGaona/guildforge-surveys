@@ -1,4 +1,6 @@
+/* eslint-disable vue/one-component-per-file -- the stand-ins for Inertia's link and the site layout */
 import { afterEach, beforeEach, vi } from 'vitest';
+import type { VNode } from 'vue';
 import { config, enableAutoUnmount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import coreEs from '@/locales/es';
@@ -11,7 +13,7 @@ vi.mock('@inertiajs/vue3', async () => {
     const { page: currentPage } = await import('./support/page');
 
     return {
-        usePage: () => currentPage,
+        usePage: (): typeof currentPage => currentPage,
         router: {
             visit: vi.fn(),
             reload: vi.fn(),
@@ -21,10 +23,12 @@ vi.mock('@inertiajs/vue3', async () => {
             get: vi.fn(),
         },
         Link: defineComponent({
+            // Inertia's own name, which the stand-in keeps
+            // eslint-disable-next-line vue/multi-word-component-names, vue/no-reserved-component-names
             name: 'Link',
             props: { href: { type: String, required: true } },
             setup(props, { slots }) {
-                return () => h('a', { href: props.href }, slots.default?.());
+                return (): VNode => h('a', { href: props.href }, slots.default?.());
             },
         }),
     };
@@ -38,7 +42,7 @@ vi.mock('@/layouts/DefaultLayout.vue', async () => {
         default: defineComponent({
             name: 'DefaultLayout',
             setup(_props, { slots }) {
-                return () => h('div', slots.default?.());
+                return (): VNode => h('div', slots.default?.());
             },
         }),
     };
