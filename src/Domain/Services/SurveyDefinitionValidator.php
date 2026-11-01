@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Domain\Services;
 
+use DateTimeImmutable;
+use DateTimeInterface;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
@@ -13,6 +15,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\ScaleSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
+use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 
@@ -36,6 +39,11 @@ final class SurveyDefinitionValidator
 
     /** More options than this are hard to put in order, above all on a phone. */
     public const int RANKING_OPTIONS_MAX = 10;
+
+    public const int SLOTS_MIN = 2;
+
+    /** Enough for every evening of a month; more is no longer a choice people can weigh. */
+    public const int SLOTS_MAX = 30;
 
     /**
      * @return list<DefinitionViolation>
@@ -83,11 +91,18 @@ final class SurveyDefinitionValidator
                 }
 
                 array_push($violations, ...$this->checkTypeSettings($question, $path));
+                if ($question->type === QuestionType::Availability && $kind === SurveyKind::Form) {
+                    $violations[] = new DefinitionViolation("{$path}.type", 'availability_kind_only');
+                }
             }
         }
 
         if ($kind === SurveyKind::Poll) {
             array_push($violations, ...$this->checkPoll($definition));
+        }
+
+        if ($kind === SurveyKind::Availability) {
+            array_push($violations, ...$this->checkAvailability($definition));
         }
 
         return $violations;
@@ -204,7 +219,96 @@ final class SurveyDefinitionValidator
             }
         }
 
+        if ($type === QuestionType::Availability) {
+            array_push($violations, ...$this->checkSlots($question->slots, "{$path}.slots"));
+        } elseif ($question->slots !== []) {
+            $violations[] = new DefinitionViolation("{$path}.slots", 'slots_not_allowed');
+        }
+
         return $violations;
+    }
+
+    /**
+     * Between SLOTS_MIN and SLOTS_MAX slots, each a whole day or a UTC start with an optional
+     * later end, and no date proposed twice.
+     *
+     * @param  list<Slot>  $slots
+     * @return list<DefinitionViolation>
+     */
+    private function checkSlots(array $slots, string $path): array
+    {
+        $violations = [];
+        if (count($slots) < self::SLOTS_MIN) {
+            $violations[] = new DefinitionViolation($path, 'too_few_slots');
+        }
+        if (count($slots) > self::SLOTS_MAX) {
+            $violations[] = new DefinitionViolation($path, 'too_many_slots');
+        }
+
+        $ids = [];
+        $seen = [];
+        foreach ($slots as $index => $slot) {
+            $slotPath = "{$path}.{$index}";
+            $this->checkId($slot->id, "{$slotPath}.id", $ids, $violations);
+
+            if ($slot->isWholeDay()) {
+                if (! $this->isDate($slot->date)) {
+                    $violations[] = new DefinitionViolation("{$slotPath}.date", 'invalid_slot_date');
+                }
+                if ($slot->endsAt !== null) {
+                    $violations[] = new DefinitionViolation("{$slotPath}.ends_at", 'invalid_slot_end');
+                }
+            } else {
+                if ($slot->date !== null) {
+                    $violations[] = new DefinitionViolation("{$slotPath}.date", 'invalid_slot_date');
+                }
+                $start = $this->utcInstant($slot->startsAt);
+                if (! $start instanceof DateTimeImmutable) {
+                    $violations[] = new DefinitionViolation("{$slotPath}.starts_at", 'invalid_slot_start');
+                }
+                if ($slot->endsAt !== null) {
+                    $end = $this->utcInstant($slot->endsAt);
+                    if (! $end instanceof DateTimeImmutable) {
+                        $violations[] = new DefinitionViolation("{$slotPath}.ends_at", 'invalid_slot_end');
+                    } elseif ($start instanceof DateTimeImmutable && $end <= $start) {
+                        $violations[] = new DefinitionViolation("{$slotPath}.ends_at", 'slot_ends_before_start');
+                    }
+                }
+            }
+
+            $when = implode('|', [$slot->date ?? '', $slot->startsAt ?? '', $slot->endsAt ?? '']);
+            if (isset($seen[$when])) {
+                $violations[] = new DefinitionViolation($slotPath, 'duplicate_slot');
+            }
+            $seen[$when] = true;
+        }
+
+        return $violations;
+    }
+
+    private function isDate(?string $text): bool
+    {
+        if ($text === null) {
+            return false;
+        }
+
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $text);
+
+        return $date !== false && $date->format('Y-m-d') === $text;
+    }
+
+    /**
+     * An instant written as ISO 8601 in UTC ("2026-12-11T16:00:00+00:00"), or null.
+     */
+    private function utcInstant(?string $text): ?DateTimeImmutable
+    {
+        if ($text === null) {
+            return null;
+        }
+
+        $instant = DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $text);
+
+        return $instant !== false && $instant->getOffset() === 0 && $instant->format(DateTimeInterface::ATOM) === $text ? $instant : null;
     }
 
     /**
@@ -298,6 +402,29 @@ final class SurveyDefinitionValidator
                 }
                 if ($question->allowOther) {
                     $violations[] = new DefinitionViolation("{$path}.allow_other", 'other_not_allowed');
+                }
+            }
+        }
+
+        return $violations;
+    }
+
+    /**
+     * One availability question and nothing else: the survey is that question.
+     *
+     * @return list<DefinitionViolation>
+     */
+    private function checkAvailability(SurveyDefinition $definition): array
+    {
+        if (count($definition->questions()) !== 1) {
+            return [new DefinitionViolation('sections', 'availability_single_question')];
+        }
+
+        $violations = [];
+        foreach ($definition->sections as $s => $section) {
+            foreach ($section->questions as $q => $question) {
+                if ($question->type !== QuestionType::Availability) {
+                    $violations[] = new DefinitionViolation("sections.{$s}.questions.{$q}.type", 'availability_type');
                 }
             }
         }

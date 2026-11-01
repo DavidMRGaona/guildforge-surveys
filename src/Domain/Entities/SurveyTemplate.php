@@ -7,15 +7,20 @@ namespace Modules\Surveys\Domain\Entities;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\DefinitionViolation;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 
 /**
  * Reusable content. Its questions carry stable keys that every survey made from it keeps.
+ * Availability surveys never become one (SurveyKind::allowsTemplates()).
  */
 final class SurveyTemplate
 {
+    /**
+     * @throws InvalidSurveyDefinitionException for a kind that never becomes a template
+     */
     public function __construct(
         private readonly SurveyTemplateId $id,
         private string $name,
@@ -24,7 +29,11 @@ final class SurveyTemplate
         private SurveyDefinition $definition,
         private readonly ?string $createdBy = null,
         private TemplateUses $uses = new TemplateUses([]),
-    ) {}
+    ) {
+        if (! $kind->allowsTemplates()) {
+            throw InvalidSurveyDefinitionException::withViolations([new DefinitionViolation('kind', 'kind_without_templates')]);
+        }
+    }
 
     /**
      * Templates have no responses, but a keyed question still never changes type.

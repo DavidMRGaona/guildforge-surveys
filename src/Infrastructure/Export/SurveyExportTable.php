@@ -11,8 +11,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
+use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\AvailabilityAnswer;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Exceptions\ResultsNotAvailableException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
@@ -27,7 +29,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
  * A survey's responses as a table: one row per response, ordered by its random id, and one
- * column per question (a grid has one per row). Date and person only on named surveys: on an
+ * column per question (a grid has one per row, an availability question one per slot). Date and person only on named surveys: on an
  * anonymous one the day could single out whoever answered it. Anonymous surveys follow the rules
  * of the results page, the minimum per question included.
  */
@@ -41,6 +43,7 @@ final readonly class SurveyExportTable
         private ResultsService $results,
         private SurveySettingsInterface $settings,
         private TimezoneServiceInterface $timezone,
+        private AvailabilitySlotFormatter $slots,
     ) {}
 
     /**
@@ -60,10 +63,11 @@ final readonly class SurveyExportTable
         $headers = $survey->isAnonymous() ? [] : [__('surveys::messages.export.date'), __('surveys::messages.export.person')];
 
         foreach ($survey->definition()->questions() as $question) {
-            // A column per grid row, and per option of a ranking with its place
+            // A column per grid row, per option of a ranking with its place, and per proposed slot
             $parts = match ($question->type) {
                 QuestionType::Grid => $question->grid->rows ?? [],
                 QuestionType::Ranking => $question->options,
+                QuestionType::Availability => array_map(fn ($slot): Option => new Option($slot->id, $this->slots->label($slot)), $question->slots),
                 default => [],
             };
             if ($parts !== []) {
@@ -162,7 +166,7 @@ final readonly class SurveyExportTable
     }
 
     /**
-     * @param  ?Option  $part  the grid row, or the ranked option, of the column
+     * @param  ?Option  $part  the grid row, the ranked option or the slot of the column
      * @param  list<object>  $answers
      */
     private function value(Question $question, ?Option $part, array $answers): string|int|null
@@ -175,6 +179,17 @@ final readonly class SurveyExportTable
             foreach ($answers as $answer) {
                 if (($answer->option_id ?? null) === $part->id && is_numeric($answer->number_value ?? null)) {
                     return (int) $answer->number_value;
+                }
+            }
+
+            return null;
+        }
+
+        if ($part instanceof Option && $question->type === QuestionType::Availability) {
+            foreach ($answers as $answer) {
+                $answered = AvailabilityAnswer::tryFrom(self::string($answer->option_id ?? null));
+                if (($answer->row_id ?? null) === $part->id && $answered instanceof AvailabilityAnswer) {
+                    return self::string(__("surveys::messages.availability.answers.{$answered->value}"));
                 }
             }
 

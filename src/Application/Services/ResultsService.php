@@ -7,6 +7,8 @@ namespace Modules\Surveys\Application\Services;
 use DateTimeImmutable;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
+use Modules\Surveys\Application\DTOs\Results\AvailabilityResultDTO;
+use Modules\Surveys\Application\DTOs\Results\AvailabilitySlotResultDTO;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
 use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
@@ -14,6 +16,7 @@ use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
 use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\AvailabilityAnswer;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
@@ -36,6 +39,7 @@ final readonly class ResultsService
         private SurveyRepositoryInterface $surveys,
         private SurveyResultsQueryInterface $query,
         private SurveySettingsInterface $settings,
+        private AvailabilitySlotFormatter $slots,
     ) {}
 
     /**
@@ -77,7 +81,7 @@ final readonly class ResultsService
 
     /**
      * What the people who answer may see: only when the survey shares its results, never hidden
-     * questions or free text, and the names of voters only on named polls.
+     * questions or free text, and names only on named polls and availability surveys.
      */
     public function forRespondents(SurveyId $id, ?DateTimeImmutable $now = null): SurveyResultsDTO
     {
@@ -135,12 +139,14 @@ final readonly class ResultsService
         $answered = $this->query->answeredCounts($id, $ids);
         $optionIds = $this->idsOf($questions, static fn (QuestionType $type): bool => $type->isChoice());
         $options = $this->query->optionCounts($id, $optionIds);
-        $cells = $this->query->cellCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Grid));
+        $cells = $this->query->cellCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Grid || $type === QuestionType::Availability));
         $places = $this->query->positionCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Ranking));
         $numbers = $this->query->numberCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::LinearScale || $type === QuestionType::StarRating));
         $dates = $this->query->textCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Date || $type === QuestionType::Time));
         $texts = $forRespondents ? [] : $this->query->texts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type->isFreeText() || $type->allowsOther()));
         $voters = ! $survey->isAnonymous() && $survey->kind() === SurveyKind::Poll ? $this->query->voters($id, $optionIds) : [];
+        // Who can make each slot is the point of a named availability survey
+        $cellVoters = $survey->isAnonymous() ? [] : $this->query->cellVoters($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Availability));
 
         // An optional question one person answered would give that answer away: the minimum
         // applies to each question of an anonymous survey too, counting verified answers only
@@ -184,6 +190,7 @@ final readonly class ResultsService
                 $dates[$question->id] ?? [],
                 $texts[$question->id] ?? [],
                 $voters[$question->id] ?? [],
+                $cellVoters[$question->id] ?? [],
                 $reached($question->id),
             );
         }
@@ -199,17 +206,21 @@ final readonly class ResultsService
      * @param  array<string, int>  $dates
      * @param  list<string>  $texts
      * @param  array<string, list<string>>  $voters
+     * @param  array<string, array<string, list<string>>>  $cellVoters  row id => column id => names
      */
-    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $places, array $numbers, array $dates, array $texts, array $voters, ?int $reached): QuestionResultDTO
+    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $places, array $numbers, array $dates, array $texts, array $voters, array $cellVoters, ?int $reached): QuestionResultDTO
     {
         $buckets = [];
         $grid = null;
         $ranking = null;
+        $availability = null;
         $mean = null;
         $median = null;
 
         if ($question->type === QuestionType::Ranking) {
             $ranking = $this->ranking($question, $places);
+        } elseif ($question->type === QuestionType::Availability) {
+            $availability = $this->availability($question, $cells, $cellVoters);
         } elseif ($question->type->isChoice()) {
             foreach ($question->options as $option) {
                 $buckets[] = new ResultBucketDTO($option->id, $option->label, $options[$option->id] ?? 0, $voters[$option->id] ?? []);
@@ -257,7 +268,47 @@ final readonly class ResultsService
             texts: $texts,
             reached: $reached,
             ranking: $ranking,
+            availability: $availability,
         );
+    }
+
+    /**
+     * Each slot's answers in the survey's order, the best marked: most "yes", then most "if needed".
+     *
+     * @param  array<string, array<string, int>>  $cells  slot id => answer => count
+     * @param  array<string, array<string, list<string>>>  $names  slot id => answer => names
+     */
+    private function availability(Question $question, array $cells, array $names): AvailabilityResultDTO
+    {
+        $yes = AvailabilityAnswer::Yes->value;
+        $ifNeeded = AvailabilityAnswer::IfNeeded->value;
+        $no = AvailabilityAnswer::No->value;
+
+        $top = [0, 0];
+        foreach ($question->slots as $slot) {
+            $top = max($top, [$cells[$slot->id][$yes] ?? 0, $cells[$slot->id][$ifNeeded] ?? 0]);
+        }
+
+        $slots = [];
+        foreach ($question->slots as $slot) {
+            $counts = [$cells[$slot->id][$yes] ?? 0, $cells[$slot->id][$ifNeeded] ?? 0];
+            $slots[] = new AvailabilitySlotResultDTO(
+                slotId: $slot->id,
+                label: $this->slots->label($slot),
+                day: $this->slots->day($slot),
+                start: $this->slots->start($slot),
+                end: $this->slots->end($slot),
+                yes: $counts[0],
+                ifNeeded: $counts[1],
+                no: $cells[$slot->id][$no] ?? 0,
+                best: $top !== [0, 0] && $counts === $top,
+                yesNames: $names[$slot->id][$yes] ?? [],
+                ifNeededNames: $names[$slot->id][$ifNeeded] ?? [],
+                noNames: $names[$slot->id][$no] ?? [],
+            );
+        }
+
+        return new AvailabilityResultDTO($slots);
     }
 
     /**

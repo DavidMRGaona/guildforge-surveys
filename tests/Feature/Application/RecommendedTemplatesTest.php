@@ -106,7 +106,9 @@ final class RecommendedTemplatesTest extends ModuleTestCase
             }
         }
 
-        $this->assertEqualsCanonicalizing(array_map(static fn (QuestionType $type): string => $type->value, QuestionType::cases()), array_keys($types));
+        // Availability proposes one-off dates and never becomes a template
+        $expected = array_filter(QuestionType::cases(), static fn (QuestionType $type): bool => $type !== QuestionType::Availability);
+        $this->assertEqualsCanonicalizing(array_map(static fn (QuestionType $type): string => $type->value, $expected), array_keys($types));
     }
 
     public function test_no_text_is_left_untranslated(): void

@@ -11,13 +11,14 @@ use Modules\Surveys\Domain\Enums\QuestionType;
  * set on questions coming from a template and stays the same across every survey made from
  * it, so trends can compare them over time. $nextByOption sends
  * the respondent elsewhere after this question's section depending on the option chosen;
- * only types that canBranch() use it.
+ * only types that canBranch() use it. $slots are the dates an availability question proposes.
  */
 final readonly class Question
 {
     /**
      * @param  list<Option>  $options
      * @param  list<OptionJump>  $nextByOption
+     * @param  list<Slot>  $slots
      */
     public function __construct(
         public string $id,
@@ -32,6 +33,7 @@ final readonly class Question
         public ?int $stars = null,
         public ?GridSettings $grid = null,
         public array $nextByOption = [],
+        public array $slots = [],
     ) {}
 
     /**
@@ -66,6 +68,7 @@ final readonly class Question
             'stars' => $this->stars,
             'grid' => $this->grid?->toArray(),
             'next_by_option' => array_map(static fn (OptionJump $jump): array => $jump->toArray(), $this->nextByOption),
+            'slots' => array_map(static fn (Slot $slot): array => $slot->toArray(), $this->slots),
         ];
     }
 }

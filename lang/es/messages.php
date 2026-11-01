@@ -151,6 +151,18 @@ return [
         'type_locked' => 'Esta pregunta tiene clave estable: no puede cambiar de tipo. Crea una pregunta nueva con otra clave.',
         'key_not_allowed' => 'Esta pregunta no puede llevar clave: las claves solo vienen de la plantilla.',
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
+        'too_few_slots' => 'Propón al menos dos fechas.',
+        'too_many_slots' => 'Un sondeo de disponibilidad admite como mucho 30 fechas.',
+        'invalid_slot_date' => 'Indica un día válido.',
+        'invalid_slot_start' => 'Indica una hora de inicio válida.',
+        'invalid_slot_end' => 'Indica una hora de fin válida, o déjala vacía.',
+        'slot_ends_before_start' => 'La franja tiene que terminar después de empezar.',
+        'duplicate_slot' => 'Esta fecha ya está propuesta.',
+        'slots_not_allowed' => 'Solo los sondeos de disponibilidad proponen fechas.',
+        'availability_single_question' => 'Un sondeo de disponibilidad tiene exactamente una pregunta.',
+        'availability_type' => 'La pregunta de un sondeo de disponibilidad propone fechas.',
+        'kind_without_templates' => 'Un sondeo de disponibilidad no se guarda como plantilla: sus fechas solo valen una vez.',
+        'availability_kind_only' => 'Las fechas a elegir van en un sondeo de disponibilidad, no dentro de una encuesta.',
     ],
 
     'state_errors' => [
@@ -185,6 +197,16 @@ return [
         'ranking_incomplete' => 'Coloca todas las opciones en orden.',
         'too_long' => 'La respuesta es demasiado larga.',
         'not_reached' => 'Esta pregunta no corresponde a las respuestas que has dado: vuelve a cargar la encuesta.',
+    ],
+
+    'availability' => [
+        'slot_at' => ':day, a las :start',
+        'slot_from_to' => ':day, de :start a :end',
+        'answers' => [
+            'yes' => 'Sí',
+            'if_needed' => 'Si hace falta',
+            'no' => 'No',
+        ],
     ],
 
     'export' => [

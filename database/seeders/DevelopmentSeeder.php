@@ -15,6 +15,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
+use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\AudienceType;
@@ -337,7 +338,7 @@ final class DevelopmentSeeder extends Seeder
     /**
      * Values by question key (or id, for questions without one): a number for scales and stars; an option id, or ['other' => text],
      * for single choice and dropdown; option ids (and 'other' => text) for checkboxes; row id =>
-     * column id for grids; option ids in order, best first, for rankings; text for free text,
+     * column id for grids and answer by slot id for availability; option ids in order, best first, for rankings; text for free text,
      * dates (Y-m-d) and times (H:i).
      *
      * @param  Answers  $answers
@@ -368,7 +369,7 @@ final class DevelopmentSeeder extends Seeder
 
             foreach ($answer as $index => $item) {
                 $values[] = match (true) {
-                    $question->type === QuestionType::Grid => new AnswerValue($id, optionId: $item, rowId: (string) $index),
+                    $question->type === QuestionType::Grid, $question->type === QuestionType::Availability => new AnswerValue($id, optionId: $item, rowId: (string) $index),
                     $question->type === QuestionType::Ranking => new AnswerValue($id, optionId: $item, number: (int) $index + 1),
                     $index === 'other' => new AnswerValue($id, text: $item),
                     default => new AnswerValue($id, optionId: $item),
@@ -419,7 +420,28 @@ final class DevelopmentSeeder extends Seeder
             QuestionType::Date => $this->timezone->toDisplay($answeredOn)->modify('+'.mt_rand(7, 40).' days')->format('Y-m-d'),
             QuestionType::Time => ['17:00', '17:30', '18:00', '19:00'][mt_rand(0, 3)],
             QuestionType::Ranking => $this->rank($options),
+            QuestionType::Availability => $this->availabilityAnswer($question),
         };
+    }
+
+    /**
+     * An answer to every slot, more often "yes" on the earlier ones, so one date stands out.
+     *
+     * @return array<string, string>
+     */
+    private function availabilityAnswer(Question $question): array
+    {
+        $answers = [];
+        foreach ($question->slots as $index => $slot) {
+            $roll = mt_rand(1, 100) + 12 * $index;
+            $answers[$slot->id] = match (true) {
+                $roll <= 55 => 'yes',
+                $roll <= 75 => 'if_needed',
+                default => 'no',
+            };
+        }
+
+        return $answers;
     }
 
     /**
@@ -576,6 +598,7 @@ final class DevelopmentSeeder extends Seeder
         int $openDays = 7,
         int $audienceSize = 0,
         bool $liveResults = false,
+        bool $shareResults = false,
         ?string $createdBy = null,
         ?string $rejectionReason = null,
         ?string $submittedBy = null,
@@ -596,7 +619,7 @@ final class DevelopmentSeeder extends Seeder
             description: $source?->description(),
             definition: $definition ?? $source?->definition() ?? throw new \LogicException("Survey {$name} has no content"),
             anonymous: $anonymous,
-            results: new ResultsSettings(liveResults: $liveResults),
+            results: new ResultsSettings(liveResults: $liveResults, visibleToRespondents: $shareResults),
             audienceType: $subject instanceof SubjectSnapshot ? AudienceType::Subject : $audience,
             audienceRoles: $roles,
             publicLinkEnabled: $publicLink instanceof PublicLinkMode,
@@ -706,6 +729,20 @@ final class DevelopmentSeeder extends Seeder
         $this->addRecipients($poll, $everyone);
         foreach (['john', 'jane', 'p01', 'p02', 'p03', 'p07'] as $i => $person) {
             $this->respond($poll, $person, ['date' => [['first', 'second'], ['first'], ['third'], ['first', 'third'], ['second'], ['first']][$i]], $this->at(-1));
+        }
+
+        // Named, so its results say who can make each date
+        $assembly = $this->store($this->survey('general.assembly.open', '¿Qué día hacemos la asamblea?', SurveyStatus::Open, definition: $this->availabilityDefinition('¿Qué día hacemos la asamblea?', [
+            'saturday' => [10, null, null],
+            'friday_evening' => [16, '18:00', '21:00'],
+            'saturday_morning' => [17, '10:30', '13:30'],
+            'sunday' => [18, null, null],
+            'thursday_late' => [22, '19:00', null],
+        ]), kind: SurveyKind::Availability, anonymous: false, opensAt: $this->at(-3, '19:00'), openDays: 6, audienceSize: count($everyone), liveResults: true, shareResults: true, createdBy: $admin));
+        $this->addRecipients($assembly, $everyone);
+        $when = $assembly->definition()->questions()[0];
+        foreach (['john', 'jane', 'p01', 'p02', 'p03', 'p04', 'p05', 'p06', 'p08'] as $i => $person) {
+            $this->respond($assembly, $person, ['when' => $this->availabilityAnswer($when)], $this->at(-2 + intdiv($i, 4)));
         }
 
         $closedPoll = $this->store($this->survey('general.poll.closed', '¿Pasamos la tarde de juego al jueves?', SurveyStatus::Closed, definition: $this->pollDefinition('thursday', '¿Pasamos la tarde de juego al jueves?', ['yes' => 'Sí', 'no' => 'No', 'any' => 'Me da igual']), kind: SurveyKind::Poll, opensAt: $this->monthsAgo(1, 20, '20:00'), openDays: 3, audienceSize: 20, liveResults: true, createdBy: $admin));
@@ -866,6 +903,26 @@ final class DevelopmentSeeder extends Seeder
                 $question('again', 'single_choice', '¿Repetirías con esta mesa?', true, ['options' => $options(['yes' => 'Sí', 'no' => 'No'])]),
             ]],
         ]]);
+    }
+
+    /**
+     * One availability question; each slot is a day from today and, for a time slot, its start and
+     * end (or none) in the display zone.
+     *
+     * @param  array<string, array{int, ?string, ?string}>  $slots  id => [days from today, start, end]
+     */
+    private function availabilityDefinition(string $title, array $slots): SurveyDefinition
+    {
+        $formatter = app(AvailabilitySlotFormatter::class);
+        $proposed = [];
+        foreach ($slots as $id => [$days, $start, $end]) {
+            $day = $this->timezone->toDisplay($this->now)->modify("{$days} days")->format('Y-m-d');
+            $proposed[] = $formatter->fromWallTime($id, $day, $start, $end);
+        }
+
+        return new SurveyDefinition([new Section('main', null, null, [
+            new Question('when', null, QuestionType::Availability, $title, null, true, slots: $proposed),
+        ])]);
     }
 
     /**

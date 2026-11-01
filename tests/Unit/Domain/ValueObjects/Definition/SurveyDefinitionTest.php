@@ -24,7 +24,8 @@ final class SurveyDefinitionTest extends TestCase
 
         $this->assertSame($data, $definition->toArray());
         $this->assertEquals($definition, SurveyDefinition::fromArray($definition->toArray()));
-        $this->assertCount(count(QuestionType::cases()), $definition->questions());
+        // Availability lives in a survey of its own kind: AvailabilityDefinitionTest
+        $this->assertCount(count(QuestionType::cases()) - 1, $definition->questions());
     }
 
     public function test_from_array_rejects_unknown_type(): void
@@ -76,7 +77,7 @@ final class SurveyDefinitionTest extends TestCase
     public function test_reads_a_definition_stored_before_section_jumps(): void
     {
         $data = self::everyTypeDefinition();
-        unset($data['sections'][0]['next'], $data['sections'][0]['questions'][2]['next_by_option']);
+        unset($data['sections'][0]['next'], $data['sections'][0]['questions'][2]['next_by_option'], $data['sections'][0]['questions'][2]['slots']);
 
         $definition = SurveyDefinition::fromArray($data);
 
@@ -235,6 +236,7 @@ final class SurveyDefinitionTest extends TestCase
             'stars' => $stars,
             'grid' => $grid,
             'next_by_option' => [],
+            'slots' => [],
         ];
     }
 }

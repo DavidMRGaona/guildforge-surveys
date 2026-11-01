@@ -13,6 +13,7 @@ return [
     'kinds' => [
         'form' => 'Formulario',
         'poll' => 'Sondeo rápido',
+        'availability' => 'Sondeo de disponibilidad',
     ],
 
     'statuses' => [

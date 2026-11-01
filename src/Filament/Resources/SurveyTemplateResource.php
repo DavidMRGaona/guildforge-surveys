@@ -68,7 +68,7 @@ final class SurveyTemplateResource extends BaseResource
                             ->maxLength(255),
                         Select::make('kind')
                             ->label(__('surveys::filament.fields.kind'))
-                            ->options(self::kindOptions())
+                            ->options(self::kindOptions(forTemplates: true))
                             ->default(SurveyKind::Form->value)
                             ->required()
                             ->native(false)
@@ -165,14 +165,20 @@ final class SurveyTemplateResource extends BaseResource
     }
 
     /**
+     * Every kind by its label, or only those that may become a template.
+     *
      * @return array<string, string>
      */
-    public static function kindOptions(): array
+    public static function kindOptions(bool $forTemplates = false): array
     {
-        return [
-            SurveyKind::Form->value => __('surveys::filament.kinds.form'),
-            SurveyKind::Poll->value => __('surveys::filament.kinds.poll'),
-        ];
+        $options = [];
+        foreach (SurveyKind::cases() as $kind) {
+            if (! $forTemplates || $kind->allowsTemplates()) {
+                $options[$kind->value] = (string) __("surveys::filament.kinds.{$kind->value}");
+            }
+        }
+
+        return $options;
     }
 
     /**
