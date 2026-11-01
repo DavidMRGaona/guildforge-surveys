@@ -125,18 +125,28 @@ describe('RankingAnswer', () => {
             };
         });
         const handle = button(wrapper, 'k-1', 'drag');
+        // Moving the node loses the pointer capture: moves and release reach the window only
+        const pointer = async (type: string, clientY: number): Promise<void> => {
+            window.dispatchEvent(new MouseEvent(type, { clientY, bubbles: true }));
+            await wrapper.vm.$nextTick();
+        };
 
         await handle.trigger('pointerdown', { clientY: 25, pointerId: 1, button: 0 });
-        await handle.trigger('pointermove', { clientY: 60, pointerId: 1 });
+        await pointer('pointermove', 60);
         expect(orderOf(wrapper)).toEqual(['k-1', 'k-2', 'k-3']);
 
-        await handle.trigger('pointermove', { clientY: 80, pointerId: 1 });
+        await pointer('pointermove', 80);
         expect(orderOf(wrapper)).toEqual(['k-2', 'k-1', 'k-3']);
 
-        await handle.trigger('pointermove', { clientY: 130, pointerId: 1 });
-        await handle.trigger('pointerup', { clientY: 130, pointerId: 1 });
+        await pointer('pointermove', 130);
+        await pointer('pointerup', 130);
 
         expect(orderOf(wrapper)).toEqual(['k-2', 'k-3', 'k-1']);
+        expect(wrapper.find('[data-ranked="k-1"]').classes()).not.toContain('shadow-lg');
         expect(wrapper.find('[role="status"]').text()).toBe('«Rol», puesto 3 de 3.');
+
+        // Once released, moving the pointer reorders nothing
+        await pointer('pointermove', 10);
+        expect(orderOf(wrapper)).toEqual(['k-2', 'k-3', 'k-1']);
     });
 });
