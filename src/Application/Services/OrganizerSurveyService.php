@@ -60,10 +60,11 @@ final readonly class OrganizerSurveyService
     ) {}
 
     /**
-     * The subject's end survey, prepared ahead from the template chosen for it (else its type's):
-     * it waits for the end and then goes out by itself or is offered, as the type says until the
-     * organizer changes it. On a subject that already ended it is ready to send. Preparing again
-     * gives the same survey, taken back if it had been dismissed without opening.
+     * The subject's end survey, prepared ahead from the template chosen for it (else its game
+     * system's, else its type's): it waits for the end and then goes out by itself or is
+     * offered, as the type says until the organizer changes it. On a subject that already ended
+     * it is ready to send. Preparing again gives the same survey, taken back if it had been
+     * dismissed without opening.
      *
      * @throws AuthorizationException
      * @throws SubjectNotFoundException
@@ -92,7 +93,7 @@ final readonly class OrganizerSurveyService
             return $existing;
         }
 
-        $template = $this->endTemplates->templateFor($sourceType, $subjectId);
+        $template = $this->endTemplates->templateFor($sourceType, $subjectId, $subject);
         if (! $template instanceof SurveyTemplate) {
             throw new SurveyPreparationUnavailableException('no_template');
         }
@@ -251,7 +252,7 @@ final readonly class OrganizerSurveyService
             return false;
         }
 
-        if (! $this->endTemplates->templateFor($subject->sourceType, $subject->subjectId) instanceof SurveyTemplate) {
+        if (! $this->endTemplates->templateFor($subject->sourceType, $subject->subjectId, $subject) instanceof SurveyTemplate) {
             return false;
         }
 

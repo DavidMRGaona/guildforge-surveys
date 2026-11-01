@@ -38,7 +38,8 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * The survey that goes out when a subject ends, chosen in the subject's own form (core field):
- * its type's template (nothing stored), another template or none (a row per subject), a survey
+ * its default template (nothing stored: its game system's, else its type's, decided when it is
+ * needed), another template or none (a row per subject), a survey
  * of its own (the subject's end survey itself, prepared from a template or promoted from one of
  * its drafts). It can change until the subject ends; a prepared survey that is replaced is
  * dropped when untouched and kept as a draft of the subject when edited, so nothing is lost.
@@ -80,7 +81,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
         $names = $this->templates->formNames();
         if ($subjectId === null) {
             // Nothing to ask canManage() about yet: saving checks it with the new id
-            return $names === [] ? null : $this->offer($sourceType, $names, null, [], self::TYPE_DEFAULT, withOwn: true);
+            return $names === [] ? null : $this->offer($sourceType, null, $names, null, [], self::TYPE_DEFAULT, withOwn: true);
         }
 
         if (! $this->may($userId, $source, $subjectId)) {
@@ -95,10 +96,10 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             return null;
         }
 
-        $current = $this->selected($sourceType, $endSurvey, $this->choices->find($sourceType, $subjectId), $names);
+        $current = $this->selected($sourceType, $subject, $endSurvey, $this->choices->find($sourceType, $subjectId), $names);
         $offer = $subject instanceof SurveySubjectDTO
-            ? $this->offer($sourceType, $names, $this->inForce($endSurvey), $this->drafts($subject), $current, withOwn: true)
-            : $this->offer($sourceType, $names, $this->inForce($endSurvey), [], $current, withOwn: false);
+            ? $this->offer($sourceType, $subject, $names, $this->inForce($endSurvey), $this->drafts($subject), $current, withOwn: true)
+            : $this->offer($sourceType, null, $names, $this->inForce($endSurvey), [], $current, withOwn: false);
         $lockedReason = $this->lockedReason($subject, $endSurvey);
 
         return new EndSurveyChoiceDTO(
@@ -135,7 +136,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             }
 
             $names = $this->templates->formNames();
-            if ($selection->value !== self::OWN && $selection->value === $this->selected($sourceType, $endSurvey, $stored, $names)) {
+            if ($selection->value !== self::OWN && $selection->value === $this->selected($sourceType, $subject, $endSurvey, $stored, $names)) {
                 return EndSurveyChoiceOutcome::Unchanged;
             }
 
@@ -153,14 +154,14 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
         if ($value === self::TYPE_DEFAULT || $value === self::NONE || str_starts_with($value, 'template:')) {
             $template = str_starts_with($value, 'template:') ? $this->knownTemplateId($value, $names) : null;
             $released = $this->stepDown($endSurvey);
-            $typeTemplate = $this->endTemplates->typeTemplate($sourceType);
+            $default = $this->endTemplates->defaultTemplate($sourceType, $subject);
 
             if ($value === self::NONE) {
                 $this->choices->save(SubjectEndChoice::none($sourceType, $subjectId), $userId);
-            } elseif ($template instanceof SurveyTemplateId && $template->value !== $typeTemplate?->id()->value) {
+            } elseif ($template instanceof SurveyTemplateId && $template->value !== $default?->id()->value) {
                 $this->choices->save(SubjectEndChoice::template($sourceType, $subjectId, $template), $userId);
             } else {
-                // The type's template needs no row, and follows the type if its setting changes
+                // The default needs no row, and follows the settings and the game system if they change
                 $this->choices->forget($sourceType, $subjectId);
             }
 
@@ -176,7 +177,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             $released = $this->stepDown($endSurvey);
             if (! $subject instanceof SurveySubjectDTO) {
                 // Nothing to prepare a survey about yet: its template goes out on the end instead
-                if ($base->id()->value === $this->endTemplates->typeTemplate($sourceType)?->id()->value) {
+                if ($base->id()->value === $this->endTemplates->defaultTemplate($sourceType, null)?->id()->value) {
                     $this->choices->forget($sourceType, $subjectId);
                 } else {
                     $this->choices->save(SubjectEndChoice::template($sourceType, $subjectId, $base->id()), $userId);
@@ -241,28 +242,27 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
      * @param  array<string, string>  $names
      * @param  list<Survey>  $drafts
      */
-    private function offer(string $sourceType, array $names, ?Survey $inForce, array $drafts, string $selected, bool $withOwn): EndSurveyChoiceDTO
+    private function offer(string $sourceType, ?SurveySubjectDTO $subject, array $names, ?Survey $inForce, array $drafts, string $selected, bool $withOwn): EndSurveyChoiceDTO
     {
+        $systemTemplate = $this->endTemplates->gameSystemTemplate($sourceType, $subject);
         $typeTemplate = $this->endTemplates->typeTemplate($sourceType);
-        $typeTemplateId = $typeTemplate?->id()->value;
+        $defaultId = ($systemTemplate ?? $typeTemplate)?->id()->value;
 
         $options = [];
         if ($inForce instanceof Survey) {
             $options[] = new EndSurveyOptionDTO('survey:'.$inForce->id()->value, (string) __('surveys::messages.end_choice.survey', ['title' => $inForce->title()]));
         }
 
-        $options[] = new EndSurveyOptionDTO(self::TYPE_DEFAULT, $typeTemplate instanceof SurveyTemplate
-            ? (string) __('surveys::messages.end_choice.type_default', ['name' => $typeTemplate->name()])
-            : (string) __('surveys::messages.end_choice.type_default_none'));
+        $options[] = new EndSurveyOptionDTO(self::TYPE_DEFAULT, $this->defaultLabel($sourceType, $subject, $systemTemplate, $typeTemplate));
 
         $baseTemplates = [];
         foreach ($names as $id => $name) {
-            if ($id !== $typeTemplateId) {
+            if ($id !== $defaultId) {
                 $options[] = new EndSurveyOptionDTO('template:'.$id, $name, (string) __('surveys::messages.end_choice.templates'));
             }
 
             $base = new EndSurveyOptionDTO('template:'.$id, $name);
-            $id === $typeTemplateId ? array_unshift($baseTemplates, $base) : $baseTemplates[] = $base;
+            $id === $defaultId ? array_unshift($baseTemplates, $base) : $baseTemplates[] = $base;
         }
 
         if ($withOwn && $names !== []) {
@@ -284,12 +284,29 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
     }
 
     /**
+     * What the default option says it is: its game system's template when it has one, else its
+     * type's. Without the subject (being created, or not offered yet) its game system is not
+     * known, so with templates per game system it says they decide.
+     */
+    private function defaultLabel(string $sourceType, ?SurveySubjectDTO $subject, ?SurveyTemplate $systemTemplate, ?SurveyTemplate $typeTemplate): string
+    {
+        return (string) match (true) {
+            $systemTemplate instanceof SurveyTemplate => __('surveys::messages.end_choice.game_system_default', ['name' => $systemTemplate->name()]),
+            ! $subject instanceof SurveySubjectDTO && $this->endTemplates->hasGameSystemTemplates($sourceType) => $typeTemplate instanceof SurveyTemplate
+                ? __('surveys::messages.end_choice.by_game_system', ['name' => $typeTemplate->name()])
+                : __('surveys::messages.end_choice.by_game_system_none'),
+            $typeTemplate instanceof SurveyTemplate => __('surveys::messages.end_choice.type_default', ['name' => $typeTemplate->name()]),
+            default => __('surveys::messages.end_choice.type_default_none'),
+        };
+    }
+
+    /**
      * The value in force: the subject's end survey when it has one, none when it was dismissed or
-     * chosen, a template chosen for it (while it exists), else its type's.
+     * chosen, a template chosen for it (while it exists), else its default.
      *
      * @param  array<string, string>  $names
      */
-    private function selected(string $sourceType, ?Survey $endSurvey, ?SubjectEndChoice $stored, array $names): string
+    private function selected(string $sourceType, ?SurveySubjectDTO $subject, ?Survey $endSurvey, ?SubjectEndChoice $stored, array $names): string
     {
         if ($endSurvey instanceof Survey) {
             return $this->inForce($endSurvey) instanceof Survey ? 'survey:'.$endSurvey->id()->value : self::NONE;
@@ -300,9 +317,9 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
         }
 
         $chosen = $stored?->templateId?->value;
-        $typeTemplateId = $this->endTemplates->typeTemplate($sourceType)?->id()->value;
+        $defaultId = $this->endTemplates->defaultTemplate($sourceType, $subject)?->id()->value;
 
-        return $chosen !== null && $chosen !== $typeTemplateId && array_key_exists($chosen, $names)
+        return $chosen !== null && $chosen !== $defaultId && array_key_exists($chosen, $names)
             ? 'template:'.$chosen
             : self::TYPE_DEFAULT;
     }

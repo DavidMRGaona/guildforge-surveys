@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Modules\Surveys\Tests\Feature\Filament;
 
 use App\Application\Services\SettingsServiceInterface;
+use App\Application\Surveys\DTOs\SurveySubjectAttributeValueDTO;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Infrastructure\Persistence\Eloquent\Models\PermissionModel;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Livewire\Livewire;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
@@ -33,6 +36,8 @@ final class SurveySettingsPageTest extends ModuleTestCase
 
     private const string MANAGE = 'surveys:surveys.manage';
 
+    private const string RULES = 'subject_types.'.ExampleThingSource::TYPE.'.game_system_templates';
+
     protected ?string $moduleName = 'surveys';
 
     protected bool $autoEnableModule = true;
@@ -41,7 +46,15 @@ final class SurveySettingsPageTest extends ModuleTestCase
     {
         parent::setUp();
 
+        ExampleThingSource::reset();
         $this->registerOnAdminPanel([], [SurveySettingsPage::class]);
+    }
+
+    protected function tearDown(): void
+    {
+        ExampleThingSource::reset();
+
+        parent::tearDown();
     }
 
     public function test_the_provider_registers_the_page(): void
@@ -176,9 +189,110 @@ final class SurveySettingsPageTest extends ModuleTestCase
         ]);
     }
 
+    public function test_each_game_system_the_source_lists_can_have_its_template(): void
+    {
+        $this->listGameSystems();
+        $template = $this->template();
+        $this->actingAs($this->userWith([self::MANAGE]));
+        $undoRepeaterFake = Repeater::fake();
+
+        Livewire::test(SurveySettingsPage::class)
+            ->assertFormFieldVisible(self::RULES)
+            ->assertSee('Plantilla por sistema de juego')
+            ->fillForm([self::RULES => [
+                ['game_system' => 'system-2', 'template_id' => $template->id()->value],
+            ]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $undoRepeaterFake();
+        $this->assertSame(
+            ['system-2' => $template->id()->value],
+            app(SurveySettingsInterface::class)->forSubjectType(ExampleThingSource::TYPE)->gameSystemTemplates,
+        );
+    }
+
+    public function test_a_game_system_cannot_have_two_templates(): void
+    {
+        $this->listGameSystems();
+        $template = $this->template();
+        $this->actingAs($this->userWith([self::MANAGE]));
+        $undoRepeaterFake = Repeater::fake();
+
+        Livewire::test(SurveySettingsPage::class)
+            ->fillForm([self::RULES => [
+                ['game_system' => 'system-1', 'template_id' => $template->id()->value],
+                ['game_system' => 'system-1', 'template_id' => $template->id()->value],
+            ]])
+            ->call('save')
+            ->assertHasFormErrors([self::RULES.'.1.game_system']);
+
+        $undoRepeaterFake();
+        $this->assertSame([], app(SurveySettingsInterface::class)->forSubjectType(ExampleThingSource::TYPE)->gameSystemTemplates);
+    }
+
+    public function test_a_source_that_lists_no_game_systems_shows_no_rules(): void
+    {
+        $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
+        $this->actingAs($this->userWith([self::MANAGE]));
+
+        Livewire::test(SurveySettingsPage::class)->assertFormFieldHidden(self::RULES);
+    }
+
+    public function test_saved_rules_load_and_survive_a_save_even_for_a_game_system_gone_since(): void
+    {
+        $this->listGameSystems();
+        $template = $this->template();
+        $rules = [
+            ['game_system' => 'system-1', 'template_id' => $template->id()->value],
+            ['game_system' => 'system-gone', 'template_id' => $template->id()->value],
+        ];
+        app(SettingsServiceInterface::class)->set(
+            'module_settings:surveys',
+            json_encode(['subject_types' => [ExampleThingSource::TYPE => ['game_system_templates' => $rules]]], JSON_THROW_ON_ERROR),
+        );
+        // What the module loads into its config when it boots
+        config()->set('modules.settings.surveys.subject_types', [ExampleThingSource::TYPE => ['game_system_templates' => $rules]]);
+        $this->actingAs($this->userWith([self::MANAGE]));
+        $undoRepeaterFake = Repeater::fake();
+
+        Livewire::test(SurveySettingsPage::class)
+            ->assertFormFieldExists(self::RULES, static fn (Repeater $rules): bool => self::gameSystemField($rules, 1)->getOptions() === [
+                'system-1' => 'Juego de ejemplo',
+                'system-2' => 'Otro juego de ejemplo',
+                'system-gone' => 'Un sistema de juego que ya no existe',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $undoRepeaterFake();
+
+        $this->assertSame(
+            ['system-1' => $template->id()->value, 'system-gone' => $template->id()->value],
+            app(SurveySettingsInterface::class)->forSubjectType(ExampleThingSource::TYPE)->gameSystemTemplates,
+        );
+    }
+
     public function test_the_core_module_settings_page_has_nothing_to_show(): void
     {
         $this->assertSame([], (new SurveysServiceProvider(app()))->getSettingsSchema());
+    }
+
+    private static function gameSystemField(Repeater $rules, int $item): Select
+    {
+        $field = array_values($rules->getItems())[$item]->getFlatFields()['game_system'] ?? null;
+        self::assertInstanceOf(Select::class, $field);
+
+        return $field;
+    }
+
+    private function listGameSystems(): void
+    {
+        ExampleThingSource::$gameSystems = [
+            new SurveySubjectAttributeValueDTO('system-1', 'Juego de ejemplo'),
+            new SurveySubjectAttributeValueDTO('system-2', 'Otro juego de ejemplo'),
+        ];
+        $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
     }
 
     private function template(): SurveyTemplate

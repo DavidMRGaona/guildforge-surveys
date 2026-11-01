@@ -116,4 +116,44 @@ final class SettingsTest extends ModuleTestCase
         $this->assertSame(12, $type->sendDelayHours);
         $this->assertSame(7, $type->closeDays);
     }
+
+    public function test_subject_type_settings_have_no_game_system_templates_by_default(): void
+    {
+        $type = (new SurveySettings)->forSubjectType('example-thing');
+
+        $this->assertSame([], $type->gameSystemTemplates);
+        $this->assertNull($type->gameSystemTemplateId('system-1'));
+        $this->assertNull($type->gameSystemTemplateId(null));
+    }
+
+    public function test_subject_type_settings_read_the_template_of_each_game_system(): void
+    {
+        config()->set('modules.settings.surveys.subject_types.example-thing', [
+            'game_system_templates' => [
+                ['game_system' => 'system-1', 'template_id' => 'template-1'],
+                ['game_system' => 'system-2', 'template_id' => 'template-2'],
+            ],
+        ]);
+
+        $type = (new SurveySettings)->forSubjectType('example-thing');
+
+        $this->assertSame(['system-1' => 'template-1', 'system-2' => 'template-2'], $type->gameSystemTemplates);
+        $this->assertSame('template-2', $type->gameSystemTemplateId('system-2'));
+        $this->assertNull($type->gameSystemTemplateId('system-3'));
+    }
+
+    public function test_broken_game_system_templates_are_left_out_and_the_first_one_wins(): void
+    {
+        config()->set('modules.settings.surveys.subject_types.example-thing', [
+            'game_system_templates' => [
+                ['game_system' => 'system-1', 'template_id' => 'template-1'],
+                ['game_system' => 'system-1', 'template_id' => 'template-2'],
+                ['game_system' => '', 'template_id' => 'template-3'],
+                ['game_system' => 'system-4', 'template_id' => null],
+                'not-a-row',
+            ],
+        ]);
+
+        $this->assertSame(['system-1' => 'template-1'], (new SurveySettings)->forSubjectType('example-thing')->gameSystemTemplates);
+    }
 }
