@@ -48,6 +48,7 @@ function question(overrides: Partial<OrganizerQuestionResult> = {}): OrganizerQu
         type: 'single_choice',
         answered: 4,
         belowMinimum: false,
+        reached: null,
         buckets: [
             { key: 'si', label: 'Sí', count: 3, voters: [] },
             { key: '__other__', label: null, count: 1, voters: [] },

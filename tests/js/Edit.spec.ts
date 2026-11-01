@@ -110,12 +110,18 @@ function jumping(firstQuestion: Partial<SurveyQuestion> = {}): SurveyDefinition 
     };
 }
 
-function select(wrapper: VueWrapper, id: string): VueWrapper | undefined {
+function select(
+    wrapper: VueWrapper,
+    id: string
+): VueWrapper<InstanceType<typeof FormSelect>> | undefined {
     return wrapper.findAllComponents(FormSelect).find((field) => field.props('id') === id);
 }
 
 function sentDefinition(): SurveyDefinition {
-    const data = vi.mocked(router.put).mock.calls[0]?.[1] as { definition: SurveyDefinition };
+    // The payload the page sent, read back as the page builds it
+    const data = vi.mocked(router.put).mock.calls[0]?.[1] as unknown as {
+        definition: SurveyDefinition;
+    };
 
     return data.definition;
 }
