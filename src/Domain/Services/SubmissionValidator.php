@@ -68,6 +68,7 @@ final class SubmissionValidator
             QuestionType::Date => $this->isDate($values[0]->text) ? null : 'invalid_date',
             QuestionType::Time => preg_match(self::TIME_PATTERN, $values[0]->text ?? '') === 1 ? null : 'invalid_time',
             QuestionType::Grid => $this->checkGrid($question, $values),
+            QuestionType::Ranking => $this->checkRanking($question, $values),
         };
     }
 
@@ -137,6 +138,28 @@ final class SubmissionValidator
         }
 
         return $question->required && count($answeredRows) < count($rowIds) ? 'grid_incomplete' : null;
+    }
+
+    /**
+     * A ranking places every option once: half an order says nothing about the rest.
+     *
+     * @param  list<AnswerValue>  $values
+     */
+    private function checkRanking(Question $question, array $values): ?string
+    {
+        $optionIds = $this->ids($question->options);
+        $seen = [];
+        foreach ($values as $value) {
+            if (! in_array($value->optionId, $optionIds, true)) {
+                return 'invalid_option';
+            }
+            if (isset($seen[$value->optionId])) {
+                return 'duplicate_option';
+            }
+            $seen[$value->optionId] = true;
+        }
+
+        return count($seen) < count($optionIds) ? 'ranking_incomplete' : null;
     }
 
     private function isDate(?string $text): bool

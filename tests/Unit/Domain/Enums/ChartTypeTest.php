@@ -22,6 +22,7 @@ final class ChartTypeTest extends TestCase
         $this->assertSame([ChartType::List], QuestionType::Paragraph->chartTypes());
         $this->assertSame([ChartType::Bar], QuestionType::StarRating->chartTypes());
         $this->assertSame([ChartType::Bar], QuestionType::Time->chartTypes());
+        $this->assertSame([ChartType::Bar, ChartType::StackedBar], QuestionType::Ranking->chartTypes());
 
         foreach (QuestionType::cases() as $type) {
             $this->assertSame($type->chartTypes()[0], $type->defaultChartType());

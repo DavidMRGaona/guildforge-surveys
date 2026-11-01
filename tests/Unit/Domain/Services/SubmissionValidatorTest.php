@@ -26,6 +26,10 @@ final class SubmissionValidatorTest extends TestCase
         $this->assertContainsEquals(new AnswerValue('q-scale', number: 4), $submission->values);
         $this->assertContainsEquals(new AnswerValue('q-time', text: '18:30'), $submission->values);
         $this->assertContainsEquals(new AnswerValue('q-grid', optionId: 'c-2', rowId: 'r-1'), $submission->values);
+        $this->assertSame(
+            [['k-3', 1], ['k-1', 2], ['k-2', 3]],
+            array_map(static fn (AnswerValue $value): array => [$value->optionId, $value->number], $submission->valuesFor('q-rank')),
+        );
     }
 
     public function test_answers_to_unknown_questions_are_dropped(): void
@@ -93,6 +97,11 @@ final class SubmissionValidatorTest extends TestCase
         yield 'impossible time' => [['q-time' => '25:00'], 'q-time', 'invalid_time'];
         yield 'grid row missing' => [['q-grid' => ['r-1' => 'c-1']], 'q-grid', 'grid_incomplete'];
         yield 'grid unknown column' => [['q-grid' => ['r-1' => 'c-9', 'r-2' => 'c-1']], 'q-grid', 'invalid_option'];
+        yield 'ranking missing an option' => [['q-rank' => ['k-1', 'k-2']], 'q-rank', 'ranking_incomplete'];
+        yield 'ranking a lone option id' => [['q-rank' => 'k-1'], 'q-rank', 'ranking_incomplete'];
+        yield 'ranking an unknown option' => [['q-rank' => ['k-1', 'k-2', 'k-9']], 'q-rank', 'invalid_option'];
+        yield 'ranking an option twice' => [['q-rank' => ['k-1', 'k-1', 'k-2']], 'q-rank', 'duplicate_option'];
+        yield 'ranking other' => [['q-rank' => ['k-1', 'k-2', 'k-3', SubmissionValidator::OTHER]], 'q-rank', 'invalid_option'];
         yield 'short text too long' => [['q-short' => str_repeat('a', 501)], 'q-short', 'too_long'];
         yield 'paragraph too long' => [['q-paragraph' => str_repeat('a', 5001)], 'q-paragraph', 'too_long'];
     }
@@ -106,6 +115,24 @@ final class SubmissionValidatorTest extends TestCase
         unset($input['q-paragraph']);
 
         $this->assertSame([], (new SubmissionValidator)->validate($definition, Submission::fromInput($definition, $input)));
+    }
+
+    public function test_an_optional_ranking_may_stay_empty_but_not_half_done(): void
+    {
+        $data = SurveyDefinitionTest::everyTypeDefinition();
+        $data['sections'][1]['questions'][5]['required'] = false;
+        $definition = SurveyDefinition::fromArray($data);
+        $input = $this->validInput();
+        $validator = new SubmissionValidator;
+
+        unset($input['q-rank']);
+        $this->assertSame([], $validator->validate($definition, Submission::fromInput($definition, $input)));
+
+        $input['q-rank'] = [];
+        $this->assertSame([], $validator->validate($definition, Submission::fromInput($definition, $input)));
+
+        $input['q-rank'] = ['k-2'];
+        $this->assertSame(['q-rank' => 'ranking_incomplete'], $validator->validate($definition, Submission::fromInput($definition, $input)));
     }
 
     private function definition(): SurveyDefinition
@@ -129,6 +156,7 @@ final class SubmissionValidatorTest extends TestCase
             'q-date' => '2026-11-07',
             'q-time' => '18:30:00',
             'q-grid' => ['r-1' => 'c-2', 'r-2' => 'c-1'],
+            'q-rank' => ['k-3', 'k-1', 'k-2'],
         ];
     }
 }

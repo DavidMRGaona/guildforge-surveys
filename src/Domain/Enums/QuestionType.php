@@ -16,11 +16,20 @@ enum QuestionType: string
     case Date = 'date';
     case Time = 'time';
     case Grid = 'grid';
+    case Ranking = 'ranking';
 
     /**
-     * Whether the question offers a list of options to pick from.
+     * Whether the question has a list of options: to pick from, or to put in order.
      */
     public function hasOptions(): bool
+    {
+        return $this->isChoice() || $this === self::Ranking;
+    }
+
+    /**
+     * Whether the answer picks one or more of the options.
+     */
+    public function isChoice(): bool
     {
         return in_array($this, [self::SingleChoice, self::MultipleChoice, self::Dropdown], true);
     }
@@ -30,7 +39,7 @@ enum QuestionType: string
      */
     public function allowsOther(): bool
     {
-        return $this->hasOptions();
+        return $this->isChoice();
     }
 
     /**
@@ -57,6 +66,8 @@ enum QuestionType: string
         return match ($this) {
             self::SingleChoice, self::Dropdown => [ChartType::Bar, ChartType::Pie],
             self::Grid => [ChartType::StackedBar],
+            // Points per option, or how often each place went to each option
+            self::Ranking => [ChartType::Bar, ChartType::StackedBar],
             self::ShortText, self::Paragraph => [ChartType::List],
             default => [ChartType::Bar],
         };

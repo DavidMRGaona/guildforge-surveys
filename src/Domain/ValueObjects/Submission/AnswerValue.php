@@ -6,8 +6,8 @@ namespace Modules\Surveys\Domain\ValueObjects\Submission;
 
 /**
  * One stored value of an answer. Checkboxes give one value per ticked option, a grid one
- * per row (rowId plus the chosen column as optionId), and "Other" a value without option
- * holding the typed text. Dates are "Y-m-d" and times "H:i", both in text.
+ * per row (rowId plus the chosen column as optionId), a ranking one per option (its place as
+ * number, 1 the first), and "Other" a value without option holding the typed text. Dates are "Y-m-d" and times "H:i", both in text.
  */
 final readonly class AnswerValue
 {

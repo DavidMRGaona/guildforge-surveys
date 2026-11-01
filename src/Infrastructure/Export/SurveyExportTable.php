@@ -60,10 +60,16 @@ final readonly class SurveyExportTable
         $headers = $survey->isAnonymous() ? [] : [__('surveys::messages.export.date'), __('surveys::messages.export.person')];
 
         foreach ($survey->definition()->questions() as $question) {
-            if ($question->type === QuestionType::Grid && $question->grid !== null) {
-                foreach ($question->grid->rows as $row) {
-                    $columns[] = [$question, $row];
-                    $headers[] = "{$question->title}: {$row->label}";
+            // A column per grid row, and per option of a ranking with its place
+            $parts = match ($question->type) {
+                QuestionType::Grid => $question->grid->rows ?? [],
+                QuestionType::Ranking => $question->options,
+                default => [],
+            };
+            if ($parts !== []) {
+                foreach ($parts as $part) {
+                    $columns[] = [$question, $part];
+                    $headers[] = "{$question->title}: {$part->label}";
                 }
 
                 continue;
@@ -143,11 +149,11 @@ final readonly class SurveyExportTable
                 $row[] = is_string($name) ? $name : null;
             }
 
-            foreach ($columns as [$question, $gridRow]) {
+            foreach ($columns as [$question, $part]) {
                 $row[] = match (true) {
                     in_array($question->id, $withheld, true) => null,
                     $reached !== null && ! in_array($question->id, $reached, true) => $notReached,
-                    default => $this->value($question, $gridRow, $answers[$responseId][$question->id] ?? []),
+                    default => $this->value($question, $part, $answers[$responseId][$question->id] ?? []),
                 };
             }
 
@@ -156,17 +162,28 @@ final readonly class SurveyExportTable
     }
 
     /**
+     * @param  ?Option  $part  the grid row, or the ranked option, of the column
      * @param  list<object>  $answers
      */
-    private function value(Question $question, ?Option $gridRow, array $answers): string|int|null
+    private function value(Question $question, ?Option $part, array $answers): string|int|null
     {
         if ($answers === []) {
             return null;
         }
 
-        if ($gridRow instanceof Option && $question->grid instanceof GridSettings) {
+        if ($part instanceof Option && $question->type === QuestionType::Ranking) {
             foreach ($answers as $answer) {
-                if (($answer->row_id ?? null) === $gridRow->id) {
+                if (($answer->option_id ?? null) === $part->id && is_numeric($answer->number_value ?? null)) {
+                    return (int) $answer->number_value;
+                }
+            }
+
+            return null;
+        }
+
+        if ($part instanceof Option && $question->grid instanceof GridSettings) {
+            foreach ($answers as $answer) {
+                if (($answer->row_id ?? null) === $part->id) {
                     return $this->label($question->grid->columns, self::string($answer->option_id ?? null));
                 }
             }
@@ -180,7 +197,7 @@ final readonly class SurveyExportTable
             return is_numeric($number) ? (int) $number : null;
         }
 
-        if ($question->type->hasOptions()) {
+        if ($question->type->isChoice()) {
             // In the order of the definition, "Other" last: never the random order of the answer ids
             $chosenIds = array_map(static fn (object $answer): ?string => is_string($answer->option_id ?? null) ? $answer->option_id : null, $answers);
             $labels = [];

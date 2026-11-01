@@ -77,6 +77,43 @@ final class ResultsServiceTest extends ModuleTestCase
         $this->assertSame(ChartType::List, $this->question($results, 'q-short')->chartType);
     }
 
+    public function test_a_ranking_scores_borda_points_mean_positions_and_how_often_each_place_went_to_each_option(): void
+    {
+        [$id] = $this->openForm(anonymous: false);
+        $this->answer($id, 0, ['q-rank' => ['k-1', 'k-2', 'k-3']]);
+        $this->answer($id, 1, ['q-rank' => ['k-2', 'k-1', 'k-3']]);
+        $this->answer($id, 2, ['q-rank' => ['k-2', 'k-3', 'k-1']]);
+
+        $rank = $this->question($this->results->forPanel($id), 'q-rank');
+
+        $this->assertSame(3, $rank->answered);
+        $this->assertSame(ChartType::Bar, $rank->chartType);
+        $this->assertNotNull($rank->ranking);
+        $this->assertSame(3, $rank->ranking->positions);
+        // Best first: most points, then the better mean position
+        $this->assertSame(
+            [
+                ['k-2', 'Wargames', 8, 1.33, [1 => 2, 2 => 1, 3 => 0]],
+                ['k-1', 'Rol', 6, 2.0, [1 => 1, 2 => 1, 3 => 1]],
+                ['k-3', 'Tablero', 4, 2.67, [1 => 0, 2 => 1, 3 => 2]],
+            ],
+            array_map(static fn ($option): array => [$option->optionId, $option->label, $option->points, $option->meanPosition, $option->positions], $rank->ranking->options),
+        );
+        $this->assertSame([], $rank->buckets);
+    }
+
+    public function test_options_of_a_ranking_with_the_same_points_keep_the_better_mean_position_first_and_then_their_order(): void
+    {
+        [$id] = $this->openForm(anonymous: false);
+        // k-1: 3 + 1 = 4, mean 2; k-2: 2 + 2 = 4, mean 2; k-3: 1 + 3 = 4, mean 2: a full tie
+        $this->answer($id, 0, ['q-rank' => ['k-1', 'k-2', 'k-3']]);
+        $this->answer($id, 1, ['q-rank' => ['k-3', 'k-2', 'k-1']]);
+
+        $rank = $this->question($this->results->forPanel($id), 'q-rank');
+
+        $this->assertSame(['k-1', 'k-2', 'k-3'], array_map(static fn ($option): string => $option->optionId, $rank->ranking->options ?? []));
+    }
+
     public function test_an_anonymous_survey_shows_nothing_until_it_ends_with_enough_responses(): void
     {
         [$id] = $this->openForm(anonymous: true);

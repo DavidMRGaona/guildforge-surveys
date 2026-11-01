@@ -55,7 +55,7 @@ final class SurveyDefinitionTest extends TestCase
 
         $ids = array_map(static fn ($question): string => $question->id, $definition->questions());
 
-        $this->assertSame(['q-short', 'q-paragraph', 'q-single', 'q-multiple', 'q-dropdown', 'q-scale', 'q-stars', 'q-date', 'q-time', 'q-grid'], $ids);
+        $this->assertSame(['q-short', 'q-paragraph', 'q-single', 'q-multiple', 'q-dropdown', 'q-scale', 'q-stars', 'q-date', 'q-time', 'q-grid', 'q-rank'], $ids);
         $this->assertSame(QuestionType::Grid, $definition->question('q-grid')?->type);
         $this->assertNull($definition->question('missing'));
     }
@@ -199,6 +199,7 @@ final class SurveyDefinitionTest extends TestCase
                             'rows' => [['id' => 'r-1', 'label' => 'Ambiente'], ['id' => 'r-2', 'label' => 'Ritmo']],
                             'columns' => [['id' => 'c-1', 'label' => 'Mal'], ['id' => 'c-2', 'label' => 'Bien']],
                         ]),
+                        self::question('q-rank', 'ranking', key: 'favourite_games', options: [['id' => 'k-1', 'label' => 'Rol'], ['id' => 'k-2', 'label' => 'Wargames'], ['id' => 'k-3', 'label' => 'Tablero']]),
                     ],
                 ],
             ],

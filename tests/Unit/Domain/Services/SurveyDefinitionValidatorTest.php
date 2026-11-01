@@ -68,6 +68,10 @@ final class SurveyDefinitionValidatorTest extends TestCase
         yield 'grid missing' => [static fn (array $d): array => self::set($d, [1, 4, 'grid'], null), $q(1, 4).'.grid', 'grid_required'];
         yield 'grid without rows' => [static fn (array $d): array => self::set($d, [1, 4, 'grid'], ['rows' => [], 'columns' => [['id' => 'c-1', 'label' => 'Mal'], ['id' => 'c-2', 'label' => 'Bien']]]), $q(1, 4).'.grid.rows', 'too_few_rows'];
         yield 'grid with one column' => [static fn (array $d): array => self::set($d, [1, 4, 'grid'], ['rows' => [['id' => 'r-1', 'label' => 'Ambiente']], 'columns' => [['id' => 'c-1', 'label' => 'Mal']]]), $q(1, 4).'.grid.columns', 'too_few_columns'];
+        yield 'ranking with one option' => [static fn (array $d): array => self::set($d, [1, 5, 'options'], [['id' => 'k-1', 'label' => 'Rol']]), $q(1, 5).'.options', 'too_few_options'];
+        yield 'ranking with eleven options' => [static fn (array $d): array => self::set($d, [1, 5, 'options'], array_map(static fn (int $n): array => ['id' => "k-{$n}", 'label' => "Opción {$n}"], range(1, 11))), $q(1, 5).'.options', 'too_many_ranking_options'];
+        yield 'other on a ranking' => [static fn (array $d): array => self::set($d, [1, 5, 'allow_other'], true), $q(1, 5).'.allow_other', 'other_not_allowed'];
+        yield 'jumps on a ranking' => [static fn (array $d): array => self::set($d, [1, 5, 'next_by_option'], [['option_id' => 'k-1', 'next' => Section::SUBMIT]]), $q(1, 5).'.next_by_option', 'branching_not_allowed'];
     }
 
     public function test_jumps_forward_to_sections_or_the_end_are_valid(): void
@@ -115,6 +119,13 @@ final class SurveyDefinitionValidatorTest extends TestCase
         yield 'section named like the end' => [static fn (array $d): array => self::setSection($d, 2, 'id', Section::SUBMIT), 'sections.2.id', 'reserved_id'];
     }
 
+    public function test_a_ranking_offers_up_to_ten_options(): void
+    {
+        $ten = array_map(static fn (int $n): array => ['id' => "k-{$n}", 'label' => "Opción {$n}"], range(1, 10));
+
+        $this->assertSame([], $this->validator->validate(SurveyDefinition::fromArray(self::set($this->data(), [1, 5, 'options'], $ten)), SurveyKind::Form));
+    }
+
     public function test_a_poll_cannot_jump(): void
     {
         $data = SurveyDefinitionTest::branchingDefinition();
@@ -141,6 +152,7 @@ final class SurveyDefinitionValidatorTest extends TestCase
         $this->assertSame([], $this->validator->validate($poll, SurveyKind::Poll));
         $this->assertSame([], $this->validator->validate($this->poll('multiple_choice'), SurveyKind::Poll));
         $this->assertContainsEquals(new DefinitionViolation('sections.0.questions.0.type', 'poll_type'), $this->validator->validate($this->poll('dropdown'), SurveyKind::Poll));
+        $this->assertContainsEquals(new DefinitionViolation('sections.0.questions.0.type', 'poll_type'), $this->validator->validate($this->poll('ranking'), SurveyKind::Poll));
         $this->assertContainsEquals(new DefinitionViolation('sections.0.questions.0.allow_other', 'other_not_allowed'), $this->validator->validate($this->poll('single_choice', allowOther: true), SurveyKind::Poll));
         $this->assertContainsEquals(new DefinitionViolation('sections', 'poll_single_question'), $this->validator->validate($this->definition(), SurveyKind::Poll));
     }

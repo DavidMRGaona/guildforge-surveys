@@ -34,6 +34,9 @@ final class SurveyDefinitionValidator
 
     private const int STARS_TO = 10;
 
+    /** More options than this are hard to put in order, above all on a phone. */
+    public const int RANKING_OPTIONS_MAX = 10;
+
     /**
      * @return list<DefinitionViolation>
      */
@@ -156,6 +159,9 @@ final class SurveyDefinitionValidator
         if ($type->hasOptions()) {
             if (count($question->options) < 2) {
                 $violations[] = new DefinitionViolation("{$path}.options", 'too_few_options');
+            }
+            if ($type === QuestionType::Ranking && count($question->options) > self::RANKING_OPTIONS_MAX) {
+                $violations[] = new DefinitionViolation("{$path}.options", 'too_many_ranking_options');
             }
             array_push($violations, ...$this->checkOptions($question->options, "{$path}.options"));
         } elseif ($question->options !== []) {

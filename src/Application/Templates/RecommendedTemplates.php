@@ -60,6 +60,7 @@ final class RecommendedTemplates
                 $this->section('campaign', 'next', [
                     $this->choice('campaign', 'sequel', QuestionType::SingleChoice, 'shared.repeat'),
                     $this->choice('campaign', 'next_tone', QuestionType::MultipleChoice, allowOther: true),
+                    $this->choice('campaign', 'next_focus', QuestionType::Ranking),
                     $this->text('campaign', 'next_system', QuestionType::ShortText),
                     $this->text('campaign', 'comments', QuestionType::Paragraph),
                 ]),

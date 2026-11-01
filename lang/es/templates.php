@@ -110,6 +110,17 @@ return [
                     'adventure' => 'Aventura y exploración',
                 ],
             ],
+            'next_focus' => [
+                'title' => 'Ordena lo que más te apetece en la siguiente',
+                'help' => 'Lo primero es lo que más te apetece.',
+                'options' => [
+                    'story' => 'Historia y trama',
+                    'roleplay' => 'Interpretar a los personajes',
+                    'combat' => 'Combate',
+                    'exploration' => 'Exploración',
+                    'intrigue' => 'Intriga y misterio',
+                ],
+            ],
             'next_system' => ['title' => '¿Qué sistema te gustaría jugar?'],
         ],
     ],
