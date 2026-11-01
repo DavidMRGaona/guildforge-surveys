@@ -185,7 +185,7 @@ function save(): void {
             </p>
 
             <div
-                class="flex flex-col gap-3 border-t border-default pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6"
+                class="flex flex-col max-sm:gap-3 border-t border-default pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2"
             >
                 <fieldset
                     v-if="question.chartTypes.length > 1"
@@ -205,7 +205,7 @@ function save(): void {
                                 class="peer sr-only"
                             />
                             <span
-                                class="inline-flex min-h-11 cursor-pointer items-center rounded-md px-3 text-sm font-medium text-base-secondary transition-colors peer-checked:bg-base-primary peer-checked:text-base-inverted peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-muted hover:text-base-primary peer-checked:hover:text-base-inverted sm:min-h-9"
+                                class="inline-flex min-h-11 cursor-pointer items-center rounded-md px-3 text-sm font-medium text-(--color-text-secondary) transition-colors peer-checked:bg-base-primary peer-checked:text-base-inverted peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-muted hover:text-base-primary peer-checked:hover:text-base-inverted sm:min-h-9"
                             >
                                 {{ t(`surveys.manage.chart_types.${type}`) }}
                             </span>
