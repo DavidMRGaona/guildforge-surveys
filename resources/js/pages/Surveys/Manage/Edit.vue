@@ -309,13 +309,13 @@ function submit(send: boolean): void {
             </section>
 
             <div
-                class="sticky bottom-0 z-10 -mx-4 flex gap-2 border-t border-default bg-surface px-4 py-3 sm:static sm:mx-0 sm:justify-end sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0"
+                class="flex gap-2 sm:justify-end sm:gap-3 max-sm:sticky max-sm:bottom-0 max-sm:z-10 max-sm:-mx-4 max-sm:border-t max-sm:border-(--color-border) max-sm:bg-surface max-sm:px-4 max-sm:py-3"
                 data-testid="editor-actions"
             >
                 <BaseButton
                     type="submit"
                     :variant="props.survey.sendable ? 'secondary' : 'primary'"
-                    class="flex-1 sm:flex-none"
+                    class="max-sm:flex-1"
                     :loading="saving === 'save'"
                     :disabled="saving !== null"
                 >
@@ -324,7 +324,7 @@ function submit(send: boolean): void {
                 <BaseButton
                     v-if="props.survey.sendable"
                     type="button"
-                    class="flex-1 sm:flex-none"
+                    class="max-sm:flex-1"
                     :loading="saving === 'send'"
                     :disabled="saving !== null"
                     @click="submit(true)"

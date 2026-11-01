@@ -350,8 +350,10 @@ describe('Edit', () => {
         const wrapper = mount(Edit, { props: props() });
 
         const actions = wrapper.get('[data-testid="editor-actions"]');
-        expect(actions.classes()).toContain('sticky');
-        expect(actions.classes()).toContain('sm:static');
+        // Phone-only classes: a base class with an sm: override could lose to the core's
+        // higher layer
+        expect(actions.classes()).toContain('max-sm:sticky');
+        expect(actions.classes()).not.toContain('sticky');
         expect(actions.text()).toContain('Guardar y enviar');
     });
 

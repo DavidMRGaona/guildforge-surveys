@@ -33,10 +33,12 @@ export const BADGE_CLASS = 'inline-block rounded-full px-2 py-0.5 text-xs font-m
 
 /**
  * A text field with the look of the core's form controls (FormSelect, FormNumberInput); a
- * field marked aria-invalid gets the error border.
+ * field marked aria-invalid gets the error border. The border colour is written as its
+ * variable: the core's own .border-default sits in a higher layer than this module's sheet
+ * and would beat the aria-invalid and focus borders.
  */
 export const FIELD_CLASS =
-    'block w-full rounded-lg border border-default bg-surface px-4 py-2.5 text-base-primary transition-colors hover:border-strong focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted aria-invalid:border-error aria-invalid:focus:ring-error';
+    'block w-full rounded-lg border border-(--color-border) bg-surface px-4 py-2.5 text-base-primary transition-colors hover:border-strong focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted aria-invalid:border-error aria-invalid:focus:ring-error';
 
 /** A square button with a symbol (move, remove): 44 px on phones, smaller with a pointer. */
 export const ICON_BUTTON_CLASS = `inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base-secondary transition-colors hover:bg-base-primary/10 hover:text-base-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent sm:h-9 sm:w-9 ${FOCUS_RING_CLASS}`;
