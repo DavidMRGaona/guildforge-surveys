@@ -215,6 +215,9 @@ function prepare(): void {
                 </p>
             </div>
             <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+                <Link :href="props.createUrls.availability" :class="SECONDARY_ACTION_CLASS">
+                    {{ t('surveys.manage.new_availability') }}
+                </Link>
                 <Link :href="props.createUrls.poll" :class="SECONDARY_ACTION_CLASS">
                     {{ t('surveys.manage.new_poll') }}
                 </Link>

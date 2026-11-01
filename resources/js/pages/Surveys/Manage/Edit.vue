@@ -42,16 +42,15 @@ const saving = ref<'save' | 'send' | null>(null);
 
 // A new survey is only saved on its first save, by a POST
 const creating = computed(() => props.survey.id === null);
-// A new poll is its question: its title follows the question instead of being asked twice
-const titleFollowsQuestion = computed(() => creating.value && props.survey.kind === 'poll');
+// A new poll or availability survey is its question: its title follows the question instead
+// of being asked twice
+const titleFollowsQuestion = computed(() => creating.value && props.survey.kind !== 'form');
 const heading = computed(() => {
     if (!creating.value) {
         return t('surveys.editor.heading');
     }
 
-    return props.survey.kind === 'poll'
-        ? t('surveys.editor.new_poll')
-        : t('surveys.editor.new_form');
+    return t(`surveys.editor.new_${props.survey.kind}`);
 });
 
 function surveyTitle(): string {
@@ -65,7 +64,8 @@ function surveyTitle(): string {
 const locks = computed<EditorLocks>(() => ({
     structure: props.locked || props.survey.pendingReview,
     help: props.survey.pendingReview,
-    poll: props.survey.kind === 'poll',
+    poll: props.survey.kind !== 'form',
+    availability: props.survey.kind === 'availability',
 }));
 const detailsLocked = computed(() => locks.value.structure);
 // An anonymous survey never becomes named, and a named one only changes before anyone answers

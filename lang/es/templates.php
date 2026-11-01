@@ -410,7 +410,7 @@ return [
 
     'availability' => [
         'name' => 'Disponibilidad de días y franjas',
-        'description' => 'Para cuadrar fechas. Mejor nominal: así sabes quién puede cada día. Para elegir entre fechas concretas, usa un sondeo rápido.',
+        'description' => 'Para saber qué días y franjas de la semana suelen ir bien. Mejor nominal: así sabes quién puede cada día. Para elegir entre fechas concretas, usa un sondeo de disponibilidad.',
         'sections' => ['main' => 'Tu disponibilidad'],
         'questions' => [
             'days' => [

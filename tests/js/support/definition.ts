@@ -22,6 +22,7 @@ function question(
         stars: null,
         grid: null,
         next_by_option: [],
+        slots: [],
         ...extra,
     };
 }

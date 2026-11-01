@@ -62,9 +62,9 @@ Route::prefix('encuestas')
         Route::post('sujeto/{type}/{subject}/encuesta-al-terminar', [OrganizerSurveyController::class, 'chooseEnd'])
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->middleware('throttle:10,1')->name('manage.end-choice');
         Route::get('sujeto/{type}/{subject}/nueva/{kind}', [OrganizerSurveyEditorController::class, 'create'])
-            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo')->name('manage.create');
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo|disponibilidad')->name('manage.create');
         Route::post('sujeto/{type}/{subject}/nueva/{kind}', [OrganizerSurveyEditorController::class, 'store'])
-            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo')
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo|disponibilidad')
             ->middleware('throttle:10,1')->name('manage.store');
         Route::post('sujeto/{type}/{subject}/copiar', [OrganizerSurveyCopyController::class, 'copy'])
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->middleware('throttle:10,1')->name('manage.copy');

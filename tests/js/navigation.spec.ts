@@ -38,6 +38,7 @@ function definition(name: string): SurveyDefinition {
                 stars: null,
                 grid: null,
                 next_by_option: [],
+                slots: [],
                 ...question,
             })),
         })),

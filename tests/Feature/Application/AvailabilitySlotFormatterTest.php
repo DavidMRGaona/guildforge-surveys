@@ -6,6 +6,8 @@ namespace Modules\Surveys\Tests\Feature\Application;
 
 use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Tests\Unit\Domain\Services\AvailabilityDefinitionTest;
 use Tests\Support\Modules\ModuleTestCase;
 
 /**
@@ -48,6 +50,46 @@ final class AvailabilitySlotFormatterTest extends ModuleTestCase
         $slot = new Slot('d-5', startsAt: '2026-12-11T23:30:00+00:00');
 
         $this->assertSame(['2026-12-12', '00:30'], [$this->formatter()->day($slot), $this->formatter()->start($slot)]);
+    }
+
+    public function test_what_cannot_be_read_is_kept_for_the_validator_to_point_at(): void
+    {
+        $formatter = $this->formatter();
+
+        $this->assertEquals(new Slot('d-1', date: '2026-02-30'), $formatter->fromWallTime('d-1', '2026-02-30', '17:00', null));
+        $this->assertEquals(new Slot('d-2', startsAt: '25:00'), $formatter->fromWallTime('d-2', '2026-12-11', '25:00', null));
+        $this->assertEquals(new Slot('d-3', startsAt: '2026-12-11T16:00:00+00:00', endsAt: '9'), $formatter->fromWallTime('d-3', '2026-12-11', '17:00', '9'));
+    }
+
+    public function test_the_browser_gets_each_slot_as_it_is_shown_and_the_editor_sends_it_as_typed(): void
+    {
+        $formatter = $this->formatter();
+        $definition = SurveyDefinition::fromArray(AvailabilityDefinitionTest::data());
+
+        $presented = $formatter->presentDefinition($definition);
+        $this->assertSame([
+            'id' => 'd-2',
+            'date' => null,
+            'starts_at' => '2026-12-11T16:00:00+00:00',
+            'ends_at' => '2026-12-11T20:00:00+00:00',
+            'day' => '2026-12-11',
+            'start' => '17:00',
+            'end' => '21:00',
+            'label' => 'viernes, 11 de diciembre de 2026, de 17:00 a 21:00',
+        ], $presented['sections'][0]['questions'][0]['slots'][1]);
+
+        $edited = $presented;
+        $edited['sections'][0]['questions'][0]['slots'] = [
+            ['id' => 'd-1', 'day' => '2026-12-05', 'start' => null, 'end' => null],
+            ['id' => 'd-2', 'day' => '2026-12-12', 'start' => '10:00', 'end' => ''],
+        ];
+
+        $this->assertEquals(
+            [new Slot('d-1', date: '2026-12-05'), new Slot('d-2', startsAt: '2026-12-12T09:00:00+00:00')],
+            SurveyDefinition::fromArray($formatter->readEditedDefinition($edited))->questions()[0]->slots,
+        );
+        // Slots already stored pass as they are, and so does a presented definition sent back whole
+        $this->assertEquals($definition, SurveyDefinition::fromArray($formatter->readEditedDefinition($presented)));
     }
 
     private function formatter(): AvailabilitySlotFormatter

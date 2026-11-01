@@ -67,7 +67,9 @@ final class OrganizerSurveyCopyController extends Controller
 
         $user = $request->user();
         abort_unless(
-            $user?->can('create', SurveyTemplateModel::class) === true && $this->gate->canManage((string) $user->getAuthIdentifier(), $found),
+            $user?->can('create', SurveyTemplateModel::class) === true
+                && $found->kind()->allowsTemplates()
+                && $this->gate->canManage((string) $user->getAuthIdentifier(), $found),
             403,
         );
 

@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FormCombobox, FormDatePicker, FormSelect, FormTimePicker } from '@/components/form';
 import { OTHER, type AnswerDraft, type SurveyQuestion } from '../types/Respond';
+import AvailabilityAnswer from './respond/AvailabilityAnswer.vue';
 import GridAnswer from './respond/GridAnswer.vue';
 import OptionCards from './respond/OptionCards.vue';
 import RankingAnswer from './respond/RankingAnswer.vue';
@@ -197,6 +198,14 @@ const textClass =
             :name="inputId"
             :rows="question.grid.rows"
             :columns="question.grid.columns"
+            :cells="draft.cells"
+            @choose="chooseCell"
+        />
+
+        <AvailabilityAnswer
+            v-else-if="question.type === 'availability'"
+            :name="inputId"
+            :slots="question.slots"
             :cells="draft.cells"
             @choose="chooseCell"
         />

@@ -30,7 +30,9 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Filament\Forms\DefinitionEditor;
 use Modules\Surveys\Filament\Resources\SurveyResource;
+use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Filament\Support\SurveyFormData;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
@@ -43,6 +45,7 @@ final class ListSurveys extends ListRecords
     {
         return [
             $this->quickPollAction(),
+            $this->quickAvailabilityAction(),
             CreateAction::make(),
         ];
     }
@@ -130,6 +133,100 @@ final class ListSurveys extends ListRecords
 
                 $this->redirect(SurveyResource::getUrl('edit', ['record' => SurveyModel::query()->findOrFail($survey->id()->value)]));
             });
+    }
+
+    /**
+     * Dates to choose from, as Doodle does: one availability question, named by default.
+     */
+    private function quickAvailabilityAction(): Action
+    {
+        return Action::make('quick_availability')
+            ->label(__('surveys::filament.quick_availability.action'))
+            ->icon('heroicon-o-calendar-days')
+            ->authorize(static fn (): bool => SurveyResource::canCreate())
+            ->modalHeading(__('surveys::filament.quick_availability.heading'))
+            ->modalDescription(__('surveys::filament.quick_availability.description'))
+            ->schema([
+                TextInput::make('question')
+                    ->label(__('surveys::filament.quick_availability.question'))
+                    ->placeholder(__('surveys::filament.quick_availability.question_placeholder'))
+                    ->required()
+                    ->maxLength(500),
+                DefinitionEditor::slotList(),
+                Toggle::make('anonymous')
+                    ->label(__('surveys::filament.survey.fields.anonymous'))
+                    ->helperText(__('surveys::filament.quick_availability.anonymous_help'))
+                    ->live()
+                    ->default(false),
+                Toggle::make('live_results')
+                    ->label(__('surveys::filament.survey.fields.live_results'))
+                    ->helperText(static fn (Get $get): string => $get('anonymous') === true
+                        ? __('surveys::filament.survey.fields.live_results_anonymous_help')
+                        : __('surveys::filament.survey.fields.live_results_help'))
+                    ->default(ResultsSettings::defaultsFor(SurveyKind::Availability)->liveResults),
+                DateTimePicker::make('closes_at')
+                    ->label(__('surveys::filament.survey.fields.closes_at'))
+                    ->native(false)
+                    ->displayFormat('d/m/Y H:i')
+                    ->seconds(false)
+                    ->default(static fn (): string => now()->addDays(app(SurveySettings::class)->defaultCloseDays())->startOfHour()->toDateTimeString()),
+                SurveyResource::announceInChannelsToggle(),
+                SurveyResource::closingSummaryToggle(),
+            ])
+            ->action(function (array $data): void {
+                try {
+                    $survey = $this->availabilityFrom($data);
+                } catch (InvalidSurveyDefinitionException) {
+                    Notification::make()->danger()->title(__('surveys::filament.quick_availability.invalid'))->send();
+
+                    return;
+                }
+
+                app(SurveyRepositoryInterface::class)->save($survey);
+
+                $this->redirect(SurveyResource::getUrl('edit', ['record' => SurveyModel::query()->findOrFail($survey->id()->value)]));
+            });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     *
+     * @throws InvalidSurveyDefinitionException
+     */
+    private function availabilityFrom(array $data): Survey
+    {
+        $question = (string) $data['question'];
+        $slotItems = array_map(
+            static fn (mixed $slot): array => is_array($slot) ? [...$slot, 'id' => is_string($slot['id'] ?? null) && $slot['id'] !== '' ? $slot['id'] : (string) Str::uuid()] : [],
+            is_array($data['slots'] ?? null) ? array_values($data['slots']) : [],
+        );
+        $sections = [[
+            'id' => (string) Str::uuid(),
+            'questions' => [[
+                'type' => QuestionType::Availability->value,
+                'data' => ['id' => (string) Str::uuid(), 'title' => $question, 'required' => true, 'slots' => $slotItems],
+            ]],
+        ]];
+        $definition = DefinitionFormState::toDefinition($sections);
+        (new SurveyDefinitionValidator)->assertValid($definition, SurveyKind::Availability);
+
+        return new Survey(
+            id: SurveyId::generate(),
+            kind: SurveyKind::Availability,
+            title: Str::limit($question, 250),
+            description: null,
+            definition: $definition,
+            anonymous: (bool) ($data['anonymous'] ?? false),
+            results: new ResultsSettings(
+                liveResults: (bool) ($data['live_results'] ?? true),
+                visibleToRespondents: true,
+            ),
+            audienceType: AudienceType::AllUsers,
+            closesAt: SurveyFormData::closesAt($data),
+            createdBy: is_string(auth()->id()) ? auth()->id() : null,
+            announceInChannels: (bool) ($data['announce_in_channels'] ?? false),
+            closingSummary: (bool) ($data['closing_summary'] ?? false),
+        );
     }
 
     /**

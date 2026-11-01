@@ -81,6 +81,7 @@ return [
         'end_choice_released' => 'Guardada la encuesta al terminar. La que habías preparado sigue aquí como borrador.',
         'new_form' => 'Nueva encuesta',
         'new_poll' => 'Nuevo sondeo',
+        'new_availability' => 'Nuevo sondeo de disponibilidad',
         'created' => 'Encuesta guardada como borrador. Envíala cuando quieras.',
         'create_unavailable' => 'Se ha cancelado, así que ya no admite encuestas nuevas.',
         'closed' => 'Encuesta cerrada: ya no admite respuestas.',

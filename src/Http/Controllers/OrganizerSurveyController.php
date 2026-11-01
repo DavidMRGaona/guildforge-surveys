@@ -70,6 +70,7 @@ final class OrganizerSurveyController extends Controller
             'createUrls' => $found->status === SurveySubjectStatus::Cancelled ? null : [
                 'form' => route('surveys.manage.create', [$type, $subject, 'encuesta']),
                 'poll' => route('surveys.manage.create', [$type, $subject, 'sondeo']),
+                'availability' => route('surveys.manage.create', [$type, $subject, 'disponibilidad']),
             ],
             'copy' => $found->status === SurveySubjectStatus::Cancelled ? null : $this->copyProps($type, $subject, $userId),
             'seo' => $this->seo->forPage(new SeoPageDTO(

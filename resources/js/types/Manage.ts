@@ -50,8 +50,8 @@ export interface ManageSubjectProps {
     surveys: OrganizedSurvey[];
     /** While the subject's end survey can be prepared ahead. */
     prepareUrl: string | null;
-    /** New surveys and polls of the organizer's own; null once the subject is cancelled. */
-    createUrls: { form: string; poll: string } | null;
+    /** New surveys, polls and availability surveys of the organizer's own; null once the subject is cancelled. */
+    createUrls: { form: string; poll: string; availability: string } | null;
     /** Which survey goes out when the subject ends; null when there is nothing to choose. */
     endChoice: EndSurveyChoice | null;
     /** The organizer's earlier surveys to copy here; null when there are none or it is cancelled. */
