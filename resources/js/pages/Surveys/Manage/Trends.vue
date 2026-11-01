@@ -284,7 +284,11 @@ function setDate(key: 'from' | 'to', value: string): void {
                         {{ question.title }}
                     </h2>
                     <p v-if="question.measure !== 'none'" class="mt-1 text-sm text-base-secondary">
-                        {{ t(`surveys.trends.measures.${question.measure}`) }}
+                        {{
+                            t(
+                                `surveys.trends.measures.${question.type === 'ranking' ? 'ranking' : question.measure}`
+                            )
+                        }}
                     </p>
                 </div>
 

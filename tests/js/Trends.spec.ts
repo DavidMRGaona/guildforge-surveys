@@ -98,6 +98,22 @@ describe('Trends', () => {
         expect(wrapper.text()).toContain('con menos de 3');
     });
 
+    it('says a ranked option trends its mean place', () => {
+        const base = props();
+        const scale = base.trends?.questions[0];
+        if (base.trends === null || scale === undefined) {
+            throw new Error('The example trends have a scale.');
+        }
+        const ranked = { ...scale, key: 'games.k-1', title: 'Ordena · Rol', type: 'ranking' };
+        const wrapper = mount(Trends, {
+            props: props({ trends: { ...base.trends, questions: [ranked] } }),
+        });
+
+        expect(wrapper.get('[data-question="games.k-1"]').text()).toContain(
+            'Posición media en cada periodo: 1 es la mejor.'
+        );
+    });
+
     it('visits the page with the new cut', async () => {
         const wrapper = mount(Trends, { props: props() });
 

@@ -28,7 +28,7 @@
         @foreach ($trends->questions as $question)
             <x-filament::section :key="'trend-'.$question->key">
                 <x-slot name="heading">{{ $question->title }}</x-slot>
-                <x-slot name="description">{{ __('surveys::filament.trends.measures.'.$question->measure) }}</x-slot>
+                <x-slot name="description">{{ __('surveys::filament.trends.measures.'.($question->type === \Modules\Surveys\Domain\Enums\QuestionType::Ranking ? 'ranking' : $question->measure)) }}</x-slot>
 
                 @if ($question->measure === \Modules\Surveys\Application\DTOs\Trends\QuestionTrendDTO::NONE)
                     <p>{{ __('surveys::filament.trends.no_trend') }}</p>

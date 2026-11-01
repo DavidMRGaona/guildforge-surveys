@@ -292,6 +292,7 @@ export default {
             },
             measures: {
                 mean: 'Media de las respuestas en cada periodo.',
+                ranking: 'Posición media en cada periodo: 1 es la mejor.',
                 shares: 'Porcentaje de respuestas de cada opción.',
             },
             summary_label: 'Encuestas que cuentan',
