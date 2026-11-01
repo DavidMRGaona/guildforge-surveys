@@ -72,6 +72,14 @@
     --color-warning-bg: var(--color-warning-bg);
     --color-info: var(--color-info);
     --color-info-bg: var(--color-info-bg);
+    /* The core's semantic borders and primary colour under names of their own: its
+     * .border-default or .bg-primary sit in a higher layer, so no variant written here
+     * (hover:, sm:) could ever override them. `primary` itself is not reused because the
+     * core's .text-primary reads the link colour, not --color-primary. */
+    --color-line: var(--color-border);
+    --color-line-strong: var(--color-border-strong);
+    --color-brand: var(--color-primary);
+    --color-brand-light: var(--color-primary-light);
 }
 
 @source '../js/**/*.vue';

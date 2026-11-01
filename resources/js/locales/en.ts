@@ -190,7 +190,6 @@ export default {
         },
         respond: {
             required: 'Obligatoria',
-            required_hint: 'Las preguntas marcadas con * son obligatorias.',
             named_notice: 'Esta encuesta no es anónima: tus respuestas se guardan con tu nombre.',
             anonymous_notice:
                 'Esta encuesta es anónima: tus respuestas no se guardan con tu nombre.',
@@ -199,6 +198,7 @@ export default {
             other_placeholder: 'Escribe tu respuesta',
             choose: 'Elige una opción',
             stars: '{count} de {total} estrellas',
+            scale_end: '{value}: {label}',
             submit: 'Enviar respuestas',
             submit_poll: 'Votar',
             next: 'Siguiente',

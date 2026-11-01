@@ -52,12 +52,6 @@ const stateMessage = computed(() =>
         ? null
         : t(`surveys.respond.states.${props.state}`)
 );
-const hasRequired = computed(
-    () =>
-        props.definition?.sections.some((section) =>
-            section.questions.some((question) => question.required)
-        ) ?? false
-);
 const closesAt = computed(() => {
     if (!props.survey?.closesAt) {
         return null;
@@ -282,9 +276,6 @@ function submit(): void {
                         ? t('surveys.respond.anonymous_notice')
                         : t('surveys.respond.named_notice')
                 }}
-            </p>
-            <p v-if="hasRequired" class="text-sm text-base-secondary">
-                {{ t('surveys.respond.required_hint') }}
             </p>
             <p
                 v-if="errors.survey"
