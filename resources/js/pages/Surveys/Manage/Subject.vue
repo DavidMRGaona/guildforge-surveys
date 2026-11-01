@@ -101,8 +101,9 @@ function prepare(): void {
                     {{ props.endChoice.lockedReason ?? t('surveys.manage.end_choice_description') }}
                 </p>
             </div>
+            <!-- min-w-0: a long template name must not stretch the select past the card -->
             <div class="grid gap-4 sm:grid-cols-2">
-                <div>
+                <div class="min-w-0">
                     <label for="end-choice" class="block text-sm font-medium text-base-primary">
                         {{ t('surveys.manage.end_choice_label') }}
                     </label>
@@ -115,7 +116,7 @@ function prepare(): void {
                         @update:model-value="endChoice = text($event)"
                     />
                 </div>
-                <div v-if="startsOwnSurvey">
+                <div v-if="startsOwnSurvey" class="min-w-0">
                     <label
                         for="end-choice-base"
                         class="block text-sm font-medium text-base-primary"
