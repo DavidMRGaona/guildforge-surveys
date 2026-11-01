@@ -83,6 +83,52 @@ final class DefinitionFormStateTest extends TestCase
         $this->assertSame("sections.{$sectionKeys[1]}.title", DefinitionFormState::formPath($state, 'sections.1.id'));
     }
 
+    public function test_round_trips_section_jumps(): void
+    {
+        $definition = SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition());
+
+        $this->assertEquals($definition, DefinitionFormState::toDefinition(DefinitionFormState::fromDefinition($definition)));
+    }
+
+    public function test_jumps_sit_on_their_options_behind_a_switch(): void
+    {
+        $state = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()));
+
+        [$start, $campaign] = array_values($state);
+        $question = array_first($start['questions'])['data'];
+        $this->assertTrue($question['branches']);
+        $this->assertSame([null, 's-end'], array_column(array_values($question['options']), 'next'));
+        $this->assertSame(Section::SUBMIT, $question['other_next']);
+        $this->assertNull($start['next']);
+        $this->assertSame('s-end', $campaign['next']);
+    }
+
+    public function test_switching_jumps_off_drops_them(): void
+    {
+        $state = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()));
+        $sectionKey = array_keys($state)[0];
+        $questionKey = array_keys($state[$sectionKey]['questions'])[0];
+        $state[$sectionKey]['questions'][$questionKey]['data']['branches'] = false;
+
+        $this->assertSame([], DefinitionFormState::toDefinition($state)->sections[0]->questions[0]->nextByOption);
+    }
+
+    public function test_jump_errors_land_on_their_select(): void
+    {
+        $state = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()));
+        $sectionKeys = array_keys($state);
+        $questionKey = array_key_first($state[$sectionKeys[0]]['questions']);
+        $optionKeys = array_keys($state[$sectionKeys[0]]['questions'][$questionKey]['data']['options']);
+        $question = "sections.{$sectionKeys[0]}.questions.{$questionKey}.data";
+
+        // The first jump is the one of the second option ("No"), the second the one of "Other"
+        $this->assertSame("{$question}.options.{$optionKeys[1]}.next", DefinitionFormState::formPath($state, 'sections.0.questions.0.next_by_option.0.next'));
+        $this->assertSame("{$question}.options.{$optionKeys[1]}.next", DefinitionFormState::formPath($state, 'sections.0.questions.0.next_by_option.0.option_id'));
+        $this->assertSame("{$question}.other_next", DefinitionFormState::formPath($state, 'sections.0.questions.0.next_by_option.1.next'));
+        $this->assertSame("{$question}.branches", DefinitionFormState::formPath($state, 'sections.0.questions.0.next_by_option'));
+        $this->assertSame("sections.{$sectionKeys[1]}.next", DefinitionFormState::formPath($state, 'sections.1.next'));
+    }
+
     public function test_fresh_ids_keep_jumps_pointing_at_the_copied_sections(): void
     {
         $original = SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition());

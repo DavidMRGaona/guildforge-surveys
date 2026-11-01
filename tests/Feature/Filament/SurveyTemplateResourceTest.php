@@ -8,11 +8,13 @@ use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Infrastructure\Persistence\Eloquent\Models\PermissionModel;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Livewire;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
+use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Domain\ValueObjects\TemplateUses;
@@ -75,6 +77,46 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
             ->fillForm(['name' => 'Rota', 'kind' => 'form', 'sections' => $sections])
             ->call('create')
             ->assertHasFormErrors(["sections.{$sectionKey}.questions.{$questionKey}.data.options"]);
+
+        $this->assertSame(0, SurveyTemplateModel::query()->count());
+    }
+
+    public function test_creates_a_template_with_section_jumps(): void
+    {
+        $this->actingAsPanelAdmin();
+        $definition = SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition());
+        $sections = DefinitionFormState::fromDefinition($definition);
+        [$start, $campaign] = array_keys($sections);
+        $question = array_key_first($sections[$start]['questions']);
+        $option = "sections.{$start}.questions.{$question}.data.options.".array_key_first($sections[$start]['questions'][$question]['data']['options']).'.next';
+
+        Livewire::test(CreateSurveyTemplate::class)
+            ->fillForm(['name' => 'Campaña', 'kind' => 'form'])
+            // Replaces the empty section a new form starts with
+            ->set('data.sections', $sections)
+            // Each section offers the later ones and the end, never itself or an earlier one
+            ->assertFormFieldExists("sections.{$start}.next", checkFieldUsing: static fn (Select $field): bool => array_keys($field->getOptions()) === ['s-campaign', 's-end', Section::SUBMIT])
+            ->assertFormFieldExists("sections.{$campaign}.next", checkFieldUsing: static fn (Select $field): bool => array_keys($field->getOptions()) === ['s-end', Section::SUBMIT])
+            ->assertFormFieldIsVisible($option)
+            ->assertFormFieldIsVisible("sections.{$start}.questions.{$question}.data.other_next")
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $model = SurveyTemplateModel::query()->sole();
+        $this->assertEquals($definition, $this->app->make(SurveyTemplateRepositoryInterface::class)->findOrFail(SurveyTemplateId::fromString($model->id))->definition());
+    }
+
+    public function test_a_backward_jump_shows_on_its_field(): void
+    {
+        $this->actingAsPanelAdmin();
+        $sections = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()));
+        $last = array_keys($sections)[2];
+        $sections[$last]['next'] = 's-campaign';
+
+        Livewire::test(CreateSurveyTemplate::class)
+            ->fillForm(['name' => 'Campaña', 'kind' => 'form', 'sections' => $sections])
+            ->call('create')
+            ->assertHasFormErrors(["sections.{$last}.next"]);
 
         $this->assertSame(0, SurveyTemplateModel::query()->count());
     }

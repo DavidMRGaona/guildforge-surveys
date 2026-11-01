@@ -12,12 +12,15 @@ use Modules\Surveys\Domain\ValueObjects\Definition\OptionJump;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 
 /**
  * Converts between a SurveyDefinition and the state of the panel's definition editor:
  * a Repeater of sections, each with a Builder of questions (one block per question type).
  * Filament keys list items by random strings, so domain paths (by index) are translated
- * to form paths to show each validation error on its own field.
+ * to form paths to show each validation error on its own field. A question's jumps sit on
+ * its options ("next") and "Other" ("other_next"), behind a switch ("branches"): with
+ * the switch off they are left out of the definition.
  */
 final class DefinitionFormState
 {
@@ -47,6 +50,7 @@ final class DefinitionFormState
                 'id' => $section->id,
                 'title' => $section->title,
                 'description' => $section->description,
+                'next' => $section->next,
                 'questions' => $questions,
             ];
         }
@@ -73,6 +77,7 @@ final class DefinitionFormState
                 'id' => self::string($section['id'] ?? null),
                 'title' => self::nullableString($section['title'] ?? null),
                 'description' => self::nullableString($section['description'] ?? null),
+                'next' => self::nullableString($section['next'] ?? null),
                 'questions' => $questions,
             ];
         }
@@ -113,6 +118,10 @@ final class DefinitionFormState
         $path[] = 'data';
 
         $field = implode('.', array_slice($tokens, 0, 2));
+        $data = is_array($question['item']['data'] ?? null) ? $question['item']['data'] : [];
+        if (($tokens[0] ?? null) === 'next_by_option') {
+            return implode('.', [...$path, self::jumpField($data, $tokens[1] ?? null)]);
+        }
         if (in_array($tokens[0] ?? null, ['id', 'type'], true)) {
             $path[] = 'title';
             $tokens = [];
@@ -124,7 +133,6 @@ final class DefinitionFormState
         }
 
         // An item of a list inside the block (options, grid rows or columns)
-        $data = is_array($question['item']['data'] ?? null) ? $question['item']['data'] : [];
         $list = $data[end($path)] ?? null;
         if (is_array($list) && $tokens !== []) {
             $item = self::itemAt($list, $tokens);
@@ -193,8 +201,10 @@ final class DefinitionFormState
             'title' => $question->title,
             'help' => $question->help,
             'required' => $question->required,
-            'options' => self::keyedOptions($question->options),
+            'options' => self::keyedChoices($question),
             'allow_other' => $question->allowOther,
+            'branches' => $question->nextByOption !== [],
+            'other_next' => $question->nextFor(Submission::OTHER),
             'scale_min' => $question->scale?->min,
             'scale_max' => $question->scale?->max,
             'scale_min_label' => $question->scale?->minLabel,
@@ -233,7 +243,61 @@ final class DefinitionFormState
                 'rows' => self::optionList($data['grid_rows'] ?? []),
                 'columns' => self::optionList($data['grid_columns'] ?? []),
             ] : null,
+            'next_by_option' => $type?->canBranch() === true && (bool) ($data['branches'] ?? false) ? array_map(static fn (array $jump): array => ['option_id' => $jump['option_id'], 'next' => $jump['next']], self::jumps($data)) : [],
         ];
+    }
+
+    /**
+     * The jumps the block's options and "Other" hold, in the order the definition keeps
+     * them: options first, then "Other". jumpField() reads them back in the same order.
+     *
+     * @param  array<mixed>  $data
+     * @return list<array{option_id: string, next: string, field: string}>
+     */
+    private static function jumps(array $data): array
+    {
+        $jumps = [];
+        foreach (is_array($data['options'] ?? null) ? $data['options'] : [] as $key => $option) {
+            $next = is_array($option) ? self::nullableString($option['next'] ?? null) : null;
+            if ($next !== null && $next !== '') {
+                $jumps[] = ['option_id' => self::string($option['id'] ?? null), 'next' => $next, 'field' => "options.{$key}.next"];
+            }
+        }
+
+        $otherNext = self::nullableString($data['other_next'] ?? null);
+        if ((bool) ($data['allow_other'] ?? false) && $otherNext !== null && $otherNext !== '') {
+            $jumps[] = ['option_id' => Submission::OTHER, 'next' => $otherNext, 'field' => 'other_next'];
+        }
+
+        return $jumps;
+    }
+
+    /**
+     * The block field of the jump at a domain index: its option's select, or the switch
+     * for errors about the question's jumps as a whole.
+     *
+     * @param  array<mixed>  $data
+     */
+    private static function jumpField(array $data, ?string $index): string
+    {
+        $jump = $index !== null && ctype_digit($index) ? (self::jumps($data)[(int) $index] ?? null) : null;
+
+        return $jump['field'] ?? 'branches';
+    }
+
+    /**
+     * Options with the section each one leads to (null: the section's own next).
+     *
+     * @return array<string, array{id: string, label: string, next: ?string}>
+     */
+    private static function keyedChoices(Question $question): array
+    {
+        $keyed = [];
+        foreach ($question->options as $option) {
+            $keyed[self::itemKey()] = [...$option->toArray(), 'next' => $question->nextFor($option->id)];
+        }
+
+        return $keyed;
     }
 
     /**

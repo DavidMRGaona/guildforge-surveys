@@ -4,7 +4,15 @@ import { useI18n } from 'vue-i18n';
 import { FormCheckbox, FormNumberInput, FormSelect } from '@/components/form';
 import type { EditorLocks } from '../../types/Editor';
 import type { QuestionType, SurveyOption, SurveyQuestion } from '../../types/Respond';
-import { changeType, hasOptions, POLL_TYPES, QUESTION_TYPES } from '../../utils/definition';
+import {
+    canBranch,
+    changeType,
+    hasOptions,
+    POLL_TYPES,
+    pruneJumps,
+    QUESTION_TYPES,
+} from '../../utils/definition';
+import JumpsEditor from './JumpsEditor.vue';
 import OptionListEditor from './OptionListEditor.vue';
 import { INPUT_CLASS } from './styles';
 
@@ -13,6 +21,8 @@ const props = defineProps<{
     errors: Record<string, string>;
     /** Path of the question in the definition, for its errors. */
     path: string;
+    /** Where its options may jump: the later sections and the end. */
+    targets: { value: string; label: string }[];
 }>();
 
 const question = defineModel<SurveyQuestion>({ required: true });
@@ -34,7 +44,8 @@ function error(field: string): string | undefined {
 }
 
 function set<K extends keyof SurveyQuestion>(field: K, value: SurveyQuestion[K]): void {
-    question.value = { ...question.value, [field]: value };
+    // Removing an option or "Other" takes its jump with it
+    question.value = pruneJumps({ ...question.value, [field]: value });
 }
 
 function setType(value: string | number | null): void {
@@ -140,6 +151,15 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                 :label="t('surveys.editor.allow_other')"
                 :disabled="props.locks.structure"
                 @update:model-value="set('allow_other', $event)"
+            />
+            <JumpsEditor
+                v-if="canBranch(question.type) && !props.locks.poll"
+                :model-value="question"
+                :targets="props.targets"
+                :locked="props.locks.structure"
+                :errors="props.errors"
+                :path="props.path"
+                @update:model-value="question = $event"
             />
         </template>
 

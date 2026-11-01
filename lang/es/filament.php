@@ -70,6 +70,15 @@ return [
         'stars' => 'Número de estrellas',
         'grid_rows' => 'Filas',
         'grid_columns' => 'Columnas',
+        'section_next' => 'Después de esta sección',
+        'continue' => 'Seguir con la sección siguiente',
+        'branches' => 'Ir a una sección según la respuesta',
+        'branches_help' => 'Cada opción puede llevar a una sección posterior o enviar el formulario. Las preguntas de las secciones que se salten no se piden.',
+        'option_next' => 'Después de esta opción',
+        'other_next' => 'Si elige «Otra»',
+        'continue_after_section' => 'Lo que diga la sección',
+        'section_number' => 'Sección :number',
+        'submit_form' => 'Enviar el formulario',
     ],
 
     'survey_template' => [
