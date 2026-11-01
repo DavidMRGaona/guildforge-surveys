@@ -277,8 +277,11 @@ final class SurveySettingsPage extends Page implements HasForms
                                 ->label(__('surveys::messages.settings.template'))
                                 ->options($templates)
                                 ->native(false)
+                                ->searchable()
                                 ->required(),
                         ])
+                        // Order changes nothing: each game system has one row
+                        ->reorderable(false)
                         ->columns(2)
                         ->defaultItems(0)
                         ->addActionLabel(__('surveys::messages.settings.add_game_system_template'))
