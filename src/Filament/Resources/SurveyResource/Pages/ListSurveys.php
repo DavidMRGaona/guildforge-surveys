@@ -12,12 +12,15 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
+use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
@@ -42,6 +45,34 @@ final class ListSurveys extends ListRecords
             $this->quickPollAction(),
             CreateAction::make(),
         ];
+    }
+
+    /**
+     * One tab per status, in the order surveys go through them, then every survey.
+     *
+     * @return array<string, Tab>
+     */
+    public function getTabs(): array
+    {
+        $counts = SurveyModel::query()->toBase()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+
+        $tabs = [];
+        foreach ([SurveyStatus::Open, SurveyStatus::PendingReview, SurveyStatus::Draft, SurveyStatus::Closed] as $status) {
+            $tabs[$status->value] = Tab::make(__("surveys::filament.survey.tabs.{$status->value}"))
+                ->badge((int) ($counts[$status->value] ?? 0))
+                ->modifyQueryUsing(static fn (Builder $query): Builder => $query->where('status', $status->value));
+        }
+        $tabs['all'] = Tab::make(__('surveys::filament.survey.tabs.all'))->badge((int) $counts->sum());
+
+        return $tabs;
+    }
+
+    /**
+     * Every survey, as before there were tabs, so a draft just saved is still in sight.
+     */
+    public function getDefaultActiveTab(): string
+    {
+        return 'all';
     }
 
     /**

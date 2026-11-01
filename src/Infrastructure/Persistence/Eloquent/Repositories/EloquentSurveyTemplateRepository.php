@@ -10,6 +10,7 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 
 final class EloquentSurveyTemplateRepository implements SurveyTemplateRepositoryInterface
@@ -22,6 +23,8 @@ final class EloquentSurveyTemplateRepository implements SurveyTemplateRepository
             'kind' => $template->kind()->value,
             'definition' => $template->definition()->toArray(),
             'created_by' => $template->createdBy(),
+            // None is stored as null, so "meant for anything" is one plain query
+            'uses' => $template->uses()->isUnspecified() ? null : $template->uses()->values,
         ]);
     }
 
@@ -36,6 +39,7 @@ final class EloquentSurveyTemplateRepository implements SurveyTemplateRepository
             kind: SurveyKind::from($model->kind),
             definition: SurveyDefinition::fromArray($model->definition),
             createdBy: $model->created_by,
+            uses: new TemplateUses($model->uses ?? []),
         );
     }
 

@@ -53,6 +53,7 @@ final class EditSurveyTemplate extends EditRecord
             $template->replaceDefinition(DefinitionFormState::toDefinition($sections), new SurveyDefinitionValidator);
         });
         $template->rename((string) $data['name'], is_string($data['description'] ?? null) ? $data['description'] : null);
+        $template->changeUses(SurveyTemplateResource::usesFrom($data));
         $templates->save($template);
 
         return $record->refresh();
