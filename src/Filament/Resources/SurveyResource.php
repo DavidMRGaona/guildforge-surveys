@@ -267,6 +267,8 @@ final class SurveyResource extends BaseResource
                 SurveyActions::results(),
                 SurveyActions::open(),
                 SurveyActions::close(),
+                SurveyActions::duplicate(),
+                SurveyActions::saveAsTemplate(),
                 SurveyActions::delete(),
             ]);
     }

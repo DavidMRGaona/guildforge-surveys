@@ -128,6 +128,11 @@ final class InvalidSurveyStateException extends DomainException
         return new self("Survey {$surveyId} is no longer a draft: whether it is announced is fixed.");
     }
 
+    public static function copyChangesAudience(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} cannot be copied with or without a subject it does not have: a subject survey is copied to a subject, a general one stays general.");
+    }
+
     public static function cannotBecomeEndSurvey(string $surveyId): self
     {
         return new self("Survey {$surveyId} cannot become its subject's end survey: only an unsent, undismissed form about that subject without an end key can.");

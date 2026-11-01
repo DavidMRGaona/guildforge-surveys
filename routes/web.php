@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyController;
+use Modules\Surveys\Http\Controllers\OrganizerSurveyCopyController;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyEditorController;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyResultsController;
 use Modules\Surveys\Http\Controllers\OrganizerTrendsController;
@@ -65,6 +66,12 @@ Route::prefix('encuestas')
         Route::post('sujeto/{type}/{subject}/nueva/{kind}', [OrganizerSurveyEditorController::class, 'store'])
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo')
             ->middleware('throttle:10,1')->name('manage.store');
+        Route::post('sujeto/{type}/{subject}/copiar', [OrganizerSurveyCopyController::class, 'copy'])
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->middleware('throttle:10,1')->name('manage.copy');
+        Route::post('{survey}/duplicar', [OrganizerSurveyCopyController::class, 'duplicate'])
+            ->whereUuid('survey')->middleware('throttle:10,1')->name('manage.duplicate');
+        Route::post('{survey}/guardar-como-plantilla', [OrganizerSurveyCopyController::class, 'saveTemplate'])
+            ->whereUuid('survey')->middleware('throttle:10,1')->name('manage.save-template');
         Route::get('{survey}/editar', [OrganizerSurveyEditorController::class, 'edit'])->whereUuid('survey')->name('manage.edit');
         Route::put('{survey}/editar', [OrganizerSurveyEditorController::class, 'update'])->whereUuid('survey')->name('manage.update');
         Route::get('{survey}/resultados', [OrganizerSurveyResultsController::class, 'show'])->whereUuid('survey')->name('manage.results');

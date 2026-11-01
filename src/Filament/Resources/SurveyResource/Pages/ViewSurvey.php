@@ -24,6 +24,8 @@ final class ViewSurvey extends ViewRecord
             SurveyActions::reject()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::results(),
             SurveyActions::renewPublicLink(),
+            SurveyActions::duplicate(),
+            SurveyActions::saveAsTemplate(),
             EditAction::make(),
         ];
     }

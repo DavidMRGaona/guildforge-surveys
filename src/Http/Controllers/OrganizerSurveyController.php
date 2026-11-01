@@ -71,6 +71,7 @@ final class OrganizerSurveyController extends Controller
                 'form' => route('surveys.manage.create', [$type, $subject, 'encuesta']),
                 'poll' => route('surveys.manage.create', [$type, $subject, 'sondeo']),
             ],
+            'copy' => $found->status === SurveySubjectStatus::Cancelled ? null : $this->copyProps($type, $subject, $userId),
             'seo' => $this->seo->forPage(new SeoPageDTO(
                 title: (string) __('surveys::messages.manage.subject_title', ['title' => $found->title]),
                 noindex: true,
@@ -130,6 +131,25 @@ final class OrganizerSurveyController extends Controller
         $message = __($outcome === EndSurveyChoiceOutcome::ReleasedAsDraft ? 'surveys::messages.manage.end_choice_released' : 'surveys::messages.manage.end_choice_saved');
 
         return $editUrl !== null ? redirect()->to($editUrl)->with('success', $message) : back()->with('success', $message);
+    }
+
+    /**
+     * The surveys the organizer may start this subject's from: those of every subject they
+     * organized and still manage, named with their subject.
+     *
+     * @return array{url: string, surveys: list<array{value: string, label: string}>}|null
+     */
+    private function copyProps(string $type, string $subject, string $userId): ?array
+    {
+        $surveys = array_map(
+            static fn (array $survey): array => [
+                'value' => $survey['id'],
+                'label' => $survey['subjectTitle'] === null ? $survey['title'] : "{$survey['title']} · {$survey['subjectTitle']}",
+            ],
+            $this->organized->forUser($userId),
+        );
+
+        return $surveys === [] ? null : ['url' => route('surveys.manage.copy', [$type, $subject]), 'surveys' => $surveys];
     }
 
     /**

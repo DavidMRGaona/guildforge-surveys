@@ -80,10 +80,17 @@ return [
         'create_unavailable' => 'Se ha cancelado, así que ya no admite encuestas nuevas.',
         'closed' => 'Encuesta cerrada: ya no admite respuestas.',
         'not_closable' => 'Esta encuesta no está abierta: no se puede cerrar.',
+        'duplicated' => 'Copia guardada como borrador, sin respuestas. Revísala y envíala cuando quieras.',
+        'not_duplicable' => 'Esta encuesta no se puede copiar ahí: ya no gestionas ese sujeto o se ha cancelado.',
+        'saved_as_template' => 'Plantilla «:name» creada.',
         'prepare_unavailable' => [
             'no_template' => 'No hay plantilla para esta encuesta: la organización aún no ha elegido una o se ha elegido que no tenga encuesta al terminar.',
             'cancelled' => 'Se ha cancelado, así que no tendrá encuesta al terminar.',
         ],
+    ],
+
+    'duplicate' => [
+        'copy_title' => 'Copia de :title',
     ],
 
     'end_choice' => [

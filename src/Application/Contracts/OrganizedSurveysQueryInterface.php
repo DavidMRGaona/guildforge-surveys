@@ -25,6 +25,8 @@ namespace Modules\Surveys\Application\Contracts;
  *     editUrl: ?string,
  *     resultsUrl: ?string,
  *     closeUrl: ?string,
+ *     duplicateUrl: string,
+ *     saveTemplateUrl: ?string,
  * }
  */
 interface OrganizedSurveysQueryInterface

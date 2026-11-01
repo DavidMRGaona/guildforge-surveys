@@ -16,6 +16,9 @@ const { t } = useI18n();
 
 const preparing = ref(false);
 
+const copySource = ref<string | null>(props.copy?.surveys[0]?.value ?? null);
+const copying = ref(false);
+
 const endChoice = ref<string | null>(props.endChoice?.selected ?? null);
 const endChoiceBase = ref<string | null>(props.endChoice?.baseTemplates[0]?.value ?? null);
 const savingEndChoice = ref(false);
@@ -45,6 +48,25 @@ function saveEndChoice(): void {
             },
             onFinish: () => {
                 savingEndChoice.value = false;
+            },
+        }
+    );
+}
+
+function copyHere(): void {
+    if (props.copy === null || copySource.value === null) {
+        return;
+    }
+
+    router.post(
+        props.copy.url,
+        { survey: copySource.value },
+        {
+            onStart: () => {
+                copying.value = true;
+            },
+            onFinish: () => {
+                copying.value = false;
             },
         }
     );
@@ -199,6 +221,44 @@ function prepare(): void {
                 <Link :href="props.createUrls.form" :class="SECONDARY_ACTION_CLASS">
                     {{ t('surveys.manage.new_form') }}
                 </Link>
+            </div>
+        </section>
+
+        <section
+            v-if="props.copy"
+            :class="[CARD_CLASS, 'space-y-4 p-4 sm:p-6']"
+            aria-labelledby="copy-survey-title"
+        >
+            <div class="space-y-1">
+                <h2 id="copy-survey-title" class="text-lg font-semibold text-base-primary">
+                    {{ t('surveys.manage.copy_title') }}
+                </h2>
+                <p class="text-sm text-base-secondary">
+                    {{ t('surveys.manage.copy_description') }}
+                </p>
+            </div>
+            <!-- min-w-0: a long survey name must not stretch the select past the card -->
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
+                <div class="min-w-0 sm:flex-1">
+                    <label for="copy-source" class="block text-sm font-medium text-base-primary">
+                        {{ t('surveys.manage.copy_label') }}
+                    </label>
+                    <FormSelect
+                        id="copy-source"
+                        class="mt-1"
+                        :model-value="copySource"
+                        :options="props.copy.surveys"
+                        @update:model-value="copySource = text($event)"
+                    />
+                </div>
+                <BaseButton
+                    variant="secondary"
+                    class="w-full shrink-0 sm:w-auto"
+                    :loading="copying"
+                    @click="copyHere"
+                >
+                    {{ t('surveys.manage.copy_here') }}
+                </BaseButton>
             </div>
         </section>
 

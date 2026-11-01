@@ -127,6 +127,16 @@ export default {
                 'Lanza una encuesta o un sondeo rápido a quienes participan, cuando quieras.',
             new_form: 'Nueva encuesta',
             new_poll: 'Nuevo sondeo',
+            copy_title: 'Partir de una encuesta anterior',
+            copy_description:
+                'Copia aquí una de tus encuestas, sin sus respuestas, y cámbiala antes de enviarla.',
+            copy_label: 'Encuesta',
+            copy_here: 'Copiar aquí',
+            duplicate: 'Duplicar',
+            save_as_template: 'Guardar como plantilla',
+            save_as_template_title: '¿Guardar como plantilla?',
+            save_as_template_message:
+                'Sus preguntas quedarán como plantilla para toda la organización, con el título de la encuesta como nombre.',
             discard: 'Descartar',
             discard_title: '¿Descartar este borrador?',
             discard_message:
