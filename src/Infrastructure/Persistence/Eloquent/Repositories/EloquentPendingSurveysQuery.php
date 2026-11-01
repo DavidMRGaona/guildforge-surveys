@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories;
 
 use App\Application\Services\TimezoneServiceInterface;
+use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
+use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\Surveys\Application\Contracts\PendingSurveysQueryInterface;
@@ -15,7 +17,10 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyRecipientMo
 
 final readonly class EloquentPendingSurveysQuery implements PendingSurveysQueryInterface
 {
-    public function __construct(private TimezoneServiceInterface $timezone) {}
+    public function __construct(
+        private TimezoneServiceInterface $timezone,
+        private SurveySubjectSourceRegistryInterface $sources,
+    ) {}
 
     public function forUser(string $userId, DateTimeImmutable $now): array
     {
@@ -31,8 +36,21 @@ final readonly class EloquentPendingSurveysQuery implements PendingSurveysQueryI
         return array_values($surveys->map(fn (SurveyModel $survey): array => [
             'id' => $survey->id,
             'title' => $survey->title,
+            'subjectType' => $this->subjectType($survey->subject_type),
+            'subjectTitle' => is_string($survey->subject_snapshot['title'] ?? null) ? $survey->subject_snapshot['title'] : null,
             'closesAt' => $this->timezone->iso($survey->closes_at),
             'url' => route('surveys.respond', $survey->id),
         ])->all());
+    }
+
+    /**
+     * The kind of thing the survey is about, as its module names it; null for general surveys
+     * and for kinds whose module is gone.
+     */
+    private function subjectType(?string $type): ?string
+    {
+        $source = $type === null ? null : $this->sources->source($type);
+
+        return $source instanceof SurveySubjectSourceInterface ? $source->sourceLabel() : null;
     }
 }

@@ -53,6 +53,16 @@ final class ProfilePendingSurveysTest extends ModuleTestCase
                 ->where('profilePendingSurveysTotal', 1));
     }
 
+    public function test_each_pending_survey_says_what_it_is_about(): void
+    {
+        $this->openSurvey('Pendiente', [$this->player->id]);
+
+        $this->actingAs($this->player)->get(route('profile.show'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('profilePendingSurveys.0.subjectType', 'Cosa de ejemplo')
+                ->where('profilePendingSurveys.0.subjectTitle', 'Partida de ejemplo'));
+    }
+
     public function test_other_pages_do_not_load_it(): void
     {
         $this->openSurvey('Pendiente', [$this->player->id]);

@@ -6,6 +6,8 @@ import { FormSelect } from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import OrganizedSurveysList from '../../../components/OrganizedSurveysList.vue';
+import PageHeader from '../../../components/PageHeader.vue';
+import { CARD_CLASS, LINK_CLASS, SECONDARY_ACTION_CLASS } from '../../../components/styles';
 import type { ManageSubjectProps } from '../../../types/Manage';
 
 const props = defineProps<ManageSubjectProps>();
@@ -69,43 +71,39 @@ function prepare(): void {
 </script>
 
 <template>
-    <div class="mx-auto max-w-3xl space-y-6 px-4 py-12">
-        <header class="space-y-1">
-            <p class="text-sm text-base-secondary">{{ props.subject.typeLabel }}</p>
-            <h1 class="text-2xl font-semibold break-words text-base-primary">
-                {{ t('surveys.manage.subject_title', { title: props.subject.title }) }}
-            </h1>
-            <a
-                v-if="props.subject.url"
-                :href="props.subject.url"
-                class="text-sm text-primary underline-offset-2 hover:underline"
-            >
-                {{ t('surveys.manage.back_to_subject') }}
-            </a>
-        </header>
+    <div class="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:py-12">
+        <PageHeader
+            :title="t('surveys.manage.subject_title', { title: props.subject.title })"
+            :eyebrow="props.subject.typeLabel"
+            :back-url="props.subject.url"
+            :back-label="t('surveys.manage.back_to_subject')"
+            back-reloads
+        />
 
         <p
             v-if="props.subject.status === 'cancelled'"
-            class="rounded-lg bg-muted p-4 text-sm text-base-secondary"
+            class="rounded-lg bg-muted p-4 text-sm text-base-primary"
+            role="status"
         >
             {{ t('surveys.manage.cancelled_notice') }}
         </p>
 
         <section
             v-if="props.endChoice"
-            class="space-y-4 rounded-lg border border-neutral-200 bg-surface p-4"
+            :class="[CARD_CLASS, 'space-y-4 p-4 sm:p-6']"
             aria-labelledby="end-choice-title"
         >
             <div class="space-y-1">
-                <h2 id="end-choice-title" class="font-medium text-base-primary">
+                <h2 id="end-choice-title" class="text-lg font-semibold text-base-primary">
                     {{ t('surveys.manage.end_choice_title') }}
                 </h2>
                 <p class="text-sm text-base-secondary">
                     {{ props.endChoice.lockedReason ?? t('surveys.manage.end_choice_description') }}
                 </p>
             </div>
+            <!-- min-w-0: a long template name must not stretch the select past the card -->
             <div class="grid gap-4 sm:grid-cols-2">
-                <div>
+                <div class="min-w-0">
                     <label for="end-choice" class="block text-sm font-medium text-base-primary">
                         {{ t('surveys.manage.end_choice_label') }}
                     </label>
@@ -118,7 +116,7 @@ function prepare(): void {
                         @update:model-value="endChoice = text($event)"
                     />
                 </div>
-                <div v-if="startsOwnSurvey">
+                <div v-if="startsOwnSurvey" class="min-w-0">
                     <label
                         for="end-choice-base"
                         class="block text-sm font-medium text-base-primary"
@@ -138,13 +136,13 @@ function prepare(): void {
                 <a
                     v-if="props.endChoice.editUrl"
                     :href="props.endChoice.editUrl"
-                    class="text-sm text-primary underline-offset-2 hover:underline"
+                    :class="['self-start py-2 sm:self-auto', LINK_CLASS]"
                 >
                     {{ t('surveys.manage.end_choice_edit') }}
                 </a>
                 <BaseButton
                     v-if="!props.endChoice.locked"
-                    class="shrink-0"
+                    class="w-full shrink-0 sm:w-auto"
                     :loading="savingEndChoice"
                     @click="saveEndChoice"
                 >
@@ -155,11 +153,14 @@ function prepare(): void {
 
         <section
             v-if="props.prepareUrl"
-            class="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+            :class="[
+                CARD_CLASS,
+                'flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6',
+            ]"
             aria-labelledby="prepare-survey-title"
         >
             <div class="space-y-1">
-                <h2 id="prepare-survey-title" class="font-medium text-base-primary">
+                <h2 id="prepare-survey-title" class="text-lg font-semibold text-base-primary">
                     {{ t('surveys.manage.prepare_title') }}
                 </h2>
                 <p class="text-sm text-base-secondary">
@@ -170,18 +171,21 @@ function prepare(): void {
                     }}
                 </p>
             </div>
-            <BaseButton class="shrink-0" :loading="preparing" @click="prepare">
+            <BaseButton class="w-full shrink-0 sm:w-auto" :loading="preparing" @click="prepare">
                 {{ t('surveys.manage.prepare') }}
             </BaseButton>
         </section>
 
         <section
             v-if="props.createUrls"
-            class="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+            :class="[
+                CARD_CLASS,
+                'flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6',
+            ]"
             aria-labelledby="create-survey-title"
         >
             <div class="space-y-1">
-                <h2 id="create-survey-title" class="font-medium text-base-primary">
+                <h2 id="create-survey-title" class="text-lg font-semibold text-base-primary">
                     {{ t('surveys.manage.create_title') }}
                 </h2>
                 <p class="text-sm text-base-secondary">
@@ -189,16 +193,10 @@ function prepare(): void {
                 </p>
             </div>
             <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-                <Link
-                    :href="props.createUrls.poll"
-                    class="inline-flex items-center justify-center rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
-                >
+                <Link :href="props.createUrls.poll" :class="SECONDARY_ACTION_CLASS">
                     {{ t('surveys.manage.new_poll') }}
                 </Link>
-                <Link
-                    :href="props.createUrls.form"
-                    class="inline-flex items-center justify-center rounded-md border border-neutral-200 px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
-                >
+                <Link :href="props.createUrls.form" :class="SECONDARY_ACTION_CLASS">
                     {{ t('surveys.manage.new_form') }}
                 </Link>
             </div>

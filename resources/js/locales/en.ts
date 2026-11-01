@@ -8,6 +8,7 @@ export default {
             empty_description:
                 'Cuando te envíen una encuesta, aparecerá aquí hasta que la respondas.',
             answer: 'Responder',
+            closing_soon: 'Cierra pronto',
         },
         editor: {
             heading: 'Editar la encuesta',

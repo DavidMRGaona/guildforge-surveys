@@ -60,6 +60,24 @@ describe('OrganizedSurveysList', () => {
         expect(wrapper.findAll('button').map((button) => button.text())).not.toContain('Enviar');
     });
 
+    it('writes each status in the theme text over its status colour, readable in both themes', () => {
+        const wrapper = mount(OrganizedSurveysList, {
+            props: {
+                surveys: [
+                    survey({ id: 's-1', status: 'open', sendUrl: null }),
+                    survey({ id: 's-2', status: 'pending_review', sendUrl: null }),
+                    survey({ id: 's-3', status: 'rejected' }),
+                ],
+            },
+        });
+
+        const badges = wrapper.findAll('[data-testid="status"]');
+        expect(badges).toHaveLength(3);
+        for (const badge of badges) {
+            expect(badge.classes()).toContain('text-base-primary');
+        }
+    });
+
     it('offers to send or not to send a survey waiting for the organizer', async () => {
         const wrapper = mount(OrganizedSurveysList, { props: { surveys: [survey({})] } });
 
