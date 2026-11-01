@@ -273,14 +273,32 @@ final class SurveySettingsPageTest extends ModuleTestCase
         );
     }
 
+    public function test_rules_are_not_reordered_and_both_selects_search(): void
+    {
+        $this->listGameSystems();
+        $template = $this->template();
+        config()->set('modules.settings.surveys.subject_types', [ExampleThingSource::TYPE => [
+            'game_system_templates' => [['game_system' => 'system-1', 'template_id' => $template->id()->value]],
+        ]]);
+        $this->actingAs($this->userWith([self::MANAGE]));
+        $undoRepeaterFake = Repeater::fake();
+
+        Livewire::test(SurveySettingsPage::class)
+            ->assertFormFieldExists(self::RULES, static fn (Repeater $rules): bool => ! $rules->isReorderable()
+                && self::gameSystemField($rules, 0)->isSearchable()
+                && self::gameSystemField($rules, 0, 'template_id')->isSearchable());
+
+        $undoRepeaterFake();
+    }
+
     public function test_the_core_module_settings_page_has_nothing_to_show(): void
     {
         $this->assertSame([], (new SurveysServiceProvider(app()))->getSettingsSchema());
     }
 
-    private static function gameSystemField(Repeater $rules, int $item): Select
+    private static function gameSystemField(Repeater $rules, int $item, string $name = 'game_system'): Select
     {
-        $field = array_values($rules->getItems())[$item]->getFlatFields()['game_system'] ?? null;
+        $field = array_values($rules->getItems())[$item]->getFlatFields()[$name] ?? null;
         self::assertInstanceOf(Select::class, $field);
 
         return $field;
