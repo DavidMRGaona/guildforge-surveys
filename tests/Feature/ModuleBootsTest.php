@@ -27,7 +27,7 @@ final class ModuleBootsTest extends ModuleTestCase
         /** @var array{requires: array{core: string}, storesUtc: bool} $manifest */
         $manifest = json_decode((string) file_get_contents(__DIR__.'/../../module.json'), true, flags: JSON_THROW_ON_ERROR);
 
-        $this->assertSame('^3.31', $manifest['requires']['core']);
+        $this->assertSame('^3.31.1', $manifest['requires']['core']);
         $this->assertTrue($manifest['storesUtc']);
     }
 }
