@@ -15,6 +15,7 @@ use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Services\SectionNavigator;
 use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
@@ -142,6 +143,15 @@ final readonly class ResultsService
         // applies to each question of an anonymous survey too, counting verified answers only
         $minimum = $survey->isAnonymous() ? $this->settings->minResponses() : 0;
         $verified = $minimum > 0 ? $this->query->verifiedAnsweredCounts($id, $ids) : [];
+        $reachedCounts = $this->reachedCounts($survey);
+        $reached = static function (string $questionId) use ($reachedCounts, $responses, $minimum): ?int {
+            $counts = $reachedCounts[$questionId] ?? null;
+            if ($counts === null || $counts['all'] >= $responses || $counts['verified'] < $minimum) {
+                return null;
+            }
+
+            return $counts['all'];
+        };
 
         $results = [];
         foreach ($questions as $question) {
@@ -154,6 +164,7 @@ final readonly class ResultsService
                     hidden: $survey->results()->isHidden($question->id),
                     answered: $answered[$question->id] ?? 0,
                     belowMinimum: true,
+                    reached: $reached($question->id),
                 );
 
                 continue;
@@ -169,6 +180,7 @@ final readonly class ResultsService
                 $dates[$question->id] ?? [],
                 $texts[$question->id] ?? [],
                 $voters[$question->id] ?? [],
+                $reached($question->id),
             );
         }
 
@@ -183,7 +195,7 @@ final readonly class ResultsService
      * @param  list<string>  $texts
      * @param  array<string, list<string>>  $voters
      */
-    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $numbers, array $dates, array $texts, array $voters): QuestionResultDTO
+    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $numbers, array $dates, array $texts, array $voters, ?int $reached): QuestionResultDTO
     {
         $buckets = [];
         $grid = null;
@@ -235,7 +247,44 @@ final readonly class ResultsService
             mean: $mean,
             median: $median,
             texts: $texts,
+            reached: $reached,
         );
+    }
+
+    /**
+     * How many responses (and verified ones) reached each question, walking each response's
+     * answers to the jumping questions; null when the survey has no jumps and every response
+     * reached everything. The definition never changes once there are responses, so the walk
+     * today is the one each person took.
+     *
+     * @return array<string, array{all: int, verified: int}>|null
+     */
+    private function reachedCounts(Survey $survey): ?array
+    {
+        $definition = $survey->definition();
+        if (! $definition->hasBranching()) {
+            return null;
+        }
+
+        $jumping = [];
+        foreach ($definition->sections as $section) {
+            $question = $section->branchingQuestion();
+            if ($question instanceof Question) {
+                $jumping[] = $question->id;
+            }
+        }
+
+        $navigator = new SectionNavigator;
+        $counts = [];
+        foreach ($this->query->responseValues($survey->id(), $jumping) as $response) {
+            foreach ($navigator->reachedQuestionIds($definition, new Submission($response['values'])) as $questionId) {
+                $counts[$questionId] ??= ['all' => 0, 'verified' => 0];
+                $counts[$questionId]['all']++;
+                $counts[$questionId]['verified'] += $response['verified'] ? 1 : 0;
+            }
+        }
+
+        return $counts;
     }
 
     /**

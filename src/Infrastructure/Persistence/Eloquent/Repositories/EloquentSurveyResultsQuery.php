@@ -7,6 +7,7 @@ namespace Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
+use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
@@ -145,6 +146,27 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
         }
 
         return $voters;
+    }
+
+    public function responseValues(SurveyId $surveyId, array $questionIds): array
+    {
+        $values = [];
+        foreach ($this->answers($surveyId, $questionIds)->select(['a.response_id', 'a.question_id', 'a.option_id', 'a.row_id', 'a.text_value', 'a.number_value'])->get() as $row) {
+            $values[$this->string($row->response_id)][] = new AnswerValue(
+                $this->string($row->question_id),
+                is_string($row->option_id) ? $row->option_id : null,
+                is_string($row->row_id) ? $row->row_id : null,
+                is_string($row->text_value) ? $row->text_value : null,
+                is_numeric($row->number_value) ? (int) $row->number_value : null,
+            );
+        }
+
+        $responses = [];
+        foreach (SurveyResponseModel::query()->where('survey_id', $surveyId->value)->toBase()->get(['id', 'verified']) as $response) {
+            $responses[] = ['verified' => (bool) $response->verified, 'values' => $values[$this->string($response->id)] ?? []];
+        }
+
+        return $responses;
     }
 
     /**

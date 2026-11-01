@@ -7,14 +7,20 @@ namespace Modules\Surveys\Tests\Feature\Filament;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Livewire\Component;
 use Livewire\Livewire;
+use Modules\Surveys\Application\DTOs\Respondent;
+use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Enums\ChartType;
+use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ViewSurveyResults;
 use Modules\Surveys\Filament\Widgets\QuestionResultChart;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
+use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use ReflectionMethod;
 use Tests\Support\Modules\InteractsWithModulePanel;
 use Tests\Support\Modules\ModuleTestCase;
@@ -47,6 +53,19 @@ final class SurveyResultsPageTest extends ModuleTestCase
             ->assertSee(trans_choice('surveys::filament.results.responses', 1, ['count' => 1]))
             ->assertSee('Una partida genial')
             ->assertSee('Pregunta q-single');
+    }
+
+    public function test_says_how_many_reached_a_question_some_sections_skipped(): void
+    {
+        $this->actingAsPanelAdmin();
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()), false, ResultsSettings::defaultsFor(SurveyKind::Form));
+        $submissions = $this->app->make(SubmissionService::class);
+        $submissions->submit($id, Respondent::account($this->people[0]->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
+        $submissions->submit($id, Respondent::account($this->people[1]->id), ['q-played' => 'o-yes', 'q-finale' => 'Épico', 'q-comments' => 'Bien']);
+
+        Livewire::test(ViewSurveyResults::class, ['record' => $id->value])
+            ->assertOk()
+            ->assertSee(__('surveys::filament.results.reached', ['reached' => 1, 'responses' => 2]));
     }
 
     public function test_an_anonymous_survey_below_the_minimum_shows_only_the_notice(): void

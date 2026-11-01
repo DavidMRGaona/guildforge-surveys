@@ -144,6 +144,15 @@ function save(): void {
                             question.answered
                         )
                     }}
+                    <template v-if="question.reached !== null">
+                        ·
+                        {{
+                            t('surveys.results.reached', {
+                                reached: question.reached,
+                                responses: results.responses,
+                            })
+                        }}
+                    </template>
                     <template v-if="question.mean !== null && !question.belowMinimum">
                         ·
                         {{

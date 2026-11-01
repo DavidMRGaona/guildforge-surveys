@@ -164,6 +164,7 @@ return [
     ],
 
     'export' => [
+        'not_reached' => 'No llegó',
         'date' => 'Fecha',
         'person' => 'Persona',
         'other' => 'Otra: :text',

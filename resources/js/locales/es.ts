@@ -272,6 +272,7 @@ export default {
             responses: 'Sin respuestas | {count} respuesta | {count} respuestas',
             answered:
                 'Nadie ha respondido | {count} persona ha respondido | {count} personas han respondido',
+            reached: 'La vieron {reached} de {responses}',
             below_minimum: 'Aún no hay respuestas suficientes a esta pregunta para mostrarlas.',
             mean_median: 'Media: {mean} · Mediana: {median}',
             percent: '{percent} %',

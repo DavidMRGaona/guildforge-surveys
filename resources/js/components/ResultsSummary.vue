@@ -45,6 +45,15 @@ function rowTotal(counts: Record<string, number>): number {
             <h3 class="font-medium text-base-primary">{{ question.title }}</h3>
             <p class="mt-1 text-sm text-base-secondary">
                 {{ t('surveys.results.answered', { count: question.answered }, question.answered) }}
+                <template v-if="question.reached !== null">
+                    ·
+                    {{
+                        t('surveys.results.reached', {
+                            reached: question.reached,
+                            responses: results.responses,
+                        })
+                    }}
+                </template>
                 <template v-if="question.mean !== null && !question.belowMinimum">
                     ·
                     {{

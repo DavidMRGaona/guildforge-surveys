@@ -15,6 +15,7 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
+use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\ModuleTestCase;
@@ -249,6 +250,36 @@ final class ResultsServiceTest extends ModuleTestCase
         $this->assertSame([], $this->question($this->results->forRespondents($anonymous), 'q-1')->buckets[0]->voters);
     }
 
+    public function test_a_question_after_a_jump_says_how_many_reached_it(): void
+    {
+        $id = $this->answerBranching(anonymous: false);
+
+        $results = $this->results->forPanel($id);
+
+        // "No" skipped the campaign section: two of the three responses reached it
+        $finale = $this->question($results, 'q-finale');
+        $this->assertSame(2, $finale->reached);
+        $this->assertSame(2, $finale->answered);
+        // Everyone reached the others: nothing to point out
+        $this->assertNull($this->question($results, 'q-played')->reached);
+        $this->assertNull($this->question($results, 'q-comments')->reached);
+        $this->assertNull($this->question($this->results->forRespondents($id), 'q-played')->reached);
+    }
+
+    public function test_an_anonymous_survey_says_how_many_reached_a_question_only_from_the_minimum(): void
+    {
+        config(['modules.settings.surveys.min_responses' => 2]);
+        $id = $this->answerBranching(anonymous: true);
+
+        $this->assertSame(2, $this->question($this->results->forPanel($id), 'q-finale')->reached);
+
+        config(['modules.settings.surveys.min_responses' => 3]);
+        $finale = $this->question($this->results->forPanel($id), 'q-finale');
+
+        $this->assertTrue($finale->belowMinimum);
+        $this->assertNull($finale->reached);
+    }
+
     public function test_a_survey_without_audience_has_no_rate(): void
     {
         [$id] = $this->openPoll(anonymous: false, audience: false);
@@ -257,6 +288,22 @@ final class ResultsServiceTest extends ModuleTestCase
 
         $this->assertSame(0, $results->audienceSize);
         $this->assertNull($results->rate);
+    }
+
+    /**
+     * SurveyDefinitionTest::branchingDefinition() for the three people, with live results:
+     * the first one answers "No" and skips the campaign section, the others answer "Yes".
+     */
+    private function answerBranching(bool $anonymous): SurveyId
+    {
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()), $anonymous, new ResultsSettings(liveResults: true, visibleToRespondents: true));
+        $submissions = $this->app->make(SubmissionService::class);
+        $submissions->submit($id, Respondent::account($this->people[0]->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
+        foreach ([1, 2] as $person) {
+            $submissions->submit($id, Respondent::account($this->people[$person]->id), ['q-played' => 'o-yes', 'q-finale' => 'Épico', 'q-comments' => 'Bien']);
+        }
+
+        return $id;
     }
 
     private function question(SurveyResultsDTO $results, string $questionId): QuestionResultDTO

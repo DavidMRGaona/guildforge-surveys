@@ -36,6 +36,7 @@ function question(
         grid: null,
         mean: null,
         median: null,
+        reached: null,
         chartType: 'bar',
         chartTypes: ['bar', 'pie'],
         texts: [],
@@ -74,6 +75,20 @@ describe('Results', () => {
         expect(wrapper.findAll('[data-chart]')).toHaveLength(2);
         // Only questions with more than one chart offer the choice
         expect(wrapper.findAll('input[type="radio"]')).toHaveLength(2);
+    });
+
+    it('says how many reached a question some sections skipped', () => {
+        const wrapper = mount(Results, {
+            props: props({
+                results: {
+                    ...props().results,
+                    questions: [question('q-1'), question('q-2', { reached: 2 })],
+                },
+            }),
+        });
+
+        expect(wrapper.text()).toContain('La vieron 2 de 3');
+        expect(wrapper.text().match(/La vieron/g)).toHaveLength(1);
     });
 
     it('saves the chosen charts and the questions left out', async () => {
