@@ -95,6 +95,7 @@ final class SurveyActions
             ->icon('heroicon-o-arrow-path')
             ->color('warning')
             ->modalDescription(__('surveys::filament.actions.renew_public_link_description'))
+            ->modalSubmitActionLabel(__('surveys::filament.actions.renew_public_link'))
             ->schema([
                 Checkbox::make('confirmation')
                     ->label(__('surveys::filament.actions.renew_public_link_confirmation'))
