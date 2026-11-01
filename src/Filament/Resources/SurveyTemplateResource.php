@@ -134,6 +134,7 @@ final class SurveyTemplateResource extends BaseResource
                     }),
                 TernaryFilter::make('recommended')
                     ->label(__('surveys::filament.survey_template.fields.origin'))
+                    ->placeholder(__('surveys::filament.survey_template.origins.all'))
                     ->trueLabel(__('surveys::filament.survey_template.origins.recommended'))
                     ->falseLabel(__('surveys::filament.survey_template.origins.own'))
                     ->queries(
