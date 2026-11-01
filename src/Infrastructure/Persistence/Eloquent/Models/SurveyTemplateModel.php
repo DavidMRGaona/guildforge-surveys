@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property string $kind
  * @property array<mixed> $definition
  * @property string|null $created_by
+ * @property string|null $catalog_key
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -33,7 +34,7 @@ final class SurveyTemplateModel extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['id', 'name', 'description', 'kind', 'definition', 'created_by'];
+    protected $fillable = ['id', 'name', 'description', 'kind', 'definition', 'created_by', 'catalog_key'];
 
     /**
      * @return array<string, string>
