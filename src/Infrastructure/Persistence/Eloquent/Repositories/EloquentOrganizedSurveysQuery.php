@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories;
 
 use App\Application\Services\TimezoneServiceInterface;
+use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\Surveys\Application\Contracts\OrganizedSurveysQueryInterface;
 use Modules\Surveys\Application\Services\SurveyManagerGate;
@@ -15,6 +16,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyOrganizerModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 
 /**
  * @phpstan-import-type OrganizedSurvey from OrganizedSurveysQueryInterface
@@ -64,13 +66,16 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             ->map(static fn (mixed $total): int => (int) $total)
             ->all();
 
-        return array_map(fn (Survey $survey): array => $this->row($survey, $responses[$survey->id()->value] ?? 0), $surveys);
+        // Templates are the whole site's: only whoever manages them may keep a survey as one
+        $savesTemplates = UserModel::query()->find($userId)?->can('create', SurveyTemplateModel::class) === true;
+
+        return array_map(fn (Survey $survey): array => $this->row($survey, $responses[$survey->id()->value] ?? 0, $savesTemplates), $surveys);
     }
 
     /**
      * @return OrganizedSurvey
      */
-    private function row(Survey $survey, int $responses): array
+    private function row(Survey $survey, int $responses, bool $savesTemplates): array
     {
         $status = $this->status($survey);
         $offered = in_array($status, ['draft', 'to_send', 'scheduled', 'rejected'], true);
@@ -94,6 +99,8 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             'editUrl' => $status === 'closed' ? null : route('surveys.manage.edit', $id),
             'resultsUrl' => $survey->wasOpened() ? route('surveys.manage.results', $id) : null,
             'closeUrl' => $status === 'open' ? route('surveys.manage.close', $id) : null,
+            'duplicateUrl' => route('surveys.manage.duplicate', $id),
+            'saveTemplateUrl' => $savesTemplates ? route('surveys.manage.save-template', $id) : null,
         ];
     }
 

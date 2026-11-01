@@ -16,7 +16,8 @@ use DateTimeImmutable;
 /**
  * A survey subject source for tests: one example thing whose audience, organizers and managers
  * are set by each test (reset() puts them back), as are its game system and the game systems it
- * lists.
+ * lists. A second thing, thing-3, with its own managers and status, is for moving a survey
+ * from one subject to another.
  */
 final class ExampleThingSource implements SurveySubjectAttributeValuesInterface, SurveySubjectSourceInterface
 {
@@ -34,6 +35,11 @@ final class ExampleThingSource implements SurveySubjectAttributeValuesInterface,
 
     public static SurveySubjectStatus $status = SurveySubjectStatus::Active;
 
+    /** @var list<string> users canManage() lets in on thing-3, its organizers too */
+    public static array $otherManagers = [];
+
+    public static SurveySubjectStatus $otherStatus = SurveySubjectStatus::Active;
+
     /** The thing's game_system attribute, when it has one */
     public static ?SurveySubjectAttributeDTO $gameSystem = null;
 
@@ -47,6 +53,8 @@ final class ExampleThingSource implements SurveySubjectAttributeValuesInterface,
         self::$managers = [];
         self::$title = 'Partida de ejemplo';
         self::$status = SurveySubjectStatus::Active;
+        self::$otherManagers = [];
+        self::$otherStatus = SurveySubjectStatus::Active;
         self::$gameSystem = null;
         self::$gameSystems = [];
     }
@@ -63,6 +71,18 @@ final class ExampleThingSource implements SurveySubjectAttributeValuesInterface,
 
     public function find(string $subjectId): ?SurveySubjectDTO
     {
+        if ($subjectId === 'thing-3') {
+            return new SurveySubjectDTO(
+                sourceType: self::TYPE,
+                subjectId: 'thing-3',
+                title: 'Otra partida de ejemplo',
+                startsAt: new DateTimeImmutable('2030-02-05T16:00:00+00:00'),
+                endsAt: new DateTimeImmutable('2030-02-05T20:00:00+00:00'),
+                organizerIds: self::$otherManagers,
+                status: self::$otherStatus,
+            );
+        }
+
         return $subjectId === 'thing-1' ? new SurveySubjectDTO(
             sourceType: self::TYPE,
             subjectId: 'thing-1',
@@ -82,7 +102,11 @@ final class ExampleThingSource implements SurveySubjectAttributeValuesInterface,
 
     public function canManage(string $userId, string $subjectId): bool
     {
-        return $subjectId === 'thing-1' && in_array($userId, self::$managers, true);
+        return match ($subjectId) {
+            'thing-1' => in_array($userId, self::$managers, true),
+            'thing-3' => in_array($userId, self::$otherManagers, true),
+            default => false,
+        };
     }
 
     public function attributeValues(string $key): array

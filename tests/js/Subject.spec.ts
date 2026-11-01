@@ -16,6 +16,7 @@ function props(overrides: Partial<ManageSubjectProps> = {}): ManageSubjectProps 
         prepareUrl: null,
         createUrls: null,
         endChoice: null,
+        copy: null,
         ...overrides,
     };
 }
@@ -45,6 +46,41 @@ function endChoice(
 }
 
 describe('Subject', () => {
+    it('copies an earlier survey to the subject', async () => {
+        vi.mocked(router.post).mockClear();
+        const wrapper = mount(Subject, {
+            props: props({
+                copy: {
+                    url: '/encuestas/sujeto/example-thing/thing-1/copiar',
+                    surveys: [
+                        { value: 's-1', label: 'Valoración · Torneo de primavera' },
+                        { value: 's-2', label: 'Sondeo · Torneo de otoño' },
+                    ],
+                },
+            }),
+        });
+
+        expect(wrapper.text()).toContain('Partir de una encuesta anterior');
+        expect(wrapper.text()).toContain('Valoración · Torneo de primavera');
+
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Copiar aquí')
+            ?.trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith(
+            '/encuestas/sujeto/example-thing/thing-1/copiar',
+            { survey: 's-1' },
+            expect.any(Object)
+        );
+    });
+
+    it('offers no copy without earlier surveys', () => {
+        const wrapper = mount(Subject, { props: props() });
+
+        expect(wrapper.text()).not.toContain('Partir de una encuesta anterior');
+    });
+
     it('saves the end survey chosen for the subject', async () => {
         vi.mocked(router.post).mockClear();
         const wrapper = mount(Subject, { props: props({ endChoice: endChoice() }) });

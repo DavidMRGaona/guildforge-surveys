@@ -516,6 +516,45 @@ final class Survey
         $this->anonymous = true;
     }
 
+    /**
+     * A new draft with this survey's content and settings, to ask the same again: the definition
+     * as it is (keys only where they were, so trends keep grouping them, and the ids the results
+     * settings point at), the template it came from, its audience rule and public link setting.
+     * Nothing of what happened to this one: responses, audience, link token, review, sending or
+     * end. A subject survey goes to the subject given (the same or another); a general one stays
+     * general. One that closed on a fixed date closes on the date given; one that stays open a
+     * number of days keeps them.
+     *
+     * @throws InvalidSurveyStateException when the copy would gain or lose a subject
+     */
+    public function duplicate(SurveyId $id, string $title, ?SubjectSnapshot $subject, string $createdBy, ?DateTimeImmutable $fixedClosingDate): self
+    {
+        if (($this->subject instanceof SubjectSnapshot) !== ($subject instanceof SubjectSnapshot)) {
+            throw InvalidSurveyStateException::copyChangesAudience($this->id->value);
+        }
+
+        return new self(
+            id: $id,
+            kind: $this->kind,
+            title: $title,
+            description: $this->description,
+            definition: $this->definition,
+            anonymous: $this->anonymous,
+            results: $this->results,
+            audienceType: $this->audienceType,
+            audienceRoles: $this->audienceRoles,
+            publicLinkEnabled: $this->publicLinkEnabled,
+            templateId: $this->templateId,
+            subject: $subject,
+            closesAt: $this->durationDays === null && $this->closesAt instanceof DateTimeImmutable ? $fixedClosingDate : null,
+            reminderHoursBefore: $this->reminderHoursBefore,
+            createdBy: $createdBy,
+            durationDays: $this->durationDays,
+            publicLinkMode: $this->publicLinkMode,
+            announceInChannels: $this->announceInChannels,
+        );
+    }
+
     public function id(): SurveyId
     {
         return $this->id;

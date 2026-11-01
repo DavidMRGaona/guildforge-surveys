@@ -8,15 +8,22 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Js;
+use Modules\Surveys\Application\Exceptions\SubjectCancelledException;
+use Modules\Surveys\Application\Services\SurveyDuplicationService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Application\Services\SurveyReviewService;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
+use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
+use Modules\Surveys\Domain\Exceptions\SubjectNotFoundException;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Filament\Resources\SurveyResource;
+use Modules\Surveys\Filament\Resources\SurveyTemplateResource;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 
 /**
  * Actions shared by the survey list, the edit page and the read-only page.
@@ -171,6 +178,78 @@ final class SurveyActions
                 $reason = is_string($data['reason'] ?? null) ? $data['reason'] : '';
                 self::review(static fn () => app(SurveyReviewService::class)->reject(SurveyId::fromString($record->id), (string) auth()->id(), $reason), 'rejected');
                 $record->refresh();
+            });
+    }
+
+    /**
+     * A draft copy with the same content and settings, opened in the editor. A subject survey's
+     * copy stays with its subject, which must still be there and not cancelled.
+     */
+    public static function duplicate(): Action
+    {
+        return Action::make('duplicate')
+            ->label(__('surveys::filament.actions.duplicate'))
+            ->icon('heroicon-o-document-duplicate')
+            ->color('gray')
+            ->requiresConfirmation()
+            ->modalDescription(__('surveys::filament.actions.duplicate_description'))
+            ->authorize(static fn (): bool => auth()->user()?->can('create', SurveyModel::class) === true)
+            ->action(static function (SurveyModel $record, Action $action): void {
+                try {
+                    $copy = app(SurveyDuplicationService::class)->duplicate(SurveyId::fromString($record->id), (string) auth()->id());
+                } catch (SubjectNotFoundException|SubjectCancelledException) {
+                    Notification::make()->danger()->title(__('surveys::filament.actions.duplicate_failed'))->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title(__('surveys::filament.actions.duplicate_done'))->send();
+                $action->redirect(SurveyResource::getUrl('edit', ['record' => $copy->id()->value]));
+            });
+    }
+
+    /**
+     * A template with the survey's questions, meant for its kind of subject (or general surveys).
+     */
+    public static function saveAsTemplate(): Action
+    {
+        return Action::make('save_as_template')
+            ->label(__('surveys::filament.actions.save_as_template'))
+            ->icon('heroicon-o-bookmark')
+            ->color('gray')
+            ->modalDescription(__('surveys::filament.actions.save_as_template_description'))
+            ->fillForm(static fn (SurveyModel $record): array => ['name' => $record->title, 'description' => $record->description])
+            ->schema([
+                TextInput::make('name')
+                    ->label(__('surveys::filament.survey_template.fields.name'))
+                    ->required()
+                    ->maxLength(255),
+                Textarea::make('description')
+                    ->label(__('surveys::filament.survey_template.fields.description'))
+                    ->rows(2),
+            ])
+            ->authorize(static fn (): bool => auth()->user()?->can('create', SurveyTemplateModel::class) === true)
+            ->action(static function (SurveyModel $record, array $data): void {
+                $name = is_string($data['name'] ?? null) ? $data['name'] : '';
+                $description = is_string($data['description'] ?? null) && trim($data['description']) !== '' ? $data['description'] : null;
+
+                try {
+                    $template = app(SurveyDuplicationService::class)->saveAsTemplate(SurveyId::fromString($record->id), $name, $description, (string) auth()->id());
+                } catch (InvalidSurveyDefinitionException) {
+                    Notification::make()->danger()->title(__('surveys::filament.actions.save_as_template_failed'))->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title(__('surveys::filament.actions.save_as_template_done', ['name' => $template->name()]))
+                    ->actions([
+                        Action::make('edit_template')
+                            ->label(__('surveys::filament.actions.open_template'))
+                            ->url(SurveyTemplateResource::getUrl('edit', ['record' => $template->id()->value])),
+                    ])
+                    ->send();
             });
     }
 

@@ -24,6 +24,8 @@ const dismissing = ref<OrganizedSurvey | null>(null);
 const dismissOpen = ref(false);
 const closing = ref<OrganizedSurvey | null>(null);
 const closeOpen = ref(false);
+const keeping = ref<OrganizedSurvey | null>(null);
+const keepOpen = ref(false);
 
 // The organizer's own draft is thrown away; an offered survey is simply not sent
 const dismissIsDiscard = computed(() => dismissing.value?.status === 'draft');
@@ -89,6 +91,19 @@ function confirmDismiss(): void {
 function askClose(survey: OrganizedSurvey): void {
     closing.value = survey;
     closeOpen.value = true;
+}
+
+function askKeep(survey: OrganizedSurvey): void {
+    keeping.value = survey;
+    keepOpen.value = true;
+}
+
+function confirmKeep(): void {
+    const survey = keeping.value;
+    if (survey?.saveTemplateUrl) {
+        post(survey, survey.saveTemplateUrl);
+    }
+    keeping.value = null;
 }
 
 function confirmClose(): void {
@@ -161,22 +176,32 @@ function confirmClose(): void {
                 </p>
             </div>
 
-            <div
-                v-if="
-                    survey.sendUrl ||
-                    survey.dismissUrl ||
-                    survey.editUrl ||
-                    survey.resultsUrl ||
-                    survey.closeUrl
-                "
-                class="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end"
-            >
+            <div class="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                 <Link v-if="survey.resultsUrl" :href="survey.resultsUrl" :class="LINK_ACTION_CLASS">
                     {{ t('surveys.manage.results') }}
                 </Link>
                 <Link v-if="survey.editUrl" :href="survey.editUrl" :class="LINK_ACTION_CLASS">
                     {{ t('surveys.manage.edit') }}
                 </Link>
+                <BaseButton
+                    variant="secondary"
+                    size="sm"
+                    class="w-full sm:w-auto"
+                    :disabled="busy !== null"
+                    @click="post(survey, survey.duplicateUrl)"
+                >
+                    {{ t('surveys.manage.duplicate') }}
+                </BaseButton>
+                <BaseButton
+                    v-if="survey.saveTemplateUrl"
+                    variant="secondary"
+                    size="sm"
+                    class="w-full sm:w-auto"
+                    :disabled="busy !== null"
+                    @click="askKeep(survey)"
+                >
+                    {{ t('surveys.manage.save_as_template') }}
+                </BaseButton>
                 <BaseButton
                     v-if="survey.dismissUrl"
                     variant="secondary"
@@ -236,6 +261,15 @@ function confirmClose(): void {
         :cancel-label="t('surveys.manage.cancel')"
         confirm-variant="danger"
         @confirm="confirmDismiss"
+    />
+
+    <ConfirmDialog
+        v-model="keepOpen"
+        :title="t('surveys.manage.save_as_template_title')"
+        :message="t('surveys.manage.save_as_template_message')"
+        :confirm-label="t('surveys.manage.save_as_template')"
+        :cancel-label="t('surveys.manage.cancel')"
+        @confirm="confirmKeep"
     />
 
     <ConfirmDialog

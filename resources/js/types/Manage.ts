@@ -34,6 +34,10 @@ export interface OrganizedSurvey {
     resultsUrl: string | null;
     /** Only while it is open. */
     closeUrl: string | null;
+    /** A draft copy for the same subject, opened in the editor. */
+    duplicateUrl: string;
+    /** Only for whoever manages the site's templates. */
+    saveTemplateUrl: string | null;
 }
 
 export interface ManageSubjectProps {
@@ -50,6 +54,14 @@ export interface ManageSubjectProps {
     createUrls: { form: string; poll: string } | null;
     /** Which survey goes out when the subject ends; null when there is nothing to choose. */
     endChoice: EndSurveyChoice | null;
+    /** The organizer's earlier surveys to copy here; null when there are none or it is cancelled. */
+    copy: SurveyCopy | null;
+}
+
+export interface SurveyCopy {
+    url: string;
+    /** Each survey named with its subject. */
+    surveys: EndSurveyChoiceOption[];
 }
 
 export interface EndSurveyChoiceOption {

@@ -32,6 +32,8 @@ final class EditSurvey extends EditRecord
             SurveyActions::renewPublicLink(),
             SurveyActions::open()->after(fn () => $this->refreshFormData(['status'])),
             SurveyActions::close()->after(fn () => $this->refreshFormData(['status'])),
+            SurveyActions::duplicate(),
+            SurveyActions::saveAsTemplate(),
             SurveyActions::delete(),
         ];
     }

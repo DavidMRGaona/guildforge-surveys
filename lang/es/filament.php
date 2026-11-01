@@ -189,6 +189,15 @@ return [
         'renew_public_link_confirmation' => 'Entiendo que el enlace actual dejará de funcionar para todos',
         'renew_public_link_done' => 'Enlace cambiado',
         'renew_public_link_failed' => 'No se puede cambiar: la encuesta ya no acepta respuestas.',
+        'duplicate' => 'Duplicar',
+        'duplicate_description' => 'Se crea un borrador con las mismas preguntas y ajustes, sin respuestas, sin audiencia fijada y sin enlace público. Una encuesta de un sujeto se copia para el mismo sujeto.',
+        'duplicate_done' => 'Copia creada como borrador',
+        'duplicate_failed' => 'No se puede duplicar: el sujeto de la encuesta ya no existe o se ha cancelado.',
+        'save_as_template' => 'Guardar como plantilla',
+        'save_as_template_description' => 'Se crea una plantilla con las preguntas de la encuesta. Las claves se conservan donde ya las había.',
+        'save_as_template_done' => 'Plantilla «:name» creada',
+        'save_as_template_failed' => 'No se puede guardar como plantilla: sus preguntas no son válidas.',
+        'open_template' => 'Abrir la plantilla',
     ],
 
     'results' => [

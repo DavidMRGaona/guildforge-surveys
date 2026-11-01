@@ -23,6 +23,8 @@ function survey(overrides: Partial<OrganizedSurvey>): OrganizedSurvey {
         editUrl: '/encuestas/s-1/editar',
         resultsUrl: null,
         closeUrl: null,
+        duplicateUrl: '/encuestas/s-1/duplicar',
+        saveTemplateUrl: null,
         ...overrides,
     };
 }
@@ -122,7 +124,7 @@ describe('OrganizedSurveysList', () => {
         expect(wrapper.text()).toContain('Enviar ahora');
     });
 
-    it('shows the response rate of an open survey without actions', () => {
+    it('shows the response rate of an open survey without sending actions', () => {
         const wrapper = mount(OrganizedSurveysList, {
             props: {
                 surveys: [
@@ -138,7 +140,7 @@ describe('OrganizedSurveysList', () => {
         });
 
         expect(wrapper.text()).toContain('3 de 4 han respondido');
-        expect(wrapper.find('button').exists()).toBe(false);
+        expect(wrapper.findAll('button').map((button) => button.text())).toEqual(['Duplicar']);
     });
 
     it('links to the results once the survey opened', () => {
@@ -224,6 +226,62 @@ describe('OrganizedSurveysList', () => {
         dialog?.vm.$emit('confirm');
 
         expect(router.post).toHaveBeenCalledWith('/encuestas/s-1/cerrar', {}, expect.any(Object));
+        wrapper.unmount();
+    });
+
+    it('duplicates a survey with one click', async () => {
+        vi.mocked(router.post).mockClear();
+        const wrapper = mount(OrganizedSurveysList, {
+            props: { surveys: [survey({ status: 'closed', sendUrl: null, dismissUrl: null })] },
+        });
+
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Duplicar')
+            ?.trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith('/encuestas/s-1/duplicar', {}, expect.any(Object));
+    });
+
+    it('offers to keep a survey as a template only when it may', () => {
+        const without = mount(OrganizedSurveysList, { props: { surveys: [survey({})] } });
+        expect(without.text()).not.toContain('Guardar como plantilla');
+
+        const allowed = mount(OrganizedSurveysList, {
+            props: {
+                surveys: [survey({ saveTemplateUrl: '/encuestas/s-1/guardar-como-plantilla' })],
+            },
+        });
+        expect(allowed.text()).toContain('Guardar como plantilla');
+    });
+
+    it('keeps a survey as a template once the organizer confirms', async () => {
+        vi.mocked(router.post).mockClear();
+        const wrapper = mount(OrganizedSurveysList, {
+            props: {
+                surveys: [survey({ saveTemplateUrl: '/encuestas/s-1/guardar-como-plantilla' })],
+            },
+            attachTo: document.body,
+        });
+
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Guardar como plantilla')
+            ?.trigger('click');
+
+        expect(router.post).not.toHaveBeenCalled();
+        expect(document.body.textContent).toContain('¿Guardar como plantilla?');
+
+        const dialog = wrapper
+            .findAllComponents({ name: 'ConfirmDialog' })
+            .find((candidate) => candidate.props('title') === '¿Guardar como plantilla?');
+        dialog?.vm.$emit('confirm');
+
+        expect(router.post).toHaveBeenCalledWith(
+            '/encuestas/s-1/guardar-como-plantilla',
+            {},
+            expect.any(Object)
+        );
         wrapper.unmount();
     });
 
