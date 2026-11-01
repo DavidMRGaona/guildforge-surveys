@@ -14,7 +14,7 @@ import {
 } from '../../utils/definition';
 import JumpsEditor from './JumpsEditor.vue';
 import OptionListEditor from './OptionListEditor.vue';
-import { INPUT_CLASS } from './styles';
+import { FIELD_CLASS } from '../styles';
 
 const props = defineProps<{
     locks: EditorLocks;
@@ -84,7 +84,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                     :id="`${fieldId}-title`"
                     :value="question.title"
                     type="text"
-                    :class="['mt-1', INPUT_CLASS]"
+                    :class="['mt-1', FIELD_CLASS]"
                     :disabled="props.locks.structure"
                     :aria-invalid="error('title') ? 'true' : undefined"
                     @input="set('title', ($event.target as HTMLInputElement).value)"
@@ -119,7 +119,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                 :id="`${fieldId}-help`"
                 :value="question.help ?? ''"
                 rows="2"
-                :class="['mt-1', INPUT_CLASS]"
+                :class="['mt-1', FIELD_CLASS]"
                 :disabled="props.locks.help"
                 @input="set('help', ($event.target as HTMLTextAreaElement).value || null)"
             ></textarea>
@@ -137,7 +137,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             <OptionListEditor
                 :model-value="question.options"
                 :label="t('surveys.editor.options')"
-                :item-label="t('surveys.editor.option_label')"
+                :item-label="(number: number) => t('surveys.editor.option_label', { number })"
                 :add-label="t('surveys.editor.add_option')"
                 :locked="props.locks.structure"
                 :errors="props.errors"
@@ -211,7 +211,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                     :id="`${fieldId}-min-label`"
                     :value="question.scale.min_label ?? ''"
                     type="text"
-                    :class="['mt-1', INPUT_CLASS]"
+                    :class="['mt-1', FIELD_CLASS]"
                     :disabled="props.locks.structure"
                     @input="setScaleLabel('min_label', ($event.target as HTMLInputElement).value)"
                 />
@@ -227,7 +227,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                     :id="`${fieldId}-max-label`"
                     :value="question.scale.max_label ?? ''"
                     type="text"
-                    :class="['mt-1', INPUT_CLASS]"
+                    :class="['mt-1', FIELD_CLASS]"
                     :disabled="props.locks.structure"
                     @input="setScaleLabel('max_label', ($event.target as HTMLInputElement).value)"
                 />
@@ -256,7 +256,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             <OptionListEditor
                 :model-value="question.grid.rows"
                 :label="t('surveys.editor.grid_rows')"
-                :item-label="t('surveys.editor.row_label')"
+                :item-label="(number: number) => t('surveys.editor.row_label', { number })"
                 :add-label="t('surveys.editor.add_row')"
                 :locked="props.locks.structure"
                 :errors="props.errors"
@@ -266,7 +266,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             <OptionListEditor
                 :model-value="question.grid.columns"
                 :label="t('surveys.editor.grid_columns')"
-                :item-label="t('surveys.editor.column_label')"
+                :item-label="(number: number) => t('surveys.editor.column_label', { number })"
                 :add-label="t('surveys.editor.add_column')"
                 :locked="props.locks.structure"
                 :errors="props.errors"

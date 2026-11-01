@@ -4,7 +4,8 @@ import type { EditorLocks } from '../../types/Editor';
 import type { SurveyDefinition, SurveySection } from '../../types/Respond';
 import { move, newSection, withoutSection } from '../../utils/definition';
 import SectionEditor from './SectionEditor.vue';
-import { ITEM_BUTTON_CLASS } from './styles';
+import { ADD_BUTTON_CLASS, ICON_BUTTON_CLASS } from '../styles';
+import PlusIcon from '../icons/PlusIcon.vue';
 
 const props = defineProps<{
     locks: EditorLocks;
@@ -34,45 +35,53 @@ function setSection(index: number, section: SurveySection): void {
         <section
             v-for="(section, index) in definition.sections"
             :key="section.id"
-            class="space-y-3 rounded-lg border border-neutral-200 bg-muted p-4 sm:p-6"
+            class="space-y-4 rounded-lg border border-default bg-muted p-3 sm:p-6"
+            :aria-labelledby="props.locks.poll ? undefined : `section-${section.id}-heading`"
         >
-            <div
-                v-if="!props.locks.structure && !props.locks.poll && definition.sections.length > 1"
-                class="flex justify-end gap-1"
-            >
-                <button
-                    type="button"
-                    :class="ITEM_BUTTON_CLASS"
-                    :disabled="index === 0"
-                    :aria-label="t('surveys.editor.move_section_up')"
-                    @click="setSections(move(definition.sections, index, -1))"
+            <div v-if="!props.locks.poll" class="flex items-center justify-between gap-2">
+                <h3
+                    :id="`section-${section.id}-heading`"
+                    class="text-base font-semibold text-base-primary"
                 >
-                    ↑
-                </button>
-                <button
-                    type="button"
-                    :class="ITEM_BUTTON_CLASS"
-                    :disabled="index === definition.sections.length - 1"
-                    :aria-label="t('surveys.editor.move_section_down')"
-                    @click="setSections(move(definition.sections, index, 1))"
+                    {{ t('surveys.editor.section', { number: index + 1 }) }}
+                </h3>
+                <div
+                    v-if="!props.locks.structure && definition.sections.length > 1"
+                    class="flex gap-1"
                 >
-                    ↓
-                </button>
-                <button
-                    type="button"
-                    :class="ITEM_BUTTON_CLASS"
-                    :aria-label="t('surveys.editor.remove_section')"
-                    @click="setSections(withoutSection(definition.sections, section.id))"
-                >
-                    ✕
-                </button>
+                    <button
+                        type="button"
+                        :class="ICON_BUTTON_CLASS"
+                        :disabled="index === 0"
+                        :aria-label="t('surveys.editor.move_section_up')"
+                        @click="setSections(move(definition.sections, index, -1))"
+                    >
+                        ↑
+                    </button>
+                    <button
+                        type="button"
+                        :class="ICON_BUTTON_CLASS"
+                        :disabled="index === definition.sections.length - 1"
+                        :aria-label="t('surveys.editor.move_section_down')"
+                        @click="setSections(move(definition.sections, index, 1))"
+                    >
+                        ↓
+                    </button>
+                    <button
+                        type="button"
+                        :class="ICON_BUTTON_CLASS"
+                        :aria-label="t('surveys.editor.remove_section')"
+                        @click="setSections(withoutSection(definition.sections, section.id))"
+                    >
+                        ✕
+                    </button>
+                </div>
             </div>
             <SectionEditor
                 :model-value="section"
                 :locks="props.locks"
                 :errors="props.errors"
                 :path="`sections.${index}`"
-                :number="index + 1"
                 :sections="definition.sections"
                 @update:model-value="setSection(index, $event)"
             />
@@ -81,9 +90,10 @@ function setSection(index: number, section: SurveySection): void {
         <button
             v-if="!props.locks.structure && !props.locks.poll"
             type="button"
-            class="text-sm font-medium text-primary hover:underline"
+            :class="['w-full sm:w-auto', ADD_BUTTON_CLASS]"
             @click="setSections([...definition.sections, newSection()])"
         >
+            <PlusIcon />
             {{ t('surveys.editor.add_section') }}
         </button>
     </div>

@@ -2,13 +2,14 @@
 import { useI18n } from 'vue-i18n';
 import type { SurveyOption } from '../../types/Respond';
 import { move, newOption } from '../../utils/definition';
-import { INPUT_CLASS, ITEM_BUTTON_CLASS } from './styles';
+import { ADD_BUTTON_CLASS, FIELD_CLASS, ICON_BUTTON_CLASS } from '../styles';
+import PlusIcon from '../icons/PlusIcon.vue';
 
 const props = defineProps<{
     /** Accessible name of the list: options, rows or columns. */
     label: string;
-    /** Label of each item's field, with {number}. */
-    itemLabel: string;
+    /** Accessible name of the n-th field ("Opción 2"). */
+    itemLabel: (number: number) => string;
     addLabel: string;
     locked: boolean;
     errors: Record<string, string>;
@@ -40,12 +41,12 @@ function error(index: number): string | undefined {
             {{ props.errors[`definition.${props.path}`] }}
         </p>
         <div v-for="(option, index) in options" :key="option.id" class="space-y-1">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1">
                 <input
                     :value="option.label"
                     type="text"
-                    :class="INPUT_CLASS"
-                    :aria-label="props.itemLabel.replace('{number}', String(index + 1))"
+                    :class="['mr-1', FIELD_CLASS]"
+                    :aria-label="props.itemLabel(index + 1)"
                     :aria-invalid="error(index) ? 'true' : undefined"
                     :disabled="props.locked"
                     @input="update(index, ($event.target as HTMLInputElement).value)"
@@ -53,7 +54,7 @@ function error(index: number): string | undefined {
                 <template v-if="!props.locked">
                     <button
                         type="button"
-                        :class="ITEM_BUTTON_CLASS"
+                        :class="ICON_BUTTON_CLASS"
                         :disabled="index === 0"
                         :aria-label="t('surveys.editor.move_up')"
                         @click="options = move(options, index, -1)"
@@ -62,7 +63,7 @@ function error(index: number): string | undefined {
                     </button>
                     <button
                         type="button"
-                        :class="ITEM_BUTTON_CLASS"
+                        :class="ICON_BUTTON_CLASS"
                         :disabled="index === options.length - 1"
                         :aria-label="t('surveys.editor.move_down')"
                         @click="options = move(options, index, 1)"
@@ -71,7 +72,7 @@ function error(index: number): string | undefined {
                     </button>
                     <button
                         type="button"
-                        :class="ITEM_BUTTON_CLASS"
+                        :class="ICON_BUTTON_CLASS"
                         :aria-label="t('surveys.editor.remove')"
                         @click="remove(index)"
                     >
@@ -84,9 +85,10 @@ function error(index: number): string | undefined {
         <button
             v-if="!props.locked"
             type="button"
-            class="text-sm font-medium text-primary hover:underline"
+            :class="ADD_BUTTON_CLASS"
             @click="options = [...options, newOption()]"
         >
+            <PlusIcon />
             {{ props.addLabel }}
         </button>
     </fieldset>

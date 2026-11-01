@@ -30,3 +30,21 @@ export const LINK_ACTION_CLASS = `inline-flex min-h-11 w-full items-center justi
 
 /** Small status label: the theme text over a pale status colour reads in both themes. */
 export const BADGE_CLASS = 'inline-block rounded-full px-2 py-0.5 text-xs font-medium';
+
+/**
+ * A text field with the look of the core's form controls (FormSelect, FormNumberInput); a
+ * field marked aria-invalid gets the error border. The border colour is written as its
+ * variable: the core's own .border-default sits in a higher layer than this module's sheet
+ * and would beat the aria-invalid and focus borders.
+ */
+export const FIELD_CLASS =
+    'block w-full rounded-lg border border-(--color-border) bg-surface px-4 py-2.5 text-base-primary transition-colors hover:border-strong focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted aria-invalid:border-error aria-invalid:focus:ring-error';
+
+/** A square button with a symbol (move, remove): 44 px on phones, smaller with a pointer. */
+export const ICON_BUTTON_CLASS = `inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base-secondary transition-colors hover:bg-base-primary/10 hover:text-base-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent sm:h-9 sm:w-9 ${FOCUS_RING_CLASS}`;
+
+/** A button that adds an item (a question, a section, an option). */
+export const ADD_BUTTON_CLASS = `inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-base-muted bg-surface px-4 text-sm font-medium text-base-primary transition-colors hover:bg-muted ${FOCUS_RING_CLASS}`;
+
+/** A notice block: the theme text over a pale status colour, readable in both themes. */
+export const NOTICE_CLASS = 'rounded-lg p-4 text-sm break-words text-base-primary';

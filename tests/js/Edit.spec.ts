@@ -3,6 +3,7 @@ import { nextTick } from 'vue';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { router } from '@inertiajs/vue3';
 import { FormSelect } from '@/components/form';
+import BaseButton from '@/components/ui/BaseButton.vue';
 import Edit from '../../resources/js/pages/Surveys/Manage/Edit.vue';
 import type { EditSurveyProps } from '../../resources/js/types/Editor';
 import {
@@ -311,6 +312,78 @@ describe('Edit', () => {
         await wrapper.find('#survey-live').setValue(true);
 
         expect(wrapper.text()).toContain('debilita el anonimato');
+    });
+
+    it('writes the anonymity warning in the theme text over the warning colour', async () => {
+        const wrapper = mount(Edit, { props: props() });
+
+        await wrapper.find('#survey-live').setValue(true);
+
+        const warning = wrapper.get('[data-testid="live-results-warning"]');
+        expect(warning.text()).toContain('debilita el anonimato');
+        expect(warning.classes()).toContain('bg-warning-light');
+        expect(warning.classes()).toContain('text-base-primary');
+    });
+
+    it('writes the review and rejection notices in the theme text', () => {
+        const wrapper = mount(Edit, {
+            props: props({}, { pendingReview: true, rejectionReason: 'Falta el sistema' }),
+        });
+
+        const notices = wrapper.findAll('[role="status"]');
+        expect(notices.length).toBeGreaterThanOrEqual(2);
+        for (const notice of notices) {
+            expect(notice.classes()).toContain('text-base-primary');
+        }
+    });
+
+    it('leads with the way back to the subject surveys and the page title', () => {
+        const wrapper = mount(Edit, { props: props() });
+
+        const header = wrapper.get('header');
+        expect(header.find('a').attributes('href')).toBe('/encuestas/sujeto/example-thing/thing-1');
+        expect(header.text()).toContain('Partida de ejemplo');
+        expect(header.get('h1').text()).toBe('Editar la encuesta');
+    });
+
+    it('keeps the save buttons within reach at the bottom of a phone screen', () => {
+        const wrapper = mount(Edit, { props: props() });
+
+        const actions = wrapper.get('[data-testid="editor-actions"]');
+        // Phone-only classes: a base class with an sm: override could lose to the core's
+        // higher layer
+        expect(actions.classes()).toContain('max-sm:sticky');
+        expect(actions.classes()).not.toContain('sticky');
+        expect(actions.text()).toContain('Guardar y enviar');
+    });
+
+    it('puts each section title next to its move and remove buttons, big enough to tap', () => {
+        const wrapper = mount(Edit, { props: props({ definition: jumping() }) });
+
+        const heading = wrapper.findAll('h3').find((h) => h.text() === 'Sección 2');
+        const row = heading?.element.parentElement;
+        const remove = row?.querySelector('button[aria-label="Quitar la sección"]');
+        expect(remove).not.toBeNull();
+        expect(remove?.classList.contains('h-11')).toBe(true);
+    });
+
+    it('names each option field with its number', () => {
+        const wrapper = mount(Edit, { props: props({ definition: jumping() }) });
+
+        const labels = wrapper
+            .findAll('#question-q-1-options input[type="text"], fieldset input[type="text"]')
+            .map((input) => input.attributes('aria-label'))
+            .filter((label): label is string => label !== undefined && label.startsWith('Opción'));
+        expect(labels.slice(0, 2)).toEqual(['Opción 1', 'Opción 2']);
+    });
+
+    it('makes the save button the main one when it is the only action', () => {
+        const wrapper = mount(Edit, { props: props({}, { sendable: false }) });
+
+        const save = wrapper
+            .findAllComponents(BaseButton)
+            .find((button) => button.text() === 'Guardar');
+        expect(save?.props('variant')).toBe('primary');
     });
 
     it('creates a new poll whose title is its question', async () => {
