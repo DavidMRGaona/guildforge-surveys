@@ -73,9 +73,10 @@ final class ClosingSummaryServiceTest extends ModuleTestCase
         $this->assertSame([], $scale->topOptions);
         $this->assertSame(4.5, $this->question($summary, 'Pregunta q-stars')->mean);
 
-        // Short and long text, date, time and grid are not summed up
+        // Short and long text, date, time, grid and ranking are not summed up
         $this->assertCount(5, $summary->questions);
-        $this->assertSame(5, $summary->otherQuestions);
+        $this->assertSame(6, $summary->otherQuestions);
+        $this->assertNotContains('Pregunta q-rank', array_map(static fn (SummaryQuestionDTO $question): string => $question->title, $summary->questions));
         $this->assertStringNotContainsString('Genial', serialize($summary));
     }
 
@@ -143,7 +144,7 @@ final class ClosingSummaryServiceTest extends ModuleTestCase
 
         $titles = array_map(static fn (SummaryQuestionDTO $question): string => $question->title, $summary->questions);
         $this->assertNotContains('Pregunta q-single', $titles);
-        $this->assertSame(4, $summary->otherQuestions);
+        $this->assertSame(5, $summary->otherQuestions);
     }
 
     public function test_a_choice_nobody_answered_has_no_winner(): void

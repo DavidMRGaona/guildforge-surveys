@@ -62,7 +62,7 @@ final readonly class ClosingSummaryService
     private function question(QuestionResultDTO $question): ?SummaryQuestionDTO
     {
         $scale = $question->type === QuestionType::LinearScale || $question->type === QuestionType::StarRating;
-        if (! $question->type->hasOptions() && ! $scale) {
+        if (! $question->type->isChoice() && ! $scale) {
             return null;
         }
 
