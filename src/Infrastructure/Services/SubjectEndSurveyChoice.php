@@ -255,10 +255,14 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
 
         $options[] = new EndSurveyOptionDTO(self::TYPE_DEFAULT, $this->defaultLabel($sourceType, $subject, $systemTemplate, $typeTemplate));
 
+        // Those meant for this kind of subject first, under their own heading
+        $forType = array_intersect_key($this->templates->formNamesFor($sourceType)['matching'], $names);
+
         $baseTemplates = [];
-        foreach ($names as $id => $name) {
+        foreach ($forType + $names as $id => $name) {
             if ($id !== $defaultId) {
-                $options[] = new EndSurveyOptionDTO('template:'.$id, $name, (string) __('surveys::messages.end_choice.templates'));
+                $group = array_key_exists($id, $forType) ? 'templates_for_type' : 'templates';
+                $options[] = new EndSurveyOptionDTO('template:'.$id, $name, (string) __("surveys::messages.end_choice.{$group}"));
             }
 
             $base = new EndSurveyOptionDTO('template:'.$id, $name);

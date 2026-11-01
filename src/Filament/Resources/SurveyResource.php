@@ -28,7 +28,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\PublicLinkMode;
-use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
@@ -39,8 +38,8 @@ use Modules\Surveys\Filament\Forms\DefinitionEditor;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Filament\Support\SubjectTypeOptions;
+use Modules\Surveys\Filament\Support\TemplateOptions;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
-use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
 
 final class SurveyResource extends BaseResource
@@ -78,7 +77,7 @@ final class SurveyResource extends BaseResource
                         Select::make('template_id')
                             ->label(__('surveys::filament.survey.fields.template'))
                             ->helperText(__('surveys::filament.survey.fields.template_help'))
-                            ->options(static fn (): array => SurveyTemplateModel::query()->where('kind', SurveyKind::Form->value)->orderBy('name')->pluck('name', 'id')->all())
+                            ->options(static fn (): array => TemplateOptions::for(TemplateUses::GENERAL))
                             ->native(false)
                             ->live()
                             ->afterStateUpdated(self::copyTemplate(...))

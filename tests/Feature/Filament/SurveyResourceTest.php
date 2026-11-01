@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Tests\Feature\Filament;
 
 use DateTimeImmutable;
+use Filament\Forms\Components\Select;
 use Livewire\Livewire;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
@@ -18,6 +19,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\CreateSurvey;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\EditSurvey;
@@ -120,6 +122,22 @@ final class SurveyResourceTest extends ModuleTestCase
         $keys = array_map(static fn ($question): ?string => $question->key, $survey->definition()->questions());
         $this->assertContains('fun', $keys);
         $this->assertNull($survey->definition()->question('q-scale'), 'The copy gets new ids.');
+    }
+
+    public function test_general_templates_are_offered_first_to_start_from(): void
+    {
+        $repository = $this->app->make(SurveyTemplateRepositoryInterface::class);
+        $templates = [];
+        foreach (['De mesas' => ['game-table'], 'Junta' => [TemplateUses::GENERAL], 'Sin indicar' => []] as $name => $uses) {
+            $templates[$name] = new SurveyTemplate(SurveyTemplateId::generate(), $name, null, SurveyKind::Form, $this->definition(), uses: new TemplateUses($uses));
+            $repository->save($templates[$name]);
+        }
+
+        Livewire::test(CreateSurvey::class)
+            ->assertFormFieldExists('template_id', static fn (Select $field): bool => $field->getOptions() === [
+                'Para encuestas generales' => [$templates['Junta']->id()->value => 'Junta'],
+                'Otras' => [$templates['De mesas']->id()->value => 'De mesas', $templates['Sin indicar']->id()->value => 'Sin indicar'],
+            ]);
     }
 
     public function test_creates_a_quick_poll(): void

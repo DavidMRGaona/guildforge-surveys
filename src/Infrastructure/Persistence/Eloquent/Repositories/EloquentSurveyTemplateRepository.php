@@ -62,4 +62,14 @@ final class EloquentSurveyTemplateRepository implements SurveyTemplateRepository
             ->pluck('name', 'id')
             ->all();
     }
+
+    public function formNamesFor(string $use): array
+    {
+        $split = ['matching' => [], 'others' => []];
+        foreach (SurveyTemplateModel::query()->where('kind', SurveyKind::Form->value)->orderBy('name')->get(['id', 'name', 'uses']) as $model) {
+            $split[in_array($use, $model->uses ?? [], true) ? 'matching' : 'others'][$model->id] = $model->name;
+        }
+
+        return $split;
+    }
 }

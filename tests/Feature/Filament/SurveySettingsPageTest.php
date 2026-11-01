@@ -19,6 +19,7 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\SurveysServiceProvider;
 use Modules\Surveys\Tests\Support\ExampleThingSource;
@@ -273,6 +274,46 @@ final class SurveySettingsPageTest extends ModuleTestCase
         );
     }
 
+    public function test_the_templates_for_each_kind_of_subject_come_first_and_the_rest_under_others(): void
+    {
+        $this->listGameSystems();
+        $forThing = $this->template('De cosas', [ExampleThingSource::TYPE]);
+        $general = $this->template('General', [TemplateUses::GENERAL]);
+        $unspecified = $this->template('Sin indicar');
+        $rules = [['game_system' => 'system-1', 'template_id' => $forThing->id()->value]];
+        config()->set('modules.settings.surveys.subject_types', [ExampleThingSource::TYPE => ['game_system_templates' => $rules]]);
+        $expected = [
+            'Para este tipo' => [$forThing->id()->value => 'De cosas'],
+            'Otras' => [$general->id()->value => 'General', $unspecified->id()->value => 'Sin indicar'],
+        ];
+        $this->actingAs($this->userWith([self::MANAGE]));
+        $undoRepeaterFake = Repeater::fake();
+
+        Livewire::test(SurveySettingsPage::class)
+            ->assertFormFieldExists('subject_types.'.ExampleThingSource::TYPE.'.template_id', static fn (Select $field): bool => $field->getOptions() === $expected)
+            ->assertFormFieldExists(self::RULES, static fn (Repeater $rules): bool => self::gameSystemField($rules, 0, 'template_id')->getOptions() === $expected)
+            ->fillForm(['subject_types' => [ExampleThingSource::TYPE => ['template_id' => $general->id()->value]]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $undoRepeaterFake();
+        $this->assertSame($general->id()->value, app(SurveySettingsInterface::class)->forSubjectType(ExampleThingSource::TYPE)->templateId);
+    }
+
+    public function test_without_templates_for_the_kind_of_subject_they_are_all_listed_as_they_are(): void
+    {
+        $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
+        $general = $this->template('General', [TemplateUses::GENERAL]);
+        $unspecified = $this->template('Sin indicar');
+        $this->actingAs($this->userWith([self::MANAGE]));
+
+        Livewire::test(SurveySettingsPage::class)
+            ->assertFormFieldExists('subject_types.'.ExampleThingSource::TYPE.'.template_id', static fn (Select $field): bool => $field->getOptions() === [
+                $general->id()->value => 'General',
+                $unspecified->id()->value => 'Sin indicar',
+            ]);
+    }
+
     public function test_rules_are_not_reordered_and_both_selects_search(): void
     {
         $this->listGameSystems();
@@ -313,14 +354,18 @@ final class SurveySettingsPageTest extends ModuleTestCase
         $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
     }
 
-    private function template(): SurveyTemplate
+    /**
+     * @param  list<string>  $uses
+     */
+    private function template(string $name = 'Plantilla de ejemplo', array $uses = []): SurveyTemplate
     {
         $template = new SurveyTemplate(
             SurveyTemplateId::generate(),
-            'Plantilla de ejemplo',
+            $name,
             null,
             SurveyKind::Form,
             SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()),
+            uses: new TemplateUses($uses),
         );
         $this->app->make(SurveyTemplateRepositoryInterface::class)->save($template);
 
