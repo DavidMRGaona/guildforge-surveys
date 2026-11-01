@@ -9,6 +9,7 @@ use App\Infrastructure\Persistence\Eloquent\Models\PermissionModel;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Filament\Forms\Components\Select;
+use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Livewire;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
@@ -262,6 +263,14 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
             ->filterTable('recommended', false)
             ->assertCanSeeTableRecords($this->models($own))
             ->assertCanNotSeeTableRecords($this->models($recommended));
+    }
+
+    public function test_the_origin_filter_says_all_when_nothing_is_chosen(): void
+    {
+        $this->actingAsPanelAdmin();
+
+        Livewire::test(ListSurveyTemplates::class)
+            ->assertTableFilterExists('recommended', static fn (TernaryFilter $filter): bool => $filter->getPlaceholder() === 'Todas');
     }
 
     public function test_only_people_who_manage_surveys_see_templates(): void

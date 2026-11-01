@@ -105,6 +105,7 @@ return [
             'updated_at' => 'Actualizada',
         ],
         'origins' => [
+            'all' => 'Todas',
             'recommended' => 'Recomendadas',
             'own' => 'Propias',
         ],
