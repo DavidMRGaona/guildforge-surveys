@@ -357,7 +357,7 @@ const secondaryLinkClass =
             class="rounded-xl border-2 border-line bg-surface p-6 text-center sm:p-8"
         >
             <span
-                class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success-light text-success"
+                class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success-light text-base-primary"
             >
                 <CircleCheck class="h-8 w-8" aria-hidden="true" />
             </span>
@@ -431,7 +431,7 @@ const secondaryLinkClass =
         <div
             v-else-if="stateMessage"
             role="alert"
-            class="rounded-xl border-2 border-line bg-warning-light p-6 text-warning-dark"
+            class="rounded-xl border-2 border-line bg-warning-light p-6 text-base-primary"
         >
             <p>{{ stateMessage }}</p>
         </div>
