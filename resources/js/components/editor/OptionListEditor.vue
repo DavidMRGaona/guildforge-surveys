@@ -8,8 +8,8 @@ import PlusIcon from '../icons/PlusIcon.vue';
 const props = defineProps<{
     /** Accessible name of the list: options, rows or columns. */
     label: string;
-    /** Label of each item's field, with {number}. */
-    itemLabel: string;
+    /** Accessible name of the n-th field ("Opción 2"). */
+    itemLabel: (number: number) => string;
     addLabel: string;
     locked: boolean;
     errors: Record<string, string>;
@@ -46,7 +46,7 @@ function error(index: number): string | undefined {
                     :value="option.label"
                     type="text"
                     :class="['mr-1', FIELD_CLASS]"
-                    :aria-label="props.itemLabel.replace('{number}', String(index + 1))"
+                    :aria-label="props.itemLabel(index + 1)"
                     :aria-invalid="error(index) ? 'true' : undefined"
                     :disabled="props.locked"
                     @input="update(index, ($event.target as HTMLInputElement).value)"

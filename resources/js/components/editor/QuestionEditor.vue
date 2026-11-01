@@ -137,7 +137,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             <OptionListEditor
                 :model-value="question.options"
                 :label="t('surveys.editor.options')"
-                :item-label="t('surveys.editor.option_label')"
+                :item-label="(number: number) => t('surveys.editor.option_label', { number })"
                 :add-label="t('surveys.editor.add_option')"
                 :locked="props.locks.structure"
                 :errors="props.errors"
@@ -256,7 +256,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             <OptionListEditor
                 :model-value="question.grid.rows"
                 :label="t('surveys.editor.grid_rows')"
-                :item-label="t('surveys.editor.row_label')"
+                :item-label="(number: number) => t('surveys.editor.row_label', { number })"
                 :add-label="t('surveys.editor.add_row')"
                 :locked="props.locks.structure"
                 :errors="props.errors"
@@ -266,7 +266,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             <OptionListEditor
                 :model-value="question.grid.columns"
                 :label="t('surveys.editor.grid_columns')"
-                :item-label="t('surveys.editor.column_label')"
+                :item-label="(number: number) => t('surveys.editor.column_label', { number })"
                 :add-label="t('surveys.editor.add_column')"
                 :locked="props.locks.structure"
                 :errors="props.errors"

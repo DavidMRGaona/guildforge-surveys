@@ -106,7 +106,7 @@ function setNewType(value: string | number | null): void {
             <li
                 v-for="(question, index) in section.questions"
                 :key="question.id"
-                class="rounded-lg border border-default bg-surface p-4"
+                class="rounded-lg border border-default bg-surface p-3 sm:p-4"
             >
                 <div class="mb-3 flex items-center justify-between gap-2">
                     <span class="text-sm font-medium text-base-secondary">

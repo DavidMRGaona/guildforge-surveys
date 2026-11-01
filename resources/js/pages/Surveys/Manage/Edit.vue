@@ -309,12 +309,13 @@ function submit(send: boolean): void {
             </section>
 
             <div
-                class="sticky bottom-0 z-10 -mx-4 flex flex-col gap-2 border-t border-default bg-surface px-4 py-3 sm:static sm:mx-0 sm:flex-row sm:justify-end sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0"
+                class="sticky bottom-0 z-10 -mx-4 flex gap-2 border-t border-default bg-surface px-4 py-3 sm:static sm:mx-0 sm:justify-end sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0"
                 data-testid="editor-actions"
             >
                 <BaseButton
                     type="submit"
-                    variant="secondary"
+                    :variant="props.survey.sendable ? 'secondary' : 'primary'"
+                    class="flex-1 sm:flex-none"
                     :loading="saving === 'save'"
                     :disabled="saving !== null"
                 >
@@ -323,6 +324,7 @@ function submit(send: boolean): void {
                 <BaseButton
                     v-if="props.survey.sendable"
                     type="button"
+                    class="flex-1 sm:flex-none"
                     :loading="saving === 'send'"
                     :disabled="saving !== null"
                     @click="submit(true)"

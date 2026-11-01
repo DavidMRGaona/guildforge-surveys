@@ -35,7 +35,7 @@ function setSection(index: number, section: SurveySection): void {
         <section
             v-for="(section, index) in definition.sections"
             :key="section.id"
-            class="space-y-4 rounded-lg border border-default bg-muted p-4 sm:p-6"
+            class="space-y-4 rounded-lg border border-default bg-muted p-3 sm:p-6"
             :aria-labelledby="props.locks.poll ? undefined : `section-${section.id}-heading`"
         >
             <div v-if="!props.locks.poll" class="flex items-center justify-between gap-2">
