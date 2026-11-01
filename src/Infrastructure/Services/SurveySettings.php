@@ -69,6 +69,27 @@ final readonly class SurveySettings implements SurveySettingsInterface
             sendDelayHours: is_numeric($delay) && (int) $delay >= 0 ? (int) $delay : self::DEFAULT_SEND_DELAY_HOURS,
             closeDays: is_numeric($closeDays) && (int) $closeDays >= 1 ? (int) $closeDays : $this->defaultCloseDays(),
             anonymous: array_key_exists('anonymous', $entry) && $entry['anonymous'] !== null ? (bool) $entry['anonymous'] : $this->anonymousByDefault(),
+            gameSystemTemplates: $this->gameSystemTemplates($entry['game_system_templates'] ?? null),
         );
+    }
+
+    /**
+     * Rows of game system and template as the panel saves them; broken rows are left out and a
+     * game system set twice keeps its first template.
+     *
+     * @return array<string, string>
+     */
+    private function gameSystemTemplates(mixed $rows): array
+    {
+        $templates = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $gameSystem = is_array($row) ? ($row['game_system'] ?? null) : null;
+            $templateId = is_array($row) ? ($row['template_id'] ?? null) : null;
+            if (is_string($gameSystem) && $gameSystem !== '' && is_string($templateId) && $templateId !== '' && ! array_key_exists($gameSystem, $templates)) {
+                $templates[$gameSystem] = $templateId;
+            }
+        }
+
+        return $templates;
     }
 }

@@ -7,6 +7,7 @@ namespace Modules\Surveys\Filament\Pages;
 use App\Application\Modules\Services\ModuleContextServiceInterface;
 use App\Application\Modules\Services\ModuleManagerServiceInterface;
 use App\Application\Modules\Services\ModuleSettingsStoreInterface;
+use App\Application\Surveys\Contracts\SurveySubjectAttributeValuesInterface;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Domain\Modules\ValueObjects\ModuleName;
@@ -14,6 +15,7 @@ use App\Filament\Concerns\ChecksPermissions;
 use App\Filament\Concerns\SafeModuleNavigation;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -34,7 +36,8 @@ use Modules\Surveys\Infrastructure\Services\SurveySettings;
 /**
  * The module's settings, open to surveys.manage (admins hold every permission): results,
  * defaults, review of what changes outside the panel and, per kind of subject offered by a
- * module, how its surveys go out when a subject ends.
+ * module, how its surveys go out when a subject ends (with a template per game system when its
+ * source lists its game systems).
  *
  * @property Schema $form
  */
@@ -97,6 +100,11 @@ final class SurveySettingsPage extends Page implements HasForms
                 'send_delay_hours' => $current->sendDelayHours,
                 'close_days' => $current->closeDays,
                 'anonymous' => $current->anonymous,
+                'game_system_templates' => array_map(
+                    static fn (string $gameSystem, string $templateId): array => ['game_system' => $gameSystem, 'template_id' => $templateId],
+                    array_keys($current->gameSystemTemplates),
+                    array_values($current->gameSystemTemplates),
+                ),
             ];
         }
 
@@ -117,10 +125,21 @@ final class SurveySettingsPage extends Page implements HasForms
 
         $state = $this->form->getState();
 
-        // The form only shows the kinds of subject of enabled modules: the others keep theirs
+        // The form only shows the kinds of subject of enabled modules, and the templates per game
+        // system only while there is something to show: whatever is not shown keeps its value
         $stored = $settingsStore->stored('surveys')['subject_types'] ?? [];
+        $types = is_array($stored) ? $stored : [];
         $shown = is_array($state['subject_types'] ?? null) ? $state['subject_types'] : [];
-        $state['subject_types'] = array_merge(is_array($stored) ? $stored : [], $shown);
+        foreach ($shown as $type => $entry) {
+            $entry = is_array($entry) ? $entry : [];
+            if (is_array($entry['game_system_templates'] ?? null)) {
+                $entry['game_system_templates'] = array_values($entry['game_system_templates']);
+            }
+
+            $types[$type] = array_merge(is_array($types[$type] ?? null) ? $types[$type] : [], $entry);
+        }
+
+        $state['subject_types'] = $types;
 
         $moduleManager->updateSettings(new ModuleName('surveys'), $state);
 
@@ -203,9 +222,11 @@ final class SurveySettingsPage extends Page implements HasForms
         }
 
         $templates = SurveyTemplateModel::query()->where('kind', SurveyKind::Form->value)->orderBy('name')->pluck('name', 'id')->all();
+        $settings = app(SurveySettingsInterface::class);
 
-        return array_map(static function (SurveySubjectSourceInterface $source) use ($templates): Section {
+        return array_map(static function (SurveySubjectSourceInterface $source) use ($templates, $settings): Section {
             $path = 'subject_types.'.$source->sourceType();
+            $gameSystems = self::gameSystemOptions($source, array_keys($settings->forSubjectType($source->sourceType())->gameSystemTemplates));
 
             return Section::make($source->sourceLabel())
                 ->compact()
@@ -241,7 +262,53 @@ final class SurveySettingsPage extends Page implements HasForms
                     Toggle::make("{$path}.anonymous")
                         ->label(__('surveys::messages.settings.anonymous'))
                         ->default(true),
+                    Repeater::make("{$path}.game_system_templates")
+                        ->label(__('surveys::messages.settings.game_system_templates'))
+                        ->helperText(__('surveys::messages.settings.game_system_templates_help'))
+                        ->schema([
+                            Select::make('game_system')
+                                ->label(__('surveys::messages.settings.game_system'))
+                                ->options($gameSystems)
+                                ->native(false)
+                                ->searchable()
+                                ->required()
+                                ->distinct()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                            Select::make('template_id')
+                                ->label(__('surveys::messages.settings.template'))
+                                ->options($templates)
+                                ->native(false)
+                                ->required(),
+                        ])
+                        ->columns(2)
+                        ->defaultItems(0)
+                        ->addActionLabel(__('surveys::messages.settings.add_game_system_template'))
+                        ->columnSpanFull()
+                        ->visible($gameSystems !== []),
                 ]);
         }, array_values($sources));
+    }
+
+    /**
+     * The game systems the source lists, by id, and those a saved template still names after
+     * they were gone, so they can be seen and removed. None when the source lists none.
+     *
+     * @param  list<string>  $saved
+     * @return array<string, string>
+     */
+    private static function gameSystemOptions(SurveySubjectSourceInterface $source, array $saved): array
+    {
+        $listed = $source instanceof SurveySubjectAttributeValuesInterface ? $source->attributeValues('game_system') : [];
+
+        $options = [];
+        foreach ($listed as $value) {
+            $options[$value->id] = $value->label;
+        }
+
+        foreach ($saved as $gameSystem) {
+            $options[$gameSystem] ??= (string) __('surveys::messages.settings.game_system_gone');
+        }
+
+        return $options;
     }
 }

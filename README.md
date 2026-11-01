@@ -29,19 +29,19 @@ El módulo trae 12 plantillas pensadas para una asociación de rol y wargames, t
 - **Eventos**: «Evento de la asociación» (jornadas, puertas abiertas).
 - **Junta**: «Satisfacción de los socios», «Interés por actividades y sistemas» y «Disponibilidad de días y franjas». Para elegir entre fechas concretas está el sondeo rápido.
 
-Llegan al instalar el módulo, o con la primera actualización que las trae, también en producción, y solo se crean las que falten (cada una se reconoce por su clave de catálogo): una plantilla que la asociación haya renombrado o cambiado no se toca nunca, y una que haya borrado no vuelve. Las plantillas creadas en esa ejecución pasan a ser las predeterminadas de su tipo de sujeto (mesa, sesión de campaña, campaña, torneo y evento; en torneos, la general) solo donde no había ninguna elegida, con el envío a un clic. Las variantes de cada juego se eligen a mano en «Ajustes de encuestas». Cada recomendada trae relleno «Para»: su tipo de sujeto, torneos en las variantes de cada juego y encuestas generales en las de la junta. Ninguna plantilla guarda el anonimato: lo decide el ajuste de cada tipo de sujeto o la propia encuesta.
+Llegan al instalar el módulo, o con la primera actualización que las trae, también en producción, y solo se crean las que falten (cada una se reconoce por su clave de catálogo): una plantilla que la asociación haya renombrado o cambiado no se toca nunca, y una que haya borrado no vuelve. Las plantillas creadas en esa ejecución pasan a ser las predeterminadas de su tipo de sujeto (mesa, sesión de campaña, campaña, torneo y evento; en torneos, la general) solo donde no había ninguna elegida, con el envío a un clic. Las variantes de cada juego se asignan a mano en «Ajustes de encuestas», en «Plantilla por sistema de juego». Cada recomendada trae relleno «Para»: su tipo de sujeto, torneos en las variantes de cada juego y encuestas generales en las de la junta. Ninguna plantilla guarda el anonimato: lo decide el ajuste de cada tipo de sujeto o la propia encuesta.
 
 Los nombres de los juegos solo sirven para identificarlos; las plantillas no incluyen logos ni textos de sus reglamentos.
 
 ## Encuestas de lo que organizas
 
-Cuando termina algo que otro módulo ofrece como sujeto (una mesa, una campaña, un torneo, un evento), se prepara su encuesta con la plantilla configurada para ese tipo y se avisa por correo a quien lo organiza. Una sola encuesta por final: si el aviso de que ha terminado llega dos veces, no se duplica.
+Cuando termina algo que otro módulo ofrece como sujeto (una mesa, una campaña, un torneo, un evento), se prepara su encuesta con la plantilla configurada para su sistema de juego o, si no la hay, para ese tipo, y se avisa por correo a quien lo organiza. Una sola encuesta por final: si el aviso de que ha terminado llega dos veces, no se duplica.
 
 Desde la web, en la ficha del sujeto o en la pestaña «Encuestas» del perfil, quien organiza puede:
 
 - **Enviarla** tal cual, **no enviarla** (el panel la sigue viendo) o **editarla** antes: textos, preguntas, opciones, fechas y ajustes. Las preguntas que vienen de la plantilla no cambian de tipo, para que se puedan comparar. Con la primera respuesta solo se pueden cambiar los textos de ayuda, la fecha de cierre y los ajustes.
 - **Programarla**: si el tipo de sujeto tiene el envío automático, sale sola pasado el retraso configurado (12 horas por defecto, 0 para enviarla al terminar, sin máximo). El comando `surveys:send-scheduled` corre cada cinco minutos.
-- **Prepararla antes de que termine**: si el tipo de sujeto tiene plantilla, la página de encuestas del sujeto ofrece «Preparar encuesta» en cualquier momento. Se parte de la plantilla, se edita igual y se elige cómo sale al terminar: sola, con su propio retraso en horas (por defecto, el del tipo), o con el aviso de un clic. Antes del final no se puede enviar a mano. Al terminar se usa esa encuesta, con los datos del sujeto de ese momento, en lugar de crear otra. Si el sujeto se cancela antes de terminar, las encuestas que aún no han salido se descartan y se avisa a quien lo organiza.
+- **Prepararla antes de que termine**: si el sujeto tiene plantilla (la de su sistema de juego o la de su tipo), la página de encuestas del sujeto ofrece «Preparar encuesta» en cualquier momento. Se parte de la plantilla, se edita igual y se elige cómo sale al terminar: sola, con su propio retraso en horas (por defecto, el del tipo), o con el aviso de un clic. Antes del final no se puede enviar a mano. Al terminar se usa esa encuesta, con los datos del sujeto de ese momento, en lugar de crear otra. Si el sujeto se cancela antes de terminar, las encuestas que aún no han salido se descartan y se avisa a quien lo organiza.
 - **Preguntar a su gente cuando quiera**: la página de encuestas del sujeto ofrece «Nuevo sondeo» (una pregunta de opción única o de casillas, como en una aplicación de mensajería) y «Nueva encuesta» (un formulario completo, desde cero), mientras el sujeto no se haya cancelado. Puede haber tantas como quiera por sujeto. Se guardan como borrador y van a la audiencia del sujeto en el momento de enviarlas, con los datos del sujeto de ese momento. El anonimato y los días abierta parten del ajuste del tipo de sujeto; sin días, la encuesta queda abierta hasta que se cierra a mano.
 - **Cerrarla a mano** mientras está abierta: deja de admitir respuestas y lo ya respondido se conserva.
 - **Ver sus resultados** cuando ya ha salido, con la misma regla que el panel (una anónima espera a cerrar y al mínimo de respuestas): participación, una gráfica por pregunta con su tabla de datos, y el texto libre. Elige la gráfica de cada pregunta y cuáles se ocultan.
@@ -50,10 +50,10 @@ Cada acción comprueba en el momento que la persona sigue organizando el sujeto:
 
 ## Encuesta al terminar, elegida para cada sujeto
 
-Por defecto sale la plantilla del tipo de sujeto, pero cada evento, torneo, mesa o campaña puede elegir otra cosa. Se elige en el formulario del panel de cada sujeto (el campo «Encuesta al terminar», que el core pone con el contrato `SubjectEndSurveyChoiceInterface` y que este módulo implementa) y en la página de encuestas del sujeto en la web. Las opciones son:
+Por defecto sale la plantilla de su sistema de juego o, si no la hay, la del tipo de sujeto, pero cada evento, torneo, mesa o campaña puede elegir otra cosa. Se elige en el formulario del panel de cada sujeto (el campo «Encuesta al terminar», que el core pone con el contrato `SubjectEndSurveyChoiceInterface` y que este módulo implementa) y en la página de encuestas del sujeto en la web. Las opciones son:
 
-- **La plantilla del tipo**: la opción por defecto. No se guarda nada, así que sigue al ajuste del tipo si cambia.
-- **Otra plantilla**: cualquiera de las plantillas de formulario. Si después se borra, se usa la del tipo. Sus preguntas conservan las claves, así que alimenta las tendencias de esa plantilla.
+- **La plantilla por defecto**: la de su sistema de juego o, si no la hay, la del tipo. No se guarda nada, así que sigue a los ajustes y al sistema de juego del sujeto si cambian. Al crear el sujeto todavía no se sabe su sistema, así que la opción lo dice.
+- **Otra plantilla**: cualquiera de las plantillas de formulario, incluida la del tipo cuando el sistema de juego tiene otra. Si después se borra, se usa la plantilla por defecto. Sus preguntas conservan las claves, así que alimenta las tendencias de esa plantilla.
 - **Una encuesta propia**: se prepara al guardar a partir de la plantilla que se elija en «Partir de» y se edita con el enlace «Editar la encuesta». Al editar el sujeto también se pueden elegir sus borradores propios, que pasan a ser la encuesta al terminar.
 - **Ninguna**: no sale ninguna encuesta.
 
@@ -103,6 +103,8 @@ Ninguno se concede solo; se dan en el editor de roles.
 En «Ajustes de encuestas», en el panel (con `surveys.manage`): mínimo de respuestas de las encuestas anónimas (3 por defecto; 0 lo quita), días hasta el cierre por defecto (7), si las encuestas nuevas son anónimas, si las encuestas generales nuevas marcan «Anunciar en los canales» (no por defecto) y si los cambios hechos fuera del panel se revisan.
 
 Por cada tipo de sujeto que ofrezcan los módulos activos: la plantilla de su encuesta (sin plantilla no se prepara ninguna), si se envía sola y con cuántas horas de retraso, los días que queda abierta y si es anónima.
+
+Si el módulo del sujeto lista sus sistemas de juego (game-tables y tournaments lo hacen), el tipo tiene además «Plantilla por sistema de juego»: una lista de sistemas, cada uno con su plantilla. Un sujeto de un sistema de la lista sale con esa plantilla; los demás, con la del tipo. El sistema se reconoce por su identificador en su módulo, no por su nombre, así que cambiarle el nombre no rompe la regla. Si se borra un sistema, su fila se sigue viendo como «Un sistema de juego que ya no existe» para poder quitarla, y si se borra la plantilla de una fila, se usa la del tipo. Lo que se elija en el formulario de cada sujeto sigue mandando.
 
 ## Datos de desarrollo
 
