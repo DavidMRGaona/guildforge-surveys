@@ -86,3 +86,19 @@ Ninguno se concede solo; se dan en el editor de roles.
 En «Ajustes de encuestas», en el panel (con `surveys.manage`): mínimo de respuestas de las encuestas anónimas (3 por defecto; 0 lo quita), días hasta el cierre por defecto (7), si las encuestas nuevas son anónimas, si las encuestas generales nuevas marcan «Anunciar en los canales» (no por defecto) y si los cambios hechos fuera del panel se revisan.
 
 Por cada tipo de sujeto que ofrezcan los módulos activos: la plantilla de su encuesta (sin plantilla no se prepara ninguna), si se envía sola y con cuántas horas de retraso, los días que queda abierta y si es anónima.
+
+## Datos de desarrollo
+
+`DevelopmentSeeder` deja un entorno completo para revisar el módulo. Solo actúa en el entorno `local`: el core ejecuta todos los seeders de un módulo al instalarlo y al actualizarlo, también en producción, y en los tests no hace nada salvo en los suyos. Para cargarlo (o volver a cargarlo) a mano, desde `src/`:
+
+```bash
+php artisan db:seed --class='Modules\Surveys\Database\Seeders\DevelopmentSeeder'
+```
+
+Se puede repetir: cada encuesta tiene un id fijo y se sustituye, con sus respuestas, en lugar de duplicarse. No envía ningún aviso.
+
+- **Cuentas**: las de ejemplo que comparten los módulos (`john.doe`, `jane.doe`, `richard.roe` y `mary.major@example.local`) y «Participante 01» a «Participante 16» (`participante01@example.local`…), todas con la contraseña `password`; la mitad, con el rol de socio si existe. El admin del core (`admin@example.local`) organiza varias encuestas y tiene encuestas pendientes en su perfil.
+- **Plantillas**: las recomendadas y una propia con los diez tipos de pregunta.
+- **Encuestas generales y sondeos**: en borrador, abiertas y cerradas; anónimas y nominales; para todas las cuentas, para los socios y para un rol; con enlace público en sus dos modos; una cerrada por debajo del mínimo, para ver el aviso.
+- **Encuestas de sujeto** de mesas, sesiones de campaña, campañas, torneos y eventos, solo como instantáneas: abiertas, preparadas antes del fin, a un clic, descartadas, programadas, pendientes de revisión y rechazadas con su motivo.
+- **Un año de histórico** para las tendencias: mesas de varios organizadores y sistemas, sesiones de campaña, torneos de cada juego y la satisfacción de los socios, con valores que mejoran con los meses. Las mesas de Mary Major son nominales y con dos respuestas, así que sus cortes quedan por debajo del mínimo.
