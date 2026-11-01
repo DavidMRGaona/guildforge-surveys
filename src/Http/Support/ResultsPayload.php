@@ -6,6 +6,8 @@ namespace Modules\Surveys\Http\Support;
 
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
+use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
 use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
 use Modules\Surveys\Domain\Enums\ChartType;
@@ -73,6 +75,17 @@ final class ResultsPayload
             ] : null,
             'mean' => $question->mean,
             'median' => $question->median,
+            // Places as a list, the first place first: a map keyed 1, 2… would reach Vue as an object
+            'ranking' => $question->ranking instanceof RankingResultDTO ? [
+                'positions' => $question->ranking->positions,
+                'options' => array_map(static fn (RankedOptionDTO $option): array => [
+                    'id' => $option->optionId,
+                    'label' => $option->label,
+                    'points' => $option->points,
+                    'meanPosition' => $option->meanPosition,
+                    'places' => array_values($option->positions),
+                ], $question->ranking->options),
+            ] : null,
         ];
     }
 }

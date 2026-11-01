@@ -49,6 +49,7 @@ trait BuildsTrendSurveys
                 'rows' => [['id' => 'r-1', 'label' => 'Ambiente'], ['id' => 'r-2', 'label' => 'Ritmo']],
                 'columns' => [['id' => 'c-1', 'label' => 'Mal'], ['id' => 'c-2', 'label' => 'Bien']],
             ]],
+            ['id' => 'q-rank', 'key' => 'games', 'type' => 'ranking', 'title' => 'Ordena los juegos', 'help' => null, 'required' => false, 'options' => [['id' => 'k-1', 'label' => 'Rol'], ['id' => 'k-2', 'label' => 'Wargames'], ['id' => 'k-3', 'label' => 'Tablero']]],
             ['id' => 'q-comment', 'key' => 'comment', 'type' => 'paragraph', 'title' => 'Comentarios', 'help' => null, 'required' => false],
             ['id' => 'q-day', 'key' => 'day', 'type' => 'date', 'title' => 'Día', 'help' => null, 'required' => false],
         ]]]];
@@ -117,7 +118,8 @@ trait BuildsTrendSurveys
     /**
      * Stores anonymous responses, each with a guest-like participation so it counts as verified;
      * unverified ones are what the open public link stores.
-     * Keys: sat, stars (numbers), best (option id or ['other' => text]), liked (option ids), grid (row => column).
+     * Keys: sat, stars (numbers), best (option id or ['other' => text]), liked (option ids), grid (row => column),
+     * rank (option ids, best first).
      *
      * @param  list<array<string, mixed>>  $responses
      */
@@ -135,6 +137,7 @@ trait BuildsTrendSurveys
                         ? new AnswerValue('q-best', text: is_string($answer['other'] ?? null) ? $answer['other'] : null)
                         : new AnswerValue('q-best', optionId: is_string($answer) ? $answer : null),
                     'liked' => array_push($values, ...array_map(static fn (mixed $option): AnswerValue => new AnswerValue('q-liked', optionId: is_string($option) ? $option : null), is_array($answer) ? $answer : [])),
+                    'rank' => array_push($values, ...array_map(static fn (mixed $option, int $place): AnswerValue => new AnswerValue('q-rank', optionId: is_string($option) ? $option : null, number: $place + 1), is_array($answer) ? array_values($answer) : [], is_array($answer) ? array_keys(array_values($answer)) : [])),
                     'grid' => array_push($values, ...array_map(static fn (mixed $column, mixed $row): AnswerValue => new AnswerValue('q-grid', optionId: is_string($column) ? $column : null, rowId: (string) $row), is_array($answer) ? array_values($answer) : [], is_array($answer) ? array_keys($answer) : [])),
                     default => null,
                 };

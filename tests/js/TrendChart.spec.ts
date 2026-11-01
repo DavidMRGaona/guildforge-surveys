@@ -10,7 +10,7 @@ const charts = vi.hoisted(() => ({
             data: { labels: string[]; datasets: { label: string; data: (number | null)[] }[] };
             options: {
                 indexAxis?: string;
-                scales?: Record<string, { min?: number; max?: number }>;
+                scales?: Record<string, { min?: number; max?: number; reverse?: boolean }>;
             };
         };
     }[],
@@ -106,6 +106,20 @@ describe('TrendChart', () => {
 
         const cells = wrapper.findAll('tbody td').map((cell) => cell.text());
         expect(cells).toEqual(['4,25', '—', 'Pocas respuestas']);
+    });
+
+    it('puts the first place on top of the mean place of a ranked option', () => {
+        mount(TrendChart, {
+            props: {
+                trend: { ...scale(), key: 'games.k-1', type: 'ranking', min: 1, max: 3 },
+            },
+        });
+
+        expect(charts.created[0]?.config.options.scales?.y).toMatchObject({
+            min: 1,
+            max: 3,
+            reverse: true,
+        });
     });
 
     it('stacks the shares of each period', () => {

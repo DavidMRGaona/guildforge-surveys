@@ -11,6 +11,7 @@ use Modules\Surveys\Application\DTOs\Trends\TrendFilters;
 use Modules\Surveys\Application\DTOs\Trends\TrendPointDTO;
 use Modules\Surveys\Application\DTOs\Trends\TrendSeriesDTO;
 use Modules\Surveys\Application\Services\TrendsService;
+use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Support\ChartPalette;
@@ -116,6 +117,8 @@ final class QuestionTrendChart extends ChartWidget
 
         return match (true) {
             ! $trend instanceof QuestionTrendDTO, $trend->series === [] => null,
+            // A mean place reads best with the first place on top
+            $trend->measure === QuestionTrendDTO::MEAN && $trend->type === QuestionType::Ranking => ['scales' => ['y' => ['min' => $trend->min, 'max' => $trend->max, 'ticks' => ['precision' => 0], 'reverse' => true]]],
             $trend->measure === QuestionTrendDTO::MEAN => ['scales' => ['y' => ['min' => $trend->min, 'max' => $trend->max, 'ticks' => ['precision' => 0]]]],
             array_column($trend->periods, 'key') === [QuestionTrendDTO::TOTAL] => ['indexAxis' => 'y', 'scales' => ['x' => $percent, 'y' => ['stacked' => true]]],
             default => ['scales' => ['x' => ['stacked' => true], 'y' => $percent]],

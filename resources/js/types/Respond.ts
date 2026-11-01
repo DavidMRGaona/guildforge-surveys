@@ -118,6 +118,23 @@ export interface QuestionResult {
     } | null;
     mean: number | null;
     median: number | null;
+    /** Only on rankings. */
+    ranking: RankingResult | null;
+}
+
+/** A ranking's results, best option first (see RankingResultDTO). */
+export interface RankingResult {
+    /** Places to fill, one per option. */
+    positions: number;
+    options: {
+        id: string;
+        label: string;
+        /** Borda points: as many as places for each first place, one fewer for each place below. */
+        points: number;
+        meanPosition: number | null;
+        /** How often it got each place, the first place first. */
+        places: number[];
+    }[];
 }
 
 export interface RespondResults {

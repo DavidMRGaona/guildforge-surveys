@@ -36,6 +36,7 @@ function question(
         grid: null,
         mean: null,
         median: null,
+        ranking: null,
         reached: null,
         chartType: 'bar',
         chartTypes: ['bar', 'pie'],

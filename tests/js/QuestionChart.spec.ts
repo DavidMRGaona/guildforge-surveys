@@ -56,12 +56,22 @@ function question(overrides: Partial<OrganizerQuestionResult> = {}): OrganizerQu
         grid: null,
         mean: null,
         median: null,
+        ranking: null,
         chartType: 'bar',
         chartTypes: ['bar', 'pie'],
         texts: ['Depende del día'],
         ...overrides,
     };
 }
+
+const ranked = {
+    positions: 3,
+    options: [
+        { id: 'k-2', label: 'Wargames', points: 8, meanPosition: 1.33, places: [2, 1, 0] },
+        { id: 'k-1', label: 'Rol', points: 6, meanPosition: 2, places: [1, 1, 1] },
+        { id: 'k-3', label: 'Tablero', points: 4, meanPosition: 2.67, places: [0, 1, 2] },
+    ],
+};
 
 describe('QuestionChart', () => {
     beforeEach(() => {
@@ -84,6 +94,56 @@ describe('QuestionChart', () => {
         expect(table).toContain('75 %');
         expect(wrapper.get('[data-testid="texts"]').text()).toContain('Depende del día');
         expect(wrapper.get('[role="img"]').attributes('aria-label')).toContain('¿Repetirías?');
+    });
+
+    it('draws the points of a ranking best first, with each mean place in the table', () => {
+        const wrapper = mount(QuestionChart, {
+            props: {
+                question: question({
+                    type: 'ranking',
+                    answered: 3,
+                    buckets: [],
+                    texts: [],
+                    chartTypes: ['bar', 'stacked_bar'],
+                    ranking: ranked,
+                }),
+                chartType: 'bar',
+            },
+        });
+
+        const config = charts.created[0]?.config;
+        expect(config?.options.indexAxis).toBe('y');
+        expect(config?.data.labels).toEqual(['Wargames', 'Rol', 'Tablero']);
+        expect(config?.data.datasets[0]?.data).toEqual([8, 6, 4]);
+
+        const rows = wrapper.findAll('[data-testid="data-table"] tbody tr');
+        expect(rows.map((row) => row.find('th').text())).toEqual(['Wargames', 'Rol', 'Tablero']);
+        expect(rows[0]?.text()).toContain('8');
+        expect(rows[0]?.text()).toContain('1,33');
+        expect(wrapper.text()).toContain('Cada primer puesto suma 3 puntos');
+    });
+
+    it('stacks how often each option of a ranking got each place', () => {
+        mount(QuestionChart, {
+            props: {
+                question: question({
+                    type: 'ranking',
+                    answered: 3,
+                    buckets: [],
+                    texts: [],
+                    chartType: 'stacked_bar',
+                    chartTypes: ['bar', 'stacked_bar'],
+                    ranking: ranked,
+                }),
+                chartType: 'stacked_bar',
+            },
+        });
+
+        const config = charts.created[0]?.config;
+        expect(config?.data.labels).toEqual(['Wargames', 'Rol', 'Tablero']);
+        expect(config?.data.datasets).toHaveLength(3);
+        expect(config?.data.datasets[0]?.data).toEqual([2, 1, 0]);
+        expect(config?.data.datasets[2]?.data).toEqual([0, 1, 2]);
     });
 
     it('draws a pie with a colour per slice when chosen', async () => {

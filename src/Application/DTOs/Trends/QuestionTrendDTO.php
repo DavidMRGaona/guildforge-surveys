@@ -8,7 +8,8 @@ use Modules\Surveys\Domain\Enums\QuestionType;
 
 /**
  * The trend of one keyed question of a template, or of one row of a keyed grid
- * ("<key>.<row id>"). Scales trend their mean; choices and grid rows, their shares.
+ * ("<key>.<row id>") or one option of a keyed ranking ("<key>.<option id>"). Scales trend
+ * their mean and ranked options their mean place; choices and grid rows, their shares.
  */
 final readonly class QuestionTrendDTO
 {

@@ -53,6 +53,30 @@
             @else
                 @livewire(\Modules\Surveys\Filament\Widgets\QuestionResultChart::class, ['surveyId' => $this->surveyId()->value, 'questionId' => $question->questionId], key('chart-'.$question->questionId))
 
+                @if ($question->ranking !== null)
+                    <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.8;">{{ __('surveys::filament.results.ranking.help', ['positions' => $question->ranking->positions]) }}</p>
+                    <div style="overflow-x: auto; margin-top: 0.5rem;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgb(127 127 127 / 0.3);">
+                                    <th scope="col" style="padding: 0.5rem 0.75rem 0.5rem 0; text-align: start; font-weight: 600;">{{ __('surveys::filament.results.ranking.option') }}</th>
+                                    <th scope="col" style="padding: 0.5rem 0.75rem; text-align: end; font-weight: 600;">{{ __('surveys::filament.results.ranking.points') }}</th>
+                                    <th scope="col" style="padding: 0.5rem 0 0.5rem 0.75rem; text-align: end; font-weight: 600;">{{ __('surveys::filament.results.ranking.mean_place') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($question->ranking->options as $option)
+                                    <tr style="border-bottom: 1px solid rgb(127 127 127 / 0.2);">
+                                        <th scope="row" style="padding: 0.5rem 0.75rem 0.5rem 0; text-align: start; font-weight: 400;">{{ $option->label }}</th>
+                                        <td style="padding: 0.5rem 0.75rem; text-align: end; font-variant-numeric: tabular-nums;">{{ $option->points }}</td>
+                                        <td style="padding: 0.5rem 0 0.5rem 0.75rem; text-align: end; font-variant-numeric: tabular-nums;">{{ $option->meanPosition === null ? '—' : \Illuminate\Support\Number::format($option->meanPosition, maxPrecision: 2, locale: app()->getLocale()) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
                 @if ($question->texts !== [])
                     <p style="margin-top: 1rem; font-weight: 600;">{{ __('surveys::filament.results.other_texts') }}</p>
                     @foreach ($question->texts as $text)

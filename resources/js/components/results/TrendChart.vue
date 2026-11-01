@@ -146,6 +146,8 @@ function configuration(theme: ChartTheme): ChartConfiguration {
                         min: props.trend.min ?? undefined,
                         max: props.trend.max ?? undefined,
                         ticks: { ...axes.ticks, precision: 0 },
+                        // A mean place reads best with the first place on top
+                        reverse: props.trend.type === 'ranking',
                     },
                 },
                 plugins: { legend: { ...legend, display: props.trend.series.length > 1 } },
