@@ -86,6 +86,27 @@ final class SurveyExportTest extends ModuleTestCase
         $this->assertNull($this->rowOf($rows, 'Persona B')[3]);
     }
 
+    public function test_a_withheld_jumping_question_leaves_no_trace_of_the_way_taken(): void
+    {
+        config(['modules.settings.surveys.min_responses' => 2]);
+        $definition = SurveyDefinitionTest::branchingDefinition();
+        $definition['sections'][0]['questions'][0]['required'] = false;
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray($definition), true, new ResultsSettings(liveResults: true));
+        $submissions = $this->app->make(SubmissionService::class);
+        $submissions->submit($id, Respondent::account($this->people[0]->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
+        foreach ([1, 2] as $person) {
+            $submissions->submit($id, Respondent::account($this->people[$person]->id), ['q-finale' => 'Épico', 'q-comments' => 'Bien']);
+        }
+
+        $rows = $this->rows($this->app->make(SurveyExportTable::class)->build($id));
+
+        // "Not reached" would tell, row by row, the answer the minimum withholds
+        $this->assertCount(3, $rows);
+        foreach ($rows as $row) {
+            $this->assertNotContains(__('surveys::messages.export.not_reached'), $row);
+        }
+    }
+
     public function test_an_anonymous_survey_needs_its_results_to_be_visible_and_has_no_person_or_date(): void
     {
         [$id] = $this->openForm(anonymous: true);

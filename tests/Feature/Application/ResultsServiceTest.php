@@ -280,6 +280,38 @@ final class ResultsServiceTest extends ModuleTestCase
         $this->assertNull($finale->reached);
     }
 
+    public function test_how_many_reached_a_question_stays_hidden_where_its_jumping_question_is(): void
+    {
+        // The count would tell how many chose the option that skips the section
+        $id = $this->answerBranching(anonymous: false, hidden: ['q-played']);
+
+        $this->assertSame(2, $this->question($this->results->forPanel($id), 'q-finale')->reached);
+        $this->assertNull($this->question($this->results->forOrganizer($id), 'q-finale')->reached);
+        // Respondents never get free text questions; none of the rest says how many reached it
+        foreach ($this->results->forRespondents($id)->questions as $question) {
+            $this->assertNull($question->reached);
+        }
+    }
+
+    public function test_how_many_reached_a_question_stays_hidden_while_its_jumping_question_is_below_the_minimum(): void
+    {
+        config(['modules.settings.surveys.min_responses' => 2]);
+        $definition = SurveyDefinitionTest::branchingDefinition();
+        $definition['sections'][0]['questions'][0]['required'] = false;
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray($definition), true, new ResultsSettings(liveResults: true));
+        $submissions = $this->app->make(SubmissionService::class);
+        // Only one person answers the jumping question, and skips the campaign section
+        $submissions->submit($id, Respondent::account($this->people[0]->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
+        foreach ([1, 2] as $person) {
+            $submissions->submit($id, Respondent::account($this->people[$person]->id), ['q-finale' => 'Épico', 'q-comments' => 'Bien']);
+        }
+
+        $results = $this->results->forPanel($id);
+
+        $this->assertTrue($this->question($results, 'q-played')->belowMinimum);
+        $this->assertNull($this->question($results, 'q-finale')->reached);
+    }
+
     public function test_a_survey_without_audience_has_no_rate(): void
     {
         [$id] = $this->openPoll(anonymous: false, audience: false);
@@ -294,9 +326,12 @@ final class ResultsServiceTest extends ModuleTestCase
      * SurveyDefinitionTest::branchingDefinition() for the three people, with live results:
      * the first one answers "No" and skips the campaign section, the others answer "Yes".
      */
-    private function answerBranching(bool $anonymous): SurveyId
+    /**
+     * @param  list<string>  $hidden  questions left out of the results
+     */
+    private function answerBranching(bool $anonymous, array $hidden = []): SurveyId
     {
-        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()), $anonymous, new ResultsSettings(liveResults: true, visibleToRespondents: true));
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()), $anonymous, new ResultsSettings(liveResults: true, visibleToRespondents: true, hiddenQuestionIds: $hidden));
         $submissions = $this->app->make(SubmissionService::class);
         $submissions->submit($id, Respondent::account($this->people[0]->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
         foreach ([1, 2] as $person) {

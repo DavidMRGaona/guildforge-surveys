@@ -88,6 +88,9 @@ final readonly class SurveyExportTable
     {
         $named = ! $survey->isAnonymous();
         $withheld = $this->withheldQuestions($survey);
+        // "Not reached" would give away, row by row, a withheld answer that decided the way
+        $marksReach = $survey->definition()->hasBranching()
+            && array_intersect($survey->definition()->branchingQuestionIds(), $withheld) === [];
 
         $responses = DB::table('surveys_responses as r')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
@@ -101,13 +104,13 @@ final readonly class SurveyExportTable
             $batch[] = $response;
 
             if (count($batch) === self::BATCH) {
-                yield from $this->batch($batch, $columns, $named, $withheld, $survey->definition());
+                yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null);
                 $batch = [];
             }
         }
 
         if ($batch !== []) {
-            yield from $this->batch($batch, $columns, $named, $withheld, $survey->definition());
+            yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null);
         }
     }
 
@@ -115,9 +118,10 @@ final readonly class SurveyExportTable
      * @param  list<object>  $responses
      * @param  list<array{Question, ?Option}>  $columns
      * @param  list<string>  $withheld
+     * @param  ?SurveyDefinition  $definition  set when cells of questions a response did not reach say so
      * @return Generator<int, list<string|int|null>>
      */
-    private function batch(array $responses, array $columns, bool $named, array $withheld, SurveyDefinition $definition): Generator
+    private function batch(array $responses, array $columns, bool $named, array $withheld, ?SurveyDefinition $definition): Generator
     {
         $notReached = __('surveys::messages.export.not_reached');
         $notReached = is_string($notReached) ? $notReached : '';
@@ -131,7 +135,7 @@ final readonly class SurveyExportTable
             $responseId = self::string($response->id ?? null);
             $row = [];
             // With jumps, a blank cell is a question left unanswered, never one the way skipped
-            $reached = $definition->hasBranching() ? $this->reached($definition, $answers[$responseId] ?? []) : null;
+            $reached = $definition instanceof SurveyDefinition ? $this->reached($definition, $answers[$responseId] ?? []) : null;
 
             if ($named) {
                 $name = $response->user_name ?? $response->guest_name ?? null;
