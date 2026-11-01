@@ -745,6 +745,23 @@ final class DevelopmentSeeder extends Seeder
             $this->respond($assembly, $person, ['when' => $this->availabilityAnswer($when)], $this->at(-2 + intdiv($i, 4)));
         }
 
+        // Closed: one waits for its date to be fixed, the other has it
+        foreach (['general.assembly.awaiting' => [null, '¿Qué día hacemos la cena de Navidad?'], 'general.game_day.chosen' => ['saturday', '¿Qué fin de semana hacemos la jornada de juegos?']] as $name => [$chosen, $title]) {
+            $closedAvailability = $this->survey($name, $title, SurveyStatus::Closed, definition: $this->availabilityDefinition($title, [
+                'friday' => [-9, '19:00', '23:00'],
+                'saturday' => [-8, null, null],
+                'sunday' => [-7, '10:00', '14:00'],
+            ]), kind: SurveyKind::Availability, anonymous: false, opensAt: $this->monthsAgo(1, 2, '19:00'), openDays: 7, audienceSize: count($everyone), liveResults: true, shareResults: true, createdBy: $admin);
+            if ($chosen !== null) {
+                $closedAvailability->chooseSlot($chosen, $this->monthsAgo(1, 10, '10:00'));
+            }
+            $this->store($closedAvailability);
+            $when = $closedAvailability->definition()->questions()[0];
+            foreach ($this->respondents(8) as $person) {
+                $this->respond($closedAvailability, $person, ['when' => $this->availabilityAnswer($when)], $this->monthsAgo(1, 4));
+            }
+        }
+
         $closedPoll = $this->store($this->survey('general.poll.closed', '¿Pasamos la tarde de juego al jueves?', SurveyStatus::Closed, definition: $this->pollDefinition('thursday', '¿Pasamos la tarde de juego al jueves?', ['yes' => 'Sí', 'no' => 'No', 'any' => 'Me da igual']), kind: SurveyKind::Poll, opensAt: $this->monthsAgo(1, 20, '20:00'), openDays: 3, audienceSize: 20, liveResults: true, createdBy: $admin));
         foreach ($this->respondents(14) as $i => $person) {
             $this->respond($closedPoll, $person, ['thursday' => ['yes', 'yes', 'no', 'any', 'yes'][$i % 5]], $this->monthsAgo(1, 21));

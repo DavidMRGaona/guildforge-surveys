@@ -220,7 +220,7 @@ final readonly class ResultsService
         if ($question->type === QuestionType::Ranking) {
             $ranking = $this->ranking($question, $places);
         } elseif ($question->type === QuestionType::Availability) {
-            $availability = $this->availability($question, $cells, $cellVoters);
+            $availability = $this->availability($question, $cells, $cellVoters, $survey->chosenSlot()?->id);
         } elseif ($question->type->isChoice()) {
             foreach ($question->options as $option) {
                 $buckets[] = new ResultBucketDTO($option->id, $option->label, $options[$option->id] ?? 0, $voters[$option->id] ?? []);
@@ -278,7 +278,7 @@ final readonly class ResultsService
      * @param  array<string, array<string, int>>  $cells  slot id => answer => count
      * @param  array<string, array<string, list<string>>>  $names  slot id => answer => names
      */
-    private function availability(Question $question, array $cells, array $names): AvailabilityResultDTO
+    private function availability(Question $question, array $cells, array $names, ?string $chosenSlotId): AvailabilityResultDTO
     {
         $yes = AvailabilityAnswer::Yes->value;
         $ifNeeded = AvailabilityAnswer::IfNeeded->value;
@@ -305,10 +305,11 @@ final readonly class ResultsService
                 yesNames: $names[$slot->id][$yes] ?? [],
                 ifNeededNames: $names[$slot->id][$ifNeeded] ?? [],
                 noNames: $names[$slot->id][$no] ?? [],
+                shortLabel: $this->slots->shortLabel($slot),
             );
         }
 
-        return new AvailabilityResultDTO($slots);
+        return new AvailabilityResultDTO($slots, $chosenSlotId);
     }
 
     /**

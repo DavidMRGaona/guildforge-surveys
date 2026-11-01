@@ -37,6 +37,7 @@ function question(
         mean: null,
         median: null,
         ranking: null,
+        availability: null,
         reached: null,
         chartType: 'bar',
         chartTypes: ['bar', 'pie'],
@@ -62,12 +63,91 @@ function props(overrides: Partial<ManageResultsProps> = {}): ManageResultsProps 
         },
         hiddenQuestions: [{ id: 'q-3', title: 'Comentarios privados' }],
         settingsUrl: '/encuestas/gestionar/s-1/resultados',
+        chooseDateUrl: null,
         backUrl: '/encuestas/de/thing/thing-1',
         ...overrides,
     };
 }
 
+const availability = {
+    chosenSlotId: null,
+    slots: [
+        {
+            id: 'd-1',
+            label: 'sábado, 12 de enero de 2030',
+            shortLabel: 'sáb 12 ene',
+            yes: 2,
+            ifNeeded: 1,
+            no: 0,
+            best: true,
+            yesNames: ['Persona A', 'Persona B'],
+            ifNeededNames: ['Persona C'],
+            noNames: [],
+        },
+        {
+            id: 'd-2',
+            label: 'domingo, 13 de enero de 2030, de 10:00 a 14:00',
+            shortLabel: 'dom 13 ene · 10:00–14:00',
+            yes: 1,
+            ifNeeded: 0,
+            no: 2,
+            best: false,
+            yesNames: [],
+            ifNeededNames: [],
+            noNames: [],
+        },
+    ],
+};
+
 describe('Results', () => {
+    it('fixes the date of a closed availability survey once the consequence is ticked', async () => {
+        vi.mocked(router.post).mockClear();
+        const wrapper = mount(Results, {
+            props: props({
+                survey: { id: 's-1', title: '¿Qué día?', anonymous: false, closed: true },
+                results: {
+                    visible: true,
+                    hiddenReason: null,
+                    responses: 3,
+                    audienceSize: 4,
+                    rate: 0.75,
+                    questions: [
+                        question('q-1', {
+                            type: 'availability',
+                            availability,
+                            chartType: 'stacked_bar',
+                            chartTypes: ['stacked_bar'],
+                        }),
+                    ],
+                },
+                chooseDateUrl: '/encuestas/gestionar/s-1/fecha',
+            }),
+        });
+
+        // The slots instead of a chart
+        expect(wrapper.findAll('[data-chart]')).toHaveLength(0);
+        expect(wrapper.find('[data-slot="d-1"]').exists()).toBe(true);
+        const card = wrapper.get('[data-testid="choose-date"]');
+        const button = card.findAll('button').find((found) => found.text() === 'Fijar y avisar');
+        expect(button?.attributes('disabled')).toBeDefined();
+
+        await card.get('#choose-date-confirm').setValue(true);
+        await button?.trigger('click');
+
+        // The best date comes chosen
+        expect(router.post).toHaveBeenCalledWith(
+            '/encuestas/gestionar/s-1/fecha',
+            { slot_id: 'd-1', confirmed: true },
+            expect.any(Object)
+        );
+    });
+
+    it('offers no date to fix without the address to fix it', () => {
+        const wrapper = mount(Results, { props: props() });
+
+        expect(wrapper.find('[data-testid="choose-date"]').exists()).toBe(false);
+    });
+
     it('shows the participation and a chart per question', () => {
         const wrapper = mount(Results, { props: props() });
 

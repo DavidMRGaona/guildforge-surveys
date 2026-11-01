@@ -106,6 +106,8 @@ final class DefinitionEditor
                 ->rows(2),
             Toggle::make('required')
                 ->label(__('surveys::filament.definition.required'))
+                // Unmarked dates count as "no": an availability question is always answered
+                ->visible($type !== QuestionType::Availability)
                 ->default(false)
                 ->disabled($locked)
                 ->dehydrated(),

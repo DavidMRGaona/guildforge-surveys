@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\ChosenDateNotifierInterface;
 use Modules\Surveys\Application\Contracts\ClosingSummaryNotifierInterface;
 use Modules\Surveys\Application\Contracts\OrganizedSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\OrganizerNotifierInterface;
@@ -60,6 +61,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSur
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentTrendsQuery;
 use Modules\Surveys\Infrastructure\Services\ChannelSurveyAnnouncer;
+use Modules\Surveys\Infrastructure\Services\ChosenDateMailer;
 use Modules\Surveys\Infrastructure\Services\ClosingSummaryMailer;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
 use Modules\Surveys\Infrastructure\Services\OrganizerMailer;
@@ -118,6 +120,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(OrganizerNotifierInterface::class, OrganizerMailer::class);
         $this->app->bind(ReviewNotifierInterface::class, ReviewMailer::class);
         $this->app->bind(ClosingSummaryNotifierInterface::class, ClosingSummaryMailer::class);
+        $this->app->bind(ChosenDateNotifierInterface::class, ChosenDateMailer::class);
     }
 
     /**

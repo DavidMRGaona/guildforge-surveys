@@ -76,6 +76,7 @@ Route::prefix('encuestas')
         Route::put('{survey}/editar', [OrganizerSurveyEditorController::class, 'update'])->whereUuid('survey')->name('manage.update');
         Route::get('{survey}/resultados', [OrganizerSurveyResultsController::class, 'show'])->whereUuid('survey')->name('manage.results');
         Route::put('{survey}/resultados', [OrganizerSurveyResultsController::class, 'update'])->whereUuid('survey')->name('manage.results.update');
+        Route::post('{survey}/fecha', [OrganizerSurveyResultsController::class, 'chooseDate'])->whereUuid('survey')->middleware('throttle:10,1')->name('manage.choose-date');
         Route::post('{survey}/enviar', [OrganizerSurveyController::class, 'send'])->whereUuid('survey')->name('manage.send');
         Route::post('{survey}/descartar', [OrganizerSurveyController::class, 'dismiss'])->whereUuid('survey')->name('manage.dismiss');
         Route::post('{survey}/cerrar', [OrganizerSurveyController::class, 'close'])->whereUuid('survey')->name('manage.close');

@@ -221,6 +221,14 @@ export default {
             results_hidden_title: 'Preguntas ocultas',
             results_hidden_hint: 'Desmárcalas y guarda para volver a mostrarlas.',
             results_save: 'Guardar ajustes de los resultados',
+            choose_date_title: 'Fijar la fecha',
+            choose_date_description:
+                'Elige la fecha entre las propuestas. Avisaremos por correo a quienes recibieron la encuesta o la respondieron con su cuenta.',
+            choose_date_slot: 'Fecha',
+            choose_date_placeholder: 'Elige una fecha',
+            choose_date_confirm:
+                'Entiendo que se avisará a todos y que la fecha ya no se podrá cambiar.',
+            choose_date_submit: 'Fijar y avisar',
         },
         respond: {
             required: 'Obligatoria',
@@ -352,6 +360,11 @@ export default {
             ranking_help:
                 'Cada primer puesto suma {positions} puntos, cada segundo uno menos, y así hasta el último, que suma 1. En la posición media, 1 es la mejor.',
             ranking_summary: '{points} puntos · posición media {mean}',
+            availability_help:
+                'La mejor opción es la que tiene más «Sí» y, si empatan, más «Si hace falta».',
+            availability_counts: '{yes} sí · {ifNeeded} si hace falta · {no} no',
+            availability_best: 'Mejor opción',
+            availability_chosen: 'Fecha elegida',
             percent: '{percent} %',
             voters: 'Han votado: {names}',
             other: 'Otra',

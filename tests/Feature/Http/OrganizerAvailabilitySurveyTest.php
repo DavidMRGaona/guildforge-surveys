@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Surveys\Application\DTOs\Respondent;
 use Modules\Surveys\Application\Services\SubmissionService;
+use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
@@ -135,6 +136,40 @@ final class OrganizerAvailabilitySurveyTest extends ModuleTestCase
 
         $this->app->make(SubmissionService::class)->submit(SurveyId::fromString($id), Respondent::account($this->organizer->id), ['question-1' => ['slot-1' => 'yes']]);
         $this->assertSame(2, SurveyModel::query()->sole()->responses()->first()?->answers()->count());
+    }
+
+    public function test_the_organizer_sees_each_slot_and_fixes_the_date_of_the_closed_survey(): void
+    {
+        $this->actingAs($this->organizer)->post(route('surveys.manage.store', [ExampleThingSource::TYPE, 'thing-1', 'disponibilidad']).'?send=1', $this->payload());
+        $id = (string) SurveyModel::query()->sole()->id;
+        $this->app->make(SubmissionService::class)->submit(SurveyId::fromString($id), Respondent::account($this->organizer->id), ['question-1' => ['slot-2' => 'yes']]);
+
+        $this->actingAs($this->organizer)->get(route('surveys.manage.results', $id))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('results.questions.0.availability.slots.1.yes', 1)
+                ->where('results.questions.0.availability.slots.1.best', true)
+                ->where('results.questions.0.availability.slots.1.yesNames', [$this->organizer->name])
+                ->where('results.questions.0.availability.chosenSlotId', null)
+                // Not closed yet: there is no date to fix
+                ->where('chooseDateUrl', null));
+
+        $this->app->make(SurveyLifecycleService::class)->close(SurveyId::fromString($id));
+        $this->actingAs($this->organizer)->get(route('surveys.manage.results', $id))
+            ->assertInertia(fn (Assert $page) => $page->where('chooseDateUrl', route('surveys.manage.choose-date', $id)));
+
+        $this->actingAs($this->organizer)->post(route('surveys.manage.choose-date', $id), ['slot_id' => 'slot-2'])
+            ->assertSessionHasErrors(['confirmed' => __('surveys::messages.manage.date_confirm_required')]);
+        $this->actingAs($this->organizer)->post(route('surveys.manage.choose-date', $id), ['slot_id' => 'slot-2', 'confirmed' => true])
+            ->assertSessionHas('success', __('surveys::messages.manage.date_chosen'));
+
+        $this->actingAs($this->organizer)->get(route('surveys.manage.results', $id))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('results.questions.0.availability.chosenSlotId', 'slot-2')
+                ->where('chooseDateUrl', null));
+        $this->actingAs($this->organizer)->post(route('surveys.manage.choose-date', $id), ['slot_id' => 'slot-1', 'confirmed' => true])
+            ->assertSessionHas('error', __('surveys::messages.manage.date_not_chosen'));
+        $this->actingAs(UserModel::factory()->create())->post(route('surveys.manage.choose-date', $id), ['slot_id' => 'slot-1', 'confirmed' => true])
+            ->assertForbidden();
     }
 
     public function test_it_is_never_offered_or_saved_as_a_template(): void

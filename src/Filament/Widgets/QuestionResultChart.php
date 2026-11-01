@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Modules\Surveys\Filament\Widgets;
 
 use DateTimeImmutable;
+use Filament\Support\Colors\Color;
 use Filament\Widgets\ChartWidget;
 use Livewire\Attributes\Locked;
+use Modules\Surveys\Application\DTOs\Results\AvailabilityResultDTO;
+use Modules\Surveys\Application\DTOs\Results\AvailabilitySlotResultDTO;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
 use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
@@ -64,6 +67,10 @@ final class QuestionResultChart extends ChartWidget
 
         if ($result->ranking instanceof RankingResultDTO) {
             return $this->rankingData($result->chartType, $result->ranking);
+        }
+
+        if ($result->availability instanceof AvailabilityResultDTO) {
+            return $this->availabilityData($result->availability);
         }
 
         if ($result->grid instanceof GridResultDTO) {
@@ -150,6 +157,30 @@ final class QuestionResultChart extends ChartWidget
         }
 
         return ['datasets' => $datasets, 'labels' => $labels];
+    }
+
+    /**
+     * How many can, could if needed and cannot make each slot, in colours that say so.
+     *
+     * @return array<string, mixed>
+     */
+    private function availabilityData(AvailabilityResultDTO $availability): array
+    {
+        $series = [
+            ['answers.yes', Color::Emerald[500], static fn (AvailabilitySlotResultDTO $slot): int => $slot->yes],
+            ['answers.if_needed', Color::Amber[500], static fn (AvailabilitySlotResultDTO $slot): int => $slot->ifNeeded],
+            ['answers.no', Color::Gray[400], static fn (AvailabilitySlotResultDTO $slot): int => $slot->no],
+        ];
+
+        return [
+            'datasets' => array_map(static fn (array $serie): array => [
+                'label' => __("surveys::messages.availability.{$serie[0]}"),
+                'data' => array_map($serie[2], $availability->slots),
+                'backgroundColor' => $serie[1],
+                'borderColor' => $serie[1],
+            ], $series),
+            'labels' => array_map(static fn (AvailabilitySlotResultDTO $slot): string => $slot->shortLabel, $availability->slots),
+        ];
     }
 
     private function result(): ?QuestionResultDTO

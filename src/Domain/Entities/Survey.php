@@ -12,6 +12,7 @@ use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
@@ -61,6 +62,8 @@ final class Survey
         private PublicLinkMode $publicLinkMode = PublicLinkMode::VerifiedEmail,
         private bool $announceInChannels = false,
         private bool $closingSummary = false,
+        private ?string $chosenSlotId = null,
+        private ?DateTimeImmutable $chosenSlotAt = null,
     ) {}
 
     /**
@@ -762,5 +765,53 @@ final class Survey
     public function sendsClosingSummary(): bool
     {
         return $this->closingSummary;
+    }
+
+    /**
+     * Fixes the date of an availability survey once it has closed: one of its slots, once,
+     * since everyone is told.
+     *
+     * @throws InvalidSurveyStateException
+     */
+    public function chooseSlot(string $slotId, DateTimeImmutable $now): void
+    {
+        $slot = $this->slot($slotId);
+        if ($this->kind !== SurveyKind::Availability || $this->status !== SurveyStatus::Closed || $this->chosenSlotId !== null || ! $slot instanceof Slot) {
+            throw InvalidSurveyStateException::cannotChooseSlot($this->id->value);
+        }
+
+        $this->chosenSlotId = $slot->id;
+        $this->chosenSlotAt = $now;
+    }
+
+    public function chosenSlot(): ?Slot
+    {
+        return $this->chosenSlotId === null ? null : $this->slot($this->chosenSlotId);
+    }
+
+    public function chosenSlotAt(): ?DateTimeImmutable
+    {
+        return $this->chosenSlotAt;
+    }
+
+    /**
+     * Whether the date can be fixed now: a closed availability survey without one.
+     */
+    public function awaitsChosenSlot(): bool
+    {
+        return $this->kind === SurveyKind::Availability && $this->status === SurveyStatus::Closed && $this->chosenSlotId === null;
+    }
+
+    private function slot(string $slotId): ?Slot
+    {
+        foreach ($this->definition->questions() as $question) {
+            foreach ($question->slots as $slot) {
+                if ($slot->id === $slotId) {
+                    return $slot;
+                }
+            }
+        }
+
+        return null;
     }
 }

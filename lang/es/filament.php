@@ -186,6 +186,14 @@ return [
     ],
 
     'actions' => [
+        'choose_date' => 'Fijar fecha',
+        'choose_date_heading' => '¿Fijar la fecha?',
+        'choose_date_description' => 'Se avisa por correo a quienes recibieron la encuesta o la respondieron con su cuenta.',
+        'choose_date_slot' => 'Fecha',
+        'choose_date_confirm' => 'Entiendo que se avisará a todos y que la fecha ya no se podrá cambiar.',
+        'choose_date_submit' => 'Fijar y avisar',
+        'choose_date_done' => 'Fecha fijada: se está avisando a todos',
+        'choose_date_failed' => 'No se puede fijar: la encuesta tiene que estar cerrada y sin fecha.',
         'open' => 'Abrir',
         'open_description' => 'La encuesta empieza a aceptar respuestas y su audiencia queda fijada.',
         'open_done' => 'Encuesta abierta',
@@ -234,6 +242,12 @@ return [
         'series' => 'Respuestas',
         'points' => 'Puntos',
         'place' => ':place.º puesto',
+        'availability' => [
+            'slot' => 'Fecha',
+            'best' => 'Mejor opción',
+            'chosen' => 'Fecha elegida',
+            'help' => 'La mejor opción es la que tiene más «Sí» y, si empatan, más «Si hace falta».',
+        ],
         'ranking' => [
             'help' => 'Cada primer puesto suma :positions puntos, cada segundo uno menos, y así hasta el último, que suma 1. En la posición media, 1 es la mejor.',
             'option' => 'Opción',

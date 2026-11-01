@@ -140,6 +140,10 @@ final class DevelopmentSeederTest extends ModuleTestCase
         $this->assertTrue(array_any($slots, static fn (Slot $slot): bool => $slot->isWholeDay()));
         $this->assertTrue(array_any($slots, static fn (Slot $slot): bool => ! $slot->isWholeDay() && $slot->endsAt !== null));
         $this->assertEqualsCanonicalizing(['yes', 'if_needed', 'no'], $answers->unique()->values()->all());
+
+        $closed = SurveyModel::query()->where('kind', SurveyKind::Availability->value)->where('status', SurveyStatus::Closed->value)->get();
+        $this->assertTrue($closed->contains(static fn (SurveyModel $survey): bool => $survey->chosen_slot_id === null), 'waiting for its date');
+        $this->assertTrue($closed->contains(static fn (SurveyModel $survey): bool => $survey->chosen_slot_id !== null), 'with its date');
     }
 
     public function test_it_covers_every_kind_of_subject_audience_and_public_link_mode(): void

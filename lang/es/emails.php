@@ -66,6 +66,14 @@ return [
         'action' => 'Ver los resultados',
     ],
 
+    'date_chosen' => [
+        'subject' => 'Fecha elegida: «:title»',
+        'intro' => 'Ya hay fecha para «:title» de :site.',
+        'intro_subject' => 'Ya hay fecha para «:title» de :site, sobre «:subject».',
+        'date' => '**:date**',
+        'action' => 'Ver «:subject»',
+    ],
+
     'submitted_for_review' => [
         'subject' => 'Encuesta pendiente de revisión: :title',
         'intro' => 'La encuesta «:title» de :site ha cambiado fuera del panel y espera tu revisión antes de enviarse.',

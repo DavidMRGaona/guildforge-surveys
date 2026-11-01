@@ -72,6 +72,23 @@ final readonly class AvailabilitySlotFormatter
     }
 
     /**
+     * The label of a chart axis: "sáb 5 dic · 17:00–21:00".
+     */
+    public function shortLabel(Slot $slot): string
+    {
+        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $this->day($slot));
+        if (! $day instanceof DateTimeImmutable || $day->format('Y-m-d') !== $this->day($slot)) {
+            return $this->day($slot);
+        }
+
+        $localized = CarbonImmutable::instance($day)->locale(app()->getLocale());
+        $dayLabel = $localized instanceof CarbonImmutable ? str_replace('.', '', $localized->isoFormat('ddd D MMM')) : $this->day($slot);
+        $times = implode('–', array_filter([$this->start($slot), $this->end($slot)]));
+
+        return $times === '' ? $dayLabel : "{$dayLabel} · {$times}";
+    }
+
+    /**
      * The slot an editor typed in the display zone: a whole day without $start, else the start
      * (and the end, if any) as UTC instants. A $end at or before $start falls on the next day.
      * What cannot be read is kept as typed, so SurveyDefinitionValidator says where it is wrong.
