@@ -58,6 +58,8 @@ Route::prefix('encuestas')
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('subject');
         Route::post('sujeto/{type}/{subject}/preparar', [OrganizerSurveyController::class, 'prepare'])
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->name('manage.prepare');
+        Route::post('sujeto/{type}/{subject}/encuesta-al-terminar', [OrganizerSurveyController::class, 'chooseEnd'])
+            ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->middleware('throttle:10,1')->name('manage.end-choice');
         Route::get('sujeto/{type}/{subject}/nueva/{kind}', [OrganizerSurveyEditorController::class, 'create'])
             ->where('type', '[a-z][a-z0-9]*(-[a-z0-9]+)*')->where('kind', 'encuesta|sondeo')->name('manage.create');
         Route::post('sujeto/{type}/{subject}/nueva/{kind}', [OrganizerSurveyEditorController::class, 'store'])

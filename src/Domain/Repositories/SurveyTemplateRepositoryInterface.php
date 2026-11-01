@@ -16,4 +16,11 @@ interface SurveyTemplateRepositoryInterface
     public function findOrFail(SurveyTemplateId $id): SurveyTemplate;
 
     public function delete(SurveyTemplateId $id): void;
+
+    /**
+     * Form templates (polls are never sent on an end), by name.
+     *
+     * @return array<string, string> template id => name
+     */
+    public function formNames(): array;
 }

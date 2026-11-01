@@ -48,4 +48,14 @@ final class EloquentSurveyTemplateRepository implements SurveyTemplateRepository
     {
         SurveyTemplateModel::query()->whereKey($id->value)->delete();
     }
+
+    public function formNames(): array
+    {
+        /** @var array<string, string> */
+        return SurveyTemplateModel::query()
+            ->where('kind', SurveyKind::Form->value)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
 }

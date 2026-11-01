@@ -127,4 +127,9 @@ final class InvalidSurveyStateException extends DomainException
     {
         return new self("Survey {$surveyId} is no longer a draft: whether it is announced is fixed.");
     }
+
+    public static function cannotBecomeEndSurvey(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} cannot become its subject's end survey: only an unsent, undismissed form about that subject without an end key can.");
+    }
 }

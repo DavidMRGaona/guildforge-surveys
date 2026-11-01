@@ -48,4 +48,23 @@ export interface ManageSubjectProps {
     prepareUrl: string | null;
     /** New surveys and polls of the organizer's own; null once the subject is cancelled. */
     createUrls: { form: string; poll: string } | null;
+    /** Which survey goes out when the subject ends; null when there is nothing to choose. */
+    endChoice: EndSurveyChoice | null;
+}
+
+export interface EndSurveyChoiceOption {
+    value: string;
+    label: string;
+}
+
+export interface EndSurveyChoice {
+    options: EndSurveyChoiceOption[];
+    selected: string;
+    /** The option that prepares a survey of the subject's own, from one of baseTemplates. */
+    ownValue: string | null;
+    baseTemplates: EndSurveyChoiceOption[];
+    locked: boolean;
+    lockedReason: string | null;
+    editUrl: string | null;
+    url: string;
 }

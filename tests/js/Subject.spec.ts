@@ -15,11 +15,88 @@ function props(overrides: Partial<ManageSubjectProps> = {}): ManageSubjectProps 
         surveys: [],
         prepareUrl: null,
         createUrls: null,
+        endChoice: null,
+        ...overrides,
+    };
+}
+
+function endChoice(
+    overrides: Partial<NonNullable<ManageSubjectProps['endChoice']>> = {}
+): NonNullable<ManageSubjectProps['endChoice']> {
+    return {
+        options: [
+            { value: 'type-default', label: 'Plantilla del tipo: «Valoración»' },
+            { value: 'template:2', label: 'Torneo de ejemplo' },
+            { value: 'own', label: 'Una encuesta propia' },
+            { value: 'none', label: 'Ninguna' },
+        ],
+        selected: 'type-default',
+        ownValue: 'own',
+        baseTemplates: [
+            { value: 'template:1', label: 'Valoración' },
+            { value: 'template:2', label: 'Torneo de ejemplo' },
+        ],
+        locked: false,
+        lockedReason: null,
+        editUrl: null,
+        url: '/encuestas/sujeto/example-thing/thing-1/encuesta-al-terminar',
         ...overrides,
     };
 }
 
 describe('Subject', () => {
+    it('saves the end survey chosen for the subject', async () => {
+        vi.mocked(router.post).mockClear();
+        const wrapper = mount(Subject, { props: props({ endChoice: endChoice() }) });
+
+        expect(wrapper.text()).toContain('Encuesta al terminar');
+        expect(wrapper.text()).toContain('Plantilla del tipo: «Valoración»');
+        expect(wrapper.text()).not.toContain('Partir de');
+
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Guardar')
+            ?.trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith(
+            '/encuestas/sujeto/example-thing/thing-1/encuesta-al-terminar',
+            { choice: 'type-default', base: null },
+            expect.any(Object)
+        );
+    });
+
+    it('asks which template an own survey starts from', () => {
+        const wrapper = mount(Subject, {
+            props: props({ endChoice: endChoice({ selected: 'own' }) }),
+        });
+
+        expect(wrapper.text()).toContain('Partir de');
+    });
+
+    it('shows a locked choice with its reason and no save button', () => {
+        const wrapper = mount(Subject, {
+            props: props({
+                endChoice: endChoice({
+                    locked: true,
+                    lockedReason:
+                        'Ya ha terminado, así que la encuesta al terminar no se puede cambiar.',
+                    editUrl: '/encuestas/1/editar',
+                }),
+            }),
+        });
+
+        expect(wrapper.text()).toContain('Ya ha terminado, así que');
+        expect(wrapper.findAll('button').some((button) => button.text() === 'Guardar')).toBe(false);
+    });
+
+    it('links to the end survey in force', () => {
+        const wrapper = mount(Subject, {
+            props: props({ endChoice: endChoice({ editUrl: '/encuestas/1/editar' }) }),
+        });
+
+        expect(wrapper.find('a[href="/encuestas/1/editar"]').text()).toBe('Editar la encuesta');
+    });
+
     it('prepares the survey before the subject ends', async () => {
         vi.mocked(router.post).mockClear();
         const wrapper = mount(Subject, {
