@@ -7,6 +7,7 @@ import { VENUE_TIMEZONE } from '@/utils/datetime';
 import type { OrganizedSurvey } from '../../types/Manage';
 import type { PendingSurvey } from '../../types/Respond';
 import OrganizedSurveysList from '../OrganizedSurveysList.vue';
+import { BADGE_CLASS, CARD_CLASS, LINK_CLASS, PRIMARY_ACTION_CLASS } from '../styles';
 
 const props = defineProps<{
     profilePendingSurveys: PendingSurvey[] | null;
@@ -19,6 +20,27 @@ const { t, locale } = useI18n();
 
 const surveys = computed<PendingSurvey[]>(() => props.profilePendingSurveys ?? []);
 const organized = computed<OrganizedSurvey[]>(() => props.profileOrganizedSurveys ?? []);
+
+/** Surveys closing within this many hours are marked so they are not missed. */
+const CLOSING_SOON_HOURS = 48;
+
+function closesSoon(value: string | null): boolean {
+    if (value === null) {
+        return false;
+    }
+
+    const left = new Date(value).getTime() - Date.now();
+
+    return left > 0 && left <= CLOSING_SOON_HOURS * 3_600_000;
+}
+
+function subject(survey: PendingSurvey): string | null {
+    const parts = [survey.subjectType, survey.subjectTitle].filter(
+        (part): part is string => part !== null && part !== ''
+    );
+
+    return parts.length > 0 ? parts.join(' · ') : null;
+}
 
 function closesAt(value: string): string {
     return new Intl.DateTimeFormat(locale.value, {
@@ -39,7 +61,7 @@ function closesAt(value: string): string {
                 <Link
                     v-if="props.profileSurveyTrendsUrl"
                     :href="props.profileSurveyTrendsUrl"
-                    class="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                    :class="LINK_CLASS"
                     data-testid="trends-link"
                 >
                     {{ t('surveys.trends.profile_link') }}
@@ -60,27 +82,46 @@ function closesAt(value: string): string {
                 :description="t('surveys.profile.empty_description')"
             />
 
-            <ul
-                v-else
-                class="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-surface"
-            >
+            <ul v-else class="space-y-3">
                 <li
                     v-for="survey in surveys"
                     :key="survey.id"
-                    class="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    :class="[
+                        CARD_CLASS,
+                        'flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between',
+                    ]"
                 >
-                    <div>
-                        <p class="font-medium text-base-primary">{{ survey.title }}</p>
-                        <p v-if="survey.closesAt" class="text-sm text-base-secondary">
-                            {{
-                                t('surveys.respond.closes_at', { date: closesAt(survey.closesAt) })
-                            }}
+                    <div class="min-w-0 space-y-1">
+                        <p
+                            v-if="subject(survey)"
+                            class="text-sm break-words text-base-secondary"
+                            data-testid="subject"
+                        >
+                            {{ subject(survey) }}
+                        </p>
+                        <p class="font-semibold break-words text-base-primary">
+                            {{ survey.title }}
+                        </p>
+                        <p
+                            v-if="survey.closesAt"
+                            class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-base-secondary"
+                        >
+                            <span
+                                v-if="closesSoon(survey.closesAt)"
+                                :class="[BADGE_CLASS, 'bg-warning-light text-base-primary']"
+                            >
+                                {{ t('surveys.profile.closing_soon') }}
+                            </span>
+                            <span>
+                                {{
+                                    t('surveys.respond.closes_at', {
+                                        date: closesAt(survey.closesAt),
+                                    })
+                                }}
+                            </span>
                         </p>
                     </div>
-                    <Link
-                        :href="survey.url"
-                        class="inline-flex items-center justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-                    >
+                    <Link :href="survey.url" :class="['shrink-0', PRIMARY_ACTION_CLASS]">
                         {{ t('surveys.profile.answer') }}
                     </Link>
                 </li>

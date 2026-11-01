@@ -141,6 +141,15 @@ describe('Subject', () => {
         expect(wrapper.text()).not.toContain('Aún no hay encuestas');
     });
 
+    it('leads with the way back to the subject, its kind and the page title', () => {
+        const wrapper = mount(Subject, { props: props() });
+
+        const header = wrapper.get('header');
+        expect(header.find('a').attributes('href')).toBe('/mesas/partida-de-ejemplo');
+        expect(header.text()).toContain('Mesa');
+        expect(header.get('h1').text()).toBe('Encuestas de Partida de ejemplo');
+    });
+
     it('shows the empty state when there is nothing to prepare', () => {
         const wrapper = mount(Subject, { props: props() });
 

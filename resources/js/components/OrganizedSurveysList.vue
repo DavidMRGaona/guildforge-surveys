@@ -6,6 +6,7 @@ import BaseButton from '@/components/ui/BaseButton.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { VENUE_TIMEZONE } from '@/utils/datetime';
 import type { OrganizedSurvey, OrganizedSurveyStatus } from '../types/Manage';
+import { BADGE_CLASS, CARD_CLASS, LINK_ACTION_CLASS } from './styles';
 
 const props = withDefaults(
     defineProps<{
@@ -32,9 +33,9 @@ const badgeClasses: Record<OrganizedSurveyStatus, string> = {
     prepared: 'bg-primary-light text-primary',
     to_send: 'bg-primary-light text-primary',
     scheduled: 'bg-primary-light text-primary',
-    pending_review: 'bg-warning-light text-warning',
-    rejected: 'bg-error-light text-error',
-    open: 'bg-success-light text-success',
+    pending_review: 'bg-warning-light text-base-primary',
+    rejected: 'bg-error-light text-base-primary',
+    open: 'bg-success-light text-base-primary',
     closed: 'bg-muted text-base-secondary',
 };
 
@@ -100,15 +101,18 @@ function confirmClose(): void {
 </script>
 
 <template>
-    <ul class="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-surface">
+    <ul class="space-y-3">
         <li
             v-for="survey in props.surveys"
             :key="survey.id"
-            class="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
+            :class="[
+                CARD_CLASS,
+                'flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between',
+            ]"
             :data-status="survey.status"
         >
             <div class="min-w-0 space-y-1">
-                <p class="font-medium break-words text-base-primary">{{ survey.title }}</p>
+                <p class="font-semibold break-words text-base-primary">{{ survey.title }}</p>
                 <p
                     v-if="props.showSubject && survey.subjectTitle"
                     class="text-sm break-words text-base-secondary"
@@ -116,10 +120,7 @@ function confirmClose(): void {
                     {{ survey.subjectTitle }}
                 </p>
                 <p>
-                    <span
-                        class="inline-block rounded-full px-2 py-0.5 text-xs font-medium"
-                        :class="badgeClasses[survey.status]"
-                    >
+                    <span :class="[BADGE_CLASS, badgeClasses[survey.status]]" data-testid="status">
                         {{ t(`surveys.manage.statuses.${survey.status}`) }}
                     </span>
                 </p>
@@ -168,26 +169,19 @@ function confirmClose(): void {
                     survey.resultsUrl ||
                     survey.closeUrl
                 "
-                class="flex shrink-0 flex-col gap-2 sm:flex-row"
+                class="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end"
             >
-                <Link
-                    v-if="survey.resultsUrl"
-                    :href="survey.resultsUrl"
-                    class="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-primary hover:underline"
-                >
+                <Link v-if="survey.resultsUrl" :href="survey.resultsUrl" :class="LINK_ACTION_CLASS">
                     {{ t('surveys.manage.results') }}
                 </Link>
-                <Link
-                    v-if="survey.editUrl"
-                    :href="survey.editUrl"
-                    class="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-primary hover:underline"
-                >
+                <Link v-if="survey.editUrl" :href="survey.editUrl" :class="LINK_ACTION_CLASS">
                     {{ t('surveys.manage.edit') }}
                 </Link>
                 <BaseButton
                     v-if="survey.dismissUrl"
                     variant="secondary"
                     size="sm"
+                    class="w-full sm:w-auto"
                     :disabled="busy !== null"
                     @click="askDismiss(survey)"
                 >
@@ -201,6 +195,7 @@ function confirmClose(): void {
                     v-if="survey.closeUrl"
                     variant="secondary"
                     size="sm"
+                    class="w-full sm:w-auto"
                     :loading="busy === survey.id"
                     :disabled="busy !== null"
                     @click="askClose(survey)"
@@ -210,6 +205,7 @@ function confirmClose(): void {
                 <BaseButton
                     v-if="survey.sendUrl"
                     size="sm"
+                    class="w-full sm:w-auto"
                     :loading="busy === survey.id"
                     :disabled="busy !== null"
                     @click="post(survey, survey.sendUrl)"

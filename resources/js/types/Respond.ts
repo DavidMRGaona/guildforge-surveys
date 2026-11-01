@@ -129,6 +129,9 @@ export const SUBMIT = '__submit__';
 export interface PendingSurvey {
     id: string;
     title: string;
+    /** The kind of thing it is about ("Mesa"), null for general surveys. */
+    subjectType: string | null;
+    subjectTitle: string | null;
     closesAt: string | null;
     url: string;
 }
