@@ -8,6 +8,7 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\DefinitionViolation;
+use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -67,6 +68,70 @@ final class SurveyDefinitionValidatorTest extends TestCase
         yield 'grid missing' => [static fn (array $d): array => self::set($d, [1, 4, 'grid'], null), $q(1, 4).'.grid', 'grid_required'];
         yield 'grid without rows' => [static fn (array $d): array => self::set($d, [1, 4, 'grid'], ['rows' => [], 'columns' => [['id' => 'c-1', 'label' => 'Mal'], ['id' => 'c-2', 'label' => 'Bien']]]), $q(1, 4).'.grid.rows', 'too_few_rows'];
         yield 'grid with one column' => [static fn (array $d): array => self::set($d, [1, 4, 'grid'], ['rows' => [['id' => 'r-1', 'label' => 'Ambiente']], 'columns' => [['id' => 'c-1', 'label' => 'Mal']]]), $q(1, 4).'.grid.columns', 'too_few_columns'];
+    }
+
+    public function test_jumps_forward_to_sections_or_the_end_are_valid(): void
+    {
+        $this->assertSame([], $this->validator->validate(SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()), SurveyKind::Form));
+    }
+
+    /**
+     * @param  callable(array<string, mixed>): array<string, mixed>  $break
+     */
+    #[DataProvider('brokenJumps')]
+    public function test_reports_each_broken_jump(callable $break, string $path, string $messageKey): void
+    {
+        $definition = SurveyDefinition::fromArray($break(SurveyDefinitionTest::branchingDefinition()));
+
+        $this->assertContainsEquals(new DefinitionViolation($path, $messageKey), $this->validator->validate($definition, SurveyKind::Form));
+    }
+
+    /**
+     * Paths and keys of the jump rules, on SurveyDefinitionTest::branchingDefinition().
+     *
+     * @return iterable<string, array{callable(array<string, mixed>): array<string, mixed>, string, string}>
+     */
+    public static function brokenJumps(): iterable
+    {
+        $jumps = 'sections.0.questions.0.next_by_option';
+        $jump = static fn (string $option, string $next): array => ['option_id' => $option, 'next' => $next];
+
+        yield 'checkboxes cannot jump' => [static fn (array $d): array => self::set($d, [0, 0, 'type'], 'multiple_choice'), $jumps, 'branching_not_allowed'];
+        yield 'two jumping questions in a section' => [static function (array $d) use ($jump): array {
+            $second = $d['sections'][0]['questions'][0];
+            $second['id'] = 'q-again';
+            $second['next_by_option'] = [$jump('o-yes', 's-end')];
+            $d['sections'][0]['questions'][] = $second;
+
+            return $d;
+        }, 'sections.0.questions.1.next_by_option', 'one_branching_question_per_section'];
+        yield 'jump from an unknown option' => [static fn (array $d): array => self::set($d, [0, 0, 'next_by_option'], [$jump('o-maybe', 's-end')]), $jumps.'.0.option_id', 'unknown_option_target'];
+        yield 'jump from "Other" without "Other"' => [static fn (array $d): array => self::set($d, [0, 0, 'allow_other'], false), $jumps.'.1.option_id', 'unknown_option_target'];
+        yield 'two jumps from one option' => [static fn (array $d): array => self::set($d, [0, 0, 'next_by_option'], [$jump('o-no', 's-end'), $jump('o-no', 's-campaign')]), $jumps.'.1.option_id', 'duplicate_id'];
+        yield 'jump to an unknown section' => [static fn (array $d): array => self::set($d, [0, 0, 'next_by_option'], [$jump('o-no', 's-gone')]), $jumps.'.0.next', 'unknown_section'];
+        yield 'section jump to an unknown section' => [static fn (array $d): array => self::setSection($d, 1, 'next', 's-gone'), 'sections.1.next', 'unknown_section'];
+        yield 'jump to the same section' => [static fn (array $d): array => self::set($d, [0, 0, 'next_by_option'], [$jump('o-no', 's-start')]), $jumps.'.0.next', 'jump_backwards'];
+        yield 'section jump backwards' => [static fn (array $d): array => self::setSection($d, 2, 'next', 's-campaign'), 'sections.2.next', 'jump_backwards'];
+        yield 'section named like the end' => [static fn (array $d): array => self::setSection($d, 2, 'id', Section::SUBMIT), 'sections.2.id', 'reserved_id'];
+    }
+
+    public function test_a_poll_cannot_jump(): void
+    {
+        $data = SurveyDefinitionTest::branchingDefinition();
+        $data['sections'] = [$data['sections'][0]];
+        $data['sections'][0]['questions'][0]['allow_other'] = false;
+        $data['sections'][0]['questions'][0]['next_by_option'] = [['option_id' => 'o-no', 'next' => Section::SUBMIT]];
+
+        $this->assertContainsEquals(new DefinitionViolation('sections', 'branching_not_allowed_in_poll'), $this->validator->validate(SurveyDefinition::fromArray($data), SurveyKind::Poll));
+    }
+
+    public function test_with_responses_jumps_may_not_change(): void
+    {
+        $old = SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition());
+        $new = SurveyDefinition::fromArray(self::setSection(SurveyDefinitionTest::branchingDefinition(), 1, 'next', null));
+
+        $this->assertSame([], $this->validator->validateChange($old, $new, hasResponses: false));
+        $this->assertContainsEquals(new DefinitionViolation('sections', 'locked_by_responses'), $this->validator->validateChange($old, $new, hasResponses: true));
     }
 
     public function test_a_poll_has_exactly_one_choice_question_without_other(): void

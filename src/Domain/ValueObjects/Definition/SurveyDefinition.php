@@ -54,6 +54,28 @@ final readonly class SurveyDefinition
         return $questions;
     }
 
+    /**
+     * Position of the section with that id, or null when there is none.
+     */
+    public function sectionIndex(string $id): ?int
+    {
+        foreach ($this->sections as $index => $section) {
+            if ($section->id === $id) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether any section or answer sends the respondent somewhere other than the next section.
+     */
+    public function hasBranching(): bool
+    {
+        return array_any($this->sections, static fn (Section $section): bool => $section->next !== null || $section->branchingQuestion() instanceof Question);
+    }
+
     public function question(string $id): ?Question
     {
         foreach ($this->questions() as $question) {

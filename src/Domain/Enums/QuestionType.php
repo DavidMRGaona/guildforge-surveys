@@ -33,6 +33,15 @@ enum QuestionType: string
         return $this->hasOptions();
     }
 
+    /**
+     * Whether the chosen option may decide the next section. Only one answer can be chosen,
+     * so there is never more than one way to go.
+     */
+    public function canBranch(): bool
+    {
+        return $this === self::SingleChoice || $this === self::Dropdown;
+    }
+
     public function isFreeText(): bool
     {
         return $this === self::ShortText || $this === self::Paragraph;

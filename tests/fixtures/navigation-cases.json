@@ -1,0 +1,73 @@
+{
+    "definitions": {
+        "campaign": {
+            "sections": [
+                {
+                    "id": "s-intro",
+                    "next": null,
+                    "questions": [
+                        {
+                            "id": "q-played",
+                            "type": "single_choice",
+                            "title": "Did you play the whole campaign?",
+                            "options": [
+                                { "id": "o-all", "label": "All of it" },
+                                { "id": "o-part", "label": "Part of it" },
+                                { "id": "o-none", "label": "None" }
+                            ],
+                            "allow_other": true,
+                            "next_by_option": [
+                                { "option_id": "o-part", "next": "s-part" },
+                                { "option_id": "o-none", "next": "__submit__" },
+                                { "option_id": "__other__", "next": "s-end" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "s-full",
+                    "next": "s-end",
+                    "questions": [{ "id": "q-finale", "type": "paragraph", "title": "The finale" }]
+                },
+                {
+                    "id": "s-part",
+                    "next": null,
+                    "questions": [
+                        {
+                            "id": "q-why",
+                            "type": "dropdown",
+                            "title": "Why did you leave?",
+                            "options": [
+                                { "id": "o-time", "label": "Time" },
+                                { "id": "o-fun", "label": "Fun" }
+                            ],
+                            "next_by_option": [{ "option_id": "o-fun", "next": "__submit__" }]
+                        }
+                    ]
+                },
+                {
+                    "id": "s-end",
+                    "next": null,
+                    "questions": [{ "id": "q-comments", "type": "paragraph", "title": "Anything else?" }]
+                }
+            ]
+        },
+        "plain": {
+            "sections": [
+                { "id": "s-one", "questions": [{ "id": "q-one", "type": "short_text", "title": "One" }] },
+                { "id": "s-two", "questions": [{ "id": "q-two", "type": "short_text", "title": "Two" }] }
+            ]
+        }
+    },
+    "cases": [
+        { "name": "without jumps every section is reached", "definition": "plain", "answers": { "q-one": "a" }, "reached": ["s-one", "s-two"] },
+        { "name": "an option without jump follows its section", "definition": "campaign", "answers": { "q-played": "o-all" }, "reached": ["s-intro", "s-full", "s-end"] },
+        { "name": "an option jumps to a later section", "definition": "campaign", "answers": { "q-played": "o-part" }, "reached": ["s-intro", "s-part", "s-end"] },
+        { "name": "a later question may end the survey", "definition": "campaign", "answers": { "q-played": "o-part", "q-why": "o-fun" }, "reached": ["s-intro", "s-part"] },
+        { "name": "an option may end the survey", "definition": "campaign", "answers": { "q-played": "o-none" }, "reached": ["s-intro"] },
+        { "name": "Other has its own jump", "definition": "campaign", "answers": { "q-played": { "option": "__other__", "other": "A bit" } }, "reached": ["s-intro", "s-end"] },
+        { "name": "an unanswered jumping question follows its section", "definition": "campaign", "answers": {}, "reached": ["s-intro", "s-full", "s-end"] },
+        { "name": "an unknown option follows its section", "definition": "campaign", "answers": { "q-played": "o-unknown" }, "reached": ["s-intro", "s-full", "s-end"] },
+        { "name": "answers off the path do not move it", "definition": "campaign", "answers": { "q-played": "o-none", "q-why": "o-time" }, "reached": ["s-intro"] }
+    ]
+}

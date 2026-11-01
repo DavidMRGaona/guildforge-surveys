@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
+use Modules\Surveys\Domain\ValueObjects\Definition\OptionJump;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
@@ -139,13 +140,20 @@ final class DefinitionFormState
     /**
      * A copy with new ids for sections and questions but the same keys, options, grid rows and
      * columns: trends match questions by key and options and rows by id with the template's,
-     * so a survey made from a template stays comparable with the others made from it.
+     * so a survey made from a template stays comparable with the others made from it. Jumps
+     * follow their sections to the new ids.
      */
     public static function withFreshQuestionIds(SurveyDefinition $definition): SurveyDefinition
     {
+        $sectionIds = [];
+        foreach ($definition->sections as $section) {
+            $sectionIds[$section->id] = (string) Str::uuid();
+        }
+        $renamed = static fn (?string $target): ?string => $target === null ? null : ($sectionIds[$target] ?? $target);
+
         return new SurveyDefinition(array_map(
             static fn (Section $section): Section => new Section(
-                id: (string) Str::uuid(),
+                id: $sectionIds[$section->id],
                 title: $section->title,
                 description: $section->description,
                 questions: array_map(
@@ -161,9 +169,14 @@ final class DefinitionFormState
                         scale: $question->scale,
                         stars: $question->stars,
                         grid: $question->grid,
+                        nextByOption: array_map(
+                            static fn (OptionJump $jump): OptionJump => new OptionJump($jump->optionId, (string) $renamed($jump->next)),
+                            $question->nextByOption,
+                        ),
                     ),
                     $section->questions,
                 ),
+                next: $renamed($section->next),
             ),
             $definition->sections,
         ));
