@@ -89,10 +89,16 @@ Por cada tipo de sujeto que ofrezcan los módulos activos: la plantilla de su en
 
 ## Datos de desarrollo
 
-`DevelopmentSeeder` deja un entorno completo para revisar el módulo. Solo actúa en el entorno `local`: el core ejecuta todos los seeders de un módulo al instalarlo y al actualizarlo, también en producción, y en los tests no hace nada salvo en los suyos. Para cargarlo (o volver a cargarlo) a mano, desde `src/`:
+`DevelopmentSeeder` deja un entorno completo para revisar el módulo. Solo actúa en el entorno `local`: el core ejecuta todos los seeders de un módulo al instalarlo y al actualizarlo, también en producción, y en los tests no hace nada salvo en los suyos. Para cargarlo a mano en una instalación local donde aún no se ha ejecutado, desde `src/`:
 
 ```bash
-php artisan db:seed --class='Modules\Surveys\Database\Seeders\DevelopmentSeeder'
+php artisan module:seed surveys
+```
+
+`module:seed` ejecuta cada seeder una sola vez por instalación. Las clases de `database/seeders` no están en el autoload, así que `db:seed --class` no las encuentra. Para volver a cargar los datos:
+
+```bash
+php artisan tinker --execute="require_once 'modules/surveys/database/seeders/RecommendedTemplatesSeeder.php'; require_once 'modules/surveys/database/seeders/DevelopmentSeeder.php'; app(Modules\Surveys\Database\Seeders\DevelopmentSeeder::class)->run();"
 ```
 
 Se puede repetir: cada encuesta tiene un id fijo y se sustituye, con sus respuestas, en lugar de duplicarse. No envía ningún aviso.
