@@ -32,5 +32,6 @@ final readonly class QuestionResultDTO
         public array $texts = [],
         public bool $belowMinimum = false,
         public ?int $reached = null,
+        public ?RankingResultDTO $ranking = null,
     ) {}
 }

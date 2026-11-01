@@ -56,6 +56,7 @@ trait AnswersExampleSurveys
         $answers = array_merge([
             'q-short' => 'Algo', 'q-paragraph' => 'Más', 'q-single' => 'o-2', 'q-multiple' => ['o-1'], 'q-dropdown' => 'o-1',
             'q-scale' => 3, 'q-stars' => 3, 'q-date' => '2030-01-01', 'q-time' => '10:00', 'q-grid' => ['r-1' => 'c-1', 'r-2' => 'c-1'],
+            'q-rank' => ['k-1', 'k-2', 'k-3'],
         ], $overrides);
 
         $this->app->make(SubmissionService::class)->submit($id, Respondent::account($this->people[$person]->id), $answers);
@@ -71,6 +72,7 @@ trait AnswersExampleSurveys
         $answers = array_merge([
             'q-short' => 'Algo', 'q-paragraph' => 'Más', 'q-single' => 'o-2', 'q-multiple' => ['o-1'], 'q-dropdown' => 'o-1',
             'q-scale' => 3, 'q-stars' => 3, 'q-date' => '2030-01-01', 'q-time' => '10:00', 'q-grid' => ['r-1' => 'c-1', 'r-2' => 'c-1'],
+            'q-rank' => ['k-1', 'k-2', 'k-3'],
         ], $overrides);
 
         $this->app->make(SubmissionService::class)->submit($id, Respondent::publicLink($opened->publicToken ?? throw new LogicException('The survey has a public link.')), $answers);

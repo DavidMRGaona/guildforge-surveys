@@ -49,6 +49,7 @@ final class SurveyExportTest extends ModuleTestCase
             'q-multiple' => ['o-1', 'o-2'],
             'q-grid' => ['r-1' => 'c-2', 'r-2' => 'c-1'],
             'q-scale' => 4,
+            'q-rank' => ['k-3', 'k-1', 'k-2'],
         ]);
         $this->answer($id, 1);
 
@@ -56,7 +57,7 @@ final class SurveyExportTest extends ModuleTestCase
         $rows = $this->rows($table);
 
         $this->assertSame(
-            [__('surveys::messages.export.date'), __('surveys::messages.export.person'), 'Pregunta q-short', 'Pregunta q-paragraph', 'Pregunta q-single', 'Pregunta q-multiple', 'Pregunta q-dropdown', 'Pregunta q-scale', 'Pregunta q-stars', 'Pregunta q-date', 'Pregunta q-time', 'Pregunta q-grid: Ambiente', 'Pregunta q-grid: Ritmo'],
+            [__('surveys::messages.export.date'), __('surveys::messages.export.person'), 'Pregunta q-short', 'Pregunta q-paragraph', 'Pregunta q-single', 'Pregunta q-multiple', 'Pregunta q-dropdown', 'Pregunta q-scale', 'Pregunta q-stars', 'Pregunta q-date', 'Pregunta q-time', 'Pregunta q-grid: Ambiente', 'Pregunta q-grid: Ritmo', 'Pregunta q-rank: Rol', 'Pregunta q-rank: Wargames', 'Pregunta q-rank: Tablero'],
             $table->headers,
         );
         $this->assertCount(2, $rows);
@@ -67,6 +68,8 @@ final class SurveyExportTest extends ModuleTestCase
         $this->assertSame('2030-01-01', $first[9]);
         $this->assertSame('Bien', $first[11]);
         $this->assertSame('Mal', $first[12]);
+        // A ranking gives each option its place
+        $this->assertSame([2, 3, 1], array_slice($first, 13, 3));
         $this->assertStringStartsWith('encuesta-de-ejemplo', $table->fileName);
     }
 

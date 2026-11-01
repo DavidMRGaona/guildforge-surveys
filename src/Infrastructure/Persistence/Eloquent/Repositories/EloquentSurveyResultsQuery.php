@@ -71,6 +71,23 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
         return $counts;
     }
 
+    public function positionCounts(SurveyId $surveyId, array $questionIds): array
+    {
+        $rows = $this->answers($surveyId, $questionIds)
+            ->whereNotNull('a.option_id')
+            ->whereNotNull('a.number_value')
+            ->selectRaw('a.question_id, a.option_id, a.number_value, count(*) as total')
+            ->groupBy('a.question_id', 'a.option_id', 'a.number_value')
+            ->get();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$this->string($row->question_id)][$this->string($row->option_id)][$this->int($row->number_value)] = $this->int($row->total);
+        }
+
+        return $counts;
+    }
+
     public function numberCounts(SurveyId $surveyId, array $questionIds): array
     {
         $rows = $this->answers($surveyId, $questionIds)

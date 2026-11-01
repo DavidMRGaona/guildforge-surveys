@@ -28,7 +28,8 @@ final readonly class Submission
     /**
      * Input is keyed by question id: a string for text, date, time and a single option;
      * an int or numeric string for scales and stars; a list of option ids for checkboxes;
-     * {option, other} or {options, other} when "Other" is chosen; {rowId: columnId} for grids.
+     * {option, other} or {options, other} when "Other" is chosen; {rowId: columnId} for grids;
+     * the option ids in order, best first, for a ranking.
      *
      * @param  array<mixed>  $input
      */
@@ -60,7 +61,8 @@ final readonly class Submission
         $id = $question->id;
 
         return match (true) {
-            $question->type->hasOptions() => self::choices($id, $raw),
+            $question->type === QuestionType::Ranking => self::places($id, $raw),
+            $question->type->isChoice() => self::choices($id, $raw),
             $question->type === QuestionType::Grid => self::gridCells($id, $raw),
             in_array($question->type, [QuestionType::LinearScale, QuestionType::StarRating], true) => self::number($id, $raw),
             default => self::text($id, $raw, $question->type),
@@ -86,6 +88,24 @@ final readonly class Submission
             $values[] = $optionId === self::OTHER
                 ? new AnswerValue($questionId, text: $other ?? '')
                 : new AnswerValue($questionId, optionId: $optionId);
+        }
+
+        return $values;
+    }
+
+    /**
+     * One value per ranked option, its place (1 = first) as the number. A lone id is kept as a
+     * ranking of one, so SubmissionValidator says it is incomplete.
+     *
+     * @return list<AnswerValue>
+     */
+    private static function places(string $questionId, mixed $raw): array
+    {
+        $values = [];
+        foreach (is_array($raw) ? array_values($raw) : [$raw] as $optionId) {
+            if (is_string($optionId) && $optionId !== '') {
+                $values[] = new AnswerValue($questionId, optionId: $optionId, number: count($values) + 1);
+            }
         }
 
         return $values;

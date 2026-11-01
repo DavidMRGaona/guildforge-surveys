@@ -9,6 +9,8 @@ use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
+use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
 use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
 use Modules\Surveys\Domain\Entities\Survey;
@@ -131,9 +133,10 @@ final readonly class ResultsService
         $id = $survey->id();
         $ids = array_map(static fn (Question $question): string => $question->id, $questions);
         $answered = $this->query->answeredCounts($id, $ids);
-        $optionIds = $this->idsOf($questions, static fn (QuestionType $type): bool => $type->hasOptions());
+        $optionIds = $this->idsOf($questions, static fn (QuestionType $type): bool => $type->isChoice());
         $options = $this->query->optionCounts($id, $optionIds);
         $cells = $this->query->cellCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Grid));
+        $places = $this->query->positionCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Ranking));
         $numbers = $this->query->numberCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::LinearScale || $type === QuestionType::StarRating));
         $dates = $this->query->textCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Date || $type === QuestionType::Time));
         $texts = $forRespondents ? [] : $this->query->texts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type->isFreeText() || $type->allowsOther()));
@@ -176,6 +179,7 @@ final readonly class ResultsService
                 $answered[$question->id] ?? 0,
                 $options[$question->id] ?? [],
                 $cells[$question->id] ?? [],
+                $places[$question->id] ?? [],
                 $numbers[$question->id] ?? [],
                 $dates[$question->id] ?? [],
                 $texts[$question->id] ?? [],
@@ -190,19 +194,23 @@ final readonly class ResultsService
     /**
      * @param  array<string, int>  $options
      * @param  array<string, array<string, int>>  $cells
+     * @param  array<string, array<int, int>>  $places  option id => place => answers
      * @param  array<int, int>  $numbers
      * @param  array<string, int>  $dates
      * @param  list<string>  $texts
      * @param  array<string, list<string>>  $voters
      */
-    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $numbers, array $dates, array $texts, array $voters, ?int $reached): QuestionResultDTO
+    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $places, array $numbers, array $dates, array $texts, array $voters, ?int $reached): QuestionResultDTO
     {
         $buckets = [];
         $grid = null;
+        $ranking = null;
         $mean = null;
         $median = null;
 
-        if ($question->type->hasOptions()) {
+        if ($question->type === QuestionType::Ranking) {
+            $ranking = $this->ranking($question, $places);
+        } elseif ($question->type->isChoice()) {
             foreach ($question->options as $option) {
                 $buckets[] = new ResultBucketDTO($option->id, $option->label, $options[$option->id] ?? 0, $voters[$option->id] ?? []);
             }
@@ -248,7 +256,40 @@ final readonly class ResultsService
             median: $median,
             texts: $texts,
             reached: $reached,
+            ranking: $ranking,
         );
+    }
+
+    /**
+     * Borda points (n for a first place out of n, n - 1 for a second…), the mean place and every
+     * place's count of each option, best first. Every answer ranks every option, so each one has
+     * as many places as there are answers.
+     *
+     * @param  array<string, array<int, int>>  $places  option id => place => answers
+     */
+    private function ranking(Question $question, array $places): RankingResultDTO
+    {
+        $positions = count($question->options);
+        $ranked = [];
+        foreach ($question->options as $index => $option) {
+            $counts = [];
+            $points = 0;
+            $sum = 0;
+            foreach (range(1, $positions) as $place) {
+                $count = $places[$option->id][$place] ?? 0;
+                $counts[$place] = $count;
+                $points += ($positions - $place + 1) * $count;
+                $sum += $place * $count;
+            }
+            $total = array_sum($counts);
+
+            $ranked[] = ['index' => $index, 'option' => new RankedOptionDTO($option->id, $option->label, $points, $total > 0 ? round($sum / $total, 2) : null, $counts)];
+        }
+
+        usort($ranked, static fn (array $a, array $b): int => [$b['option']->points, $a['option']->meanPosition ?? INF, $a['index']]
+            <=> [$a['option']->points, $b['option']->meanPosition ?? INF, $b['index']]);
+
+        return new RankingResultDTO($positions, array_column($ranked, 'option'));
     }
 
     /**

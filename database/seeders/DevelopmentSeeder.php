@@ -224,6 +224,7 @@ final class DevelopmentSeeder extends Seeder
                 $question('genre', 'single_choice', 'Género favorito', ['allow_other' => true, 'options' => $options(['fantasy' => 'Fantasía', 'horror' => 'Terror', 'science_fiction' => 'Ciencia ficción'])]),
                 $question('formats', 'multiple_choice', 'Formatos que te gustan', ['allow_other' => true, 'options' => $options(['one_shot' => 'Partida suelta', 'campaign' => 'Campaña', 'tournament' => 'Torneo'])]),
                 $question('day', 'dropdown', 'Día preferido', ['options' => $options(['friday' => 'Viernes', 'saturday' => 'Sábado', 'sunday' => 'Domingo'])]),
+                $question('games', 'ranking', 'Ordena estos juegos por preferencia', ['options' => $options(['rpg' => 'Rol', 'wargames' => 'Wargames', 'board_games' => 'Juegos de mesa', 'card_games' => 'Juegos de cartas'])]),
             ]],
             ['id' => 'ratings', 'title' => 'Valoraciones y fechas', 'description' => null, 'questions' => [
                 $question('venue', 'linear_scale', 'El local', ['scale' => ['min' => 1, 'max' => 5, 'min_label' => 'Mejorable', 'max_label' => 'Excelente']]),
@@ -336,7 +337,8 @@ final class DevelopmentSeeder extends Seeder
     /**
      * Values by question key (or id, for questions without one): a number for scales and stars; an option id, or ['other' => text],
      * for single choice and dropdown; option ids (and 'other' => text) for checkboxes; row id =>
-     * column id for grids; text for free text, dates (Y-m-d) and times (H:i).
+     * column id for grids; option ids in order, best first, for rankings; text for free text,
+     * dates (Y-m-d) and times (H:i).
      *
      * @param  Answers  $answers
      * @return list<AnswerValue>
@@ -367,6 +369,7 @@ final class DevelopmentSeeder extends Seeder
             foreach ($answer as $index => $item) {
                 $values[] = match (true) {
                     $question->type === QuestionType::Grid => new AnswerValue($id, optionId: $item, rowId: (string) $index),
+                    $question->type === QuestionType::Ranking => new AnswerValue($id, optionId: $item, number: (int) $index + 1),
                     $index === 'other' => new AnswerValue($id, text: $item),
                     default => new AnswerValue($id, optionId: $item),
                 };
@@ -415,7 +418,26 @@ final class DevelopmentSeeder extends Seeder
             QuestionType::ShortText, QuestionType::Paragraph => mt_rand(1, 100) <= 45 ? self::COMMENTS[mt_rand(0, count(self::COMMENTS) - 1)] : null,
             QuestionType::Date => $this->timezone->toDisplay($answeredOn)->modify('+'.mt_rand(7, 40).' days')->format('Y-m-d'),
             QuestionType::Time => ['17:00', '17:30', '18:00', '19:00'][mt_rand(0, 3)],
+            QuestionType::Ranking => $this->rank($options),
         };
+    }
+
+    /**
+     * Every option in an order that leans towards the definition's, so the results have a clear
+     * favourite without everyone agreeing.
+     *
+     * @param  list<string>  $options
+     * @return list<string>
+     */
+    private function rank(array $options): array
+    {
+        $weights = [];
+        foreach ($options as $index => $option) {
+            $weights[$option] = $index + mt_rand(0, 300) / 100;
+        }
+        asort($weights);
+
+        return array_map(static fn (int|string $option): string => (string) $option, array_keys($weights));
     }
 
     private function rating(int $min, int $max, float $quality): int
@@ -877,6 +899,7 @@ final class DevelopmentSeeder extends Seeder
             'genre' => $i % 4 === 3 ? ['other' => 'Western'] : ['fantasy', 'horror', 'science_fiction'][$i % 3],
             'formats' => $i % 5 === 4 ? ['campaign', 'other' => 'Partidas por foro'] : (['one_shot', 'campaign', 'tournament'][$i % 3] === 'tournament' ? ['tournament'] : ['one_shot', 'campaign']),
             'day' => ['friday', 'saturday', 'sunday'][$i % 3],
+            'games' => [['rpg', 'wargames', 'board_games', 'card_games'], ['wargames', 'rpg', 'card_games', 'board_games'], ['rpg', 'board_games', 'wargames', 'card_games']][$i % 3],
             'venue' => 2 + ($i % 4),
             'overall' => 3 + ($i % 3),
             'next_meeting' => $this->timezone->toDisplay($this->at(10 + $i))->format('Y-m-d'),

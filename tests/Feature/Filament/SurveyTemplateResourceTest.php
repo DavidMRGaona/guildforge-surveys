@@ -62,7 +62,7 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
 
         $model = SurveyTemplateModel::query()->sole();
         $template = $this->app->make(SurveyTemplateRepositoryInterface::class)->findOrFail(SurveyTemplateId::fromString($model->id));
-        $this->assertCount(10, $template->definition()->questions());
+        $this->assertCount(11, $template->definition()->questions());
         $this->assertSame('fun', $template->definition()->question('q-scale')?->key);
     }
 

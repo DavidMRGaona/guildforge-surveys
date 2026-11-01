@@ -165,6 +165,7 @@ final class DevelopmentSeederTest extends ModuleTestCase
         $this->assertTrue($answers->contains(static fn (object $answer): bool => $answer->option_id === null && $answer->number_value === null && $answer->text_value !== null), 'text or other');
         $this->assertTrue($answers->contains(static fn (object $answer): bool => is_string($answer->text_value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $answer->text_value) === 1), 'date');
         $this->assertTrue($answers->contains(static fn (object $answer): bool => is_string($answer->text_value) && preg_match('/^\d{2}:\d{2}$/', $answer->text_value) === 1), 'time');
+        $this->assertTrue($answers->contains(static fn (object $answer): bool => $answer->option_id !== null && $answer->number_value !== null), 'ranking');
     }
 
     public function test_a_survey_with_section_jumps_is_answered_along_each_way(): void

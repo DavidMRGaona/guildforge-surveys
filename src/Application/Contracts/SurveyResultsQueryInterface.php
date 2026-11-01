@@ -45,6 +45,14 @@ interface SurveyResultsQueryInterface
     public function cellCounts(SurveyId $surveyId, array $questionIds): array;
 
     /**
+     * How often each place of a ranking went to each option.
+     *
+     * @param  list<string>  $questionIds
+     * @return array<string, array<string, array<int, int>>> question id => option id => place => answers
+     */
+    public function positionCounts(SurveyId $surveyId, array $questionIds): array;
+
+    /**
      * @param  list<string>  $questionIds
      * @return array<string, array<int, int>> question id => value => answers
      */

@@ -71,7 +71,7 @@ final class SurveyResourceTest extends ModuleTestCase
         $this->assertSame(['member'], $survey->audienceRoles());
         $this->assertTrue($survey->isAnonymous());
         $this->assertTrue($survey->results()->liveResults);
-        $this->assertCount(10, $survey->definition()->questions());
+        $this->assertCount(11, $survey->definition()->questions());
     }
 
     public function test_the_public_link_asks_for_an_email_unless_it_is_made_open(): void
