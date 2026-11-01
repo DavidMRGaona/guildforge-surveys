@@ -80,20 +80,21 @@ final class DefinitionFormStateTest extends TestCase
         $this->assertSame("sections.{$sectionKeys[1]}.title", DefinitionFormState::formPath($state, 'sections.1.id'));
     }
 
-    public function test_fresh_ids_change_every_id_and_keep_the_keys(): void
+    public function test_fresh_question_ids_keep_the_keys_options_rows_and_columns(): void
     {
         $original = $this->definition();
 
-        $copy = DefinitionFormState::withFreshIds($original);
+        $copy = DefinitionFormState::withFreshQuestionIds($original);
 
+        $this->assertNotSame($original->sections[0]->id, $copy->sections[0]->id);
         foreach ($copy->questions() as $index => $question) {
             $before = $original->questions()[$index];
             $this->assertNotSame($before->id, $question->id);
             $this->assertSame($before->key, $question->key);
             $this->assertSame($before->title, $question->title);
-            foreach ($question->options as $o => $option) {
-                $this->assertNotSame($before->options[$o]->id, $option->id);
-            }
+            // Trends match options and grid rows by id with the template's
+            $this->assertEquals($before->options, $question->options);
+            $this->assertEquals($before->grid, $question->grid);
         }
     }
 
