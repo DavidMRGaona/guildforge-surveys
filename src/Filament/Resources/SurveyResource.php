@@ -153,6 +153,9 @@ final class SurveyResource extends BaseResource
                             ->required()
                             ->visible(static fn (Get $get): bool => (bool) $get('public_link_enabled'))
                             ->disabled($notDraft),
+                        self::announceInChannelsToggle()
+                            ->visible(static fn (?SurveyModel $record): bool => ! $record instanceof SurveyModel || $record->subject_type === null)
+                            ->disabled($notDraft),
                     ])
                     ->columns(2),
                 Section::make(__('surveys::filament.survey.sections.schedule'))
@@ -278,6 +281,18 @@ final class SurveyResource extends BaseResource
             array_map(static fn (SurveyStatus $status): string => $status->value, SurveyStatus::cases()),
             array_map(static fn (SurveyStatus $status): string => __("surveys::filament.statuses.{$status->value}"), SurveyStatus::cases()),
         );
+    }
+
+    /**
+     * Whether opening a general survey announces it on the channels: it starts from the setting
+     * and is chosen while the survey is a draft.
+     */
+    public static function announceInChannelsToggle(): Toggle
+    {
+        return Toggle::make('announce_in_channels')
+            ->label(__('surveys::filament.survey.fields.announce_in_channels'))
+            ->helperText(__('surveys::filament.survey.fields.announce_in_channels_help'))
+            ->default(static fn (): bool => app(SurveySettings::class)->announceInChannelsByDefault());
     }
 
     /**

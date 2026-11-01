@@ -59,6 +59,7 @@ final class Survey
         private bool $sendOnEnd = false,
         private int $sendDelayHours = 0,
         private PublicLinkMode $publicLinkMode = PublicLinkMode::VerifiedEmail,
+        private bool $announceInChannels = false,
     ) {}
 
     /**
@@ -256,6 +257,23 @@ final class Survey
 
         $this->sendOnEnd = $sendOnEnd;
         $this->sendDelayHours = $sendDelayHours;
+    }
+
+    /**
+     * Whether opening the survey announces it on the channels: only a general survey, chosen
+     * while it is a draft (it is announced on its first opening only).
+     */
+    public function chooseChannelAnnouncement(bool $announce): void
+    {
+        if ($this->subject instanceof SubjectSnapshot) {
+            throw InvalidSurveyStateException::subjectSurveyNotAnnounced($this->id->value);
+        }
+
+        if ($this->status !== SurveyStatus::Draft) {
+            throw InvalidSurveyStateException::announcementFixed($this->id->value);
+        }
+
+        $this->announceInChannels = $announce;
     }
 
     /**
@@ -638,5 +656,10 @@ final class Survey
     public function subjectEndKey(): ?string
     {
         return $this->subjectEndKey;
+    }
+
+    public function announceInChannels(): bool
+    {
+        return $this->announceInChannels;
     }
 }

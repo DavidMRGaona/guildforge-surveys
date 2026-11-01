@@ -53,6 +53,7 @@ final class CreateSurvey extends CreateRecord
                 reminderHoursBefore: SurveyFormData::reminderHoursBefore($data),
                 createdBy: is_string(auth()->id()) ? auth()->id() : null,
                 publicLinkMode: SurveyFormData::publicLinkMode($data),
+                announceInChannels: (bool) ($data['announce_in_channels'] ?? false),
             );
         });
 

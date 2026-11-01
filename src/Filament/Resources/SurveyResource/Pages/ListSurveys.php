@@ -83,6 +83,7 @@ final class ListSurveys extends ListRecords
                     ->displayFormat('d/m/Y H:i')
                     ->seconds(false)
                     ->default(static fn (): string => now()->addDays(app(SurveySettings::class)->defaultCloseDays())->startOfHour()->toDateTimeString()),
+                SurveyResource::announceInChannelsToggle(),
             ])
             ->action(function (array $data): void {
                 try {
@@ -139,6 +140,7 @@ final class ListSurveys extends ListRecords
             audienceType: AudienceType::AllUsers,
             closesAt: SurveyFormData::closesAt($data),
             createdBy: is_string(auth()->id()) ? auth()->id() : null,
+            announceInChannels: (bool) ($data['announce_in_channels'] ?? false),
         );
     }
 }

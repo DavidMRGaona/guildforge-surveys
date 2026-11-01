@@ -18,6 +18,11 @@ interface SurveySettingsInterface
     public function anonymousByDefault(): bool;
 
     /**
+     * Whether a new general survey is announced on the channels unless unticked.
+     */
+    public function announceInChannelsByDefault(): bool;
+
+    /**
      * Whether content changed outside the panel waits for a moderator before it goes out.
      */
     public function reviewRequired(): bool;

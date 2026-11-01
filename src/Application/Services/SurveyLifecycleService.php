@@ -10,6 +10,7 @@ use DateTimeImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
+use Modules\Surveys\Application\Contracts\SurveyAnnouncerInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
@@ -26,6 +27,7 @@ use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
+use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
@@ -39,6 +41,7 @@ final readonly class SurveyLifecycleService
         private SurveyRecipientStoreInterface $recipients,
         private SurveySubjectSourceRegistryInterface $sources,
         private SurveyNotifierInterface $notifier,
+        private SurveyAnnouncerInterface $announcer,
     ) {}
 
     /**
@@ -124,9 +127,10 @@ final readonly class SurveyLifecycleService
     }
 
     /**
-     * Opens the survey, fixes its audience (whoever joins later does not get it) and mails it.
-     * A survey that had opened before (back from a review) resumes: its audience and links stay
-     * as fixed then, and nobody is mailed again.
+     * Opens the survey, fixes its audience (whoever joins later does not get it), mails it and,
+     * for a general survey that asked for it, announces it on the channels. A survey that had
+     * opened before (back from a review) resumes: its audience and links stay as fixed then, and
+     * nobody is mailed or told again.
      *
      * @throws InvalidSurveyStateException
      */
@@ -156,6 +160,10 @@ final readonly class SurveyLifecycleService
 
         if ($notify) {
             $this->notifier->notifyOpened($survey->id());
+        }
+
+        if (! $survey->subject() instanceof SubjectSnapshot && $survey->announceInChannels()) {
+            $this->announcer->announceOpened($survey);
         }
 
         return new OpenedSurveyDTO($survey->id(), $guestTokens, $survey->publicToken());

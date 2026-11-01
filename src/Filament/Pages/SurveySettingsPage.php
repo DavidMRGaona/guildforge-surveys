@@ -172,6 +172,10 @@ final class SurveySettingsPage extends Page implements HasForms
                         ->label(__('surveys::messages.settings.anonymous_by_default'))
                         ->helperText(__('surveys::messages.settings.anonymous_by_default_help'))
                         ->default(true),
+                    Toggle::make('announce_in_channels_by_default')
+                        ->label(__('surveys::messages.settings.announce_in_channels_by_default'))
+                        ->helperText(__('surveys::messages.settings.announce_in_channels_by_default_help'))
+                        ->default(false),
                 ]),
             Section::make(__('surveys::messages.settings.review'))
                 ->schema([

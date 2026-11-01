@@ -119,6 +119,8 @@ return [
             'public_link_help' => 'Un enlace para responder sin cuenta, que se puede compartir donde quieras.',
             'public_link_mode' => 'Quién responde con el enlace',
             'public_link_url' => 'Enlace para compartir',
+            'announce_in_channels' => 'Anunciar en los canales',
+            'announce_in_channels_help' => 'Al abrirla, se publica en los canales configurados en «Notificaciones a canales» con el título, el cierre y el enlace: el público si lo tiene; si no, el de responder, que pide iniciar sesión y solo deja responder a la audiencia. Si luego cambias el enlace público, el anuncio deja de funcionar.',
             'closes_at' => 'Cierre',
             'reminder' => 'Recordatorio',
             'reminder_help' => 'Horas antes del cierre en que se recuerda la encuesta a quien no ha respondido. Vacío: sin recordatorio.',

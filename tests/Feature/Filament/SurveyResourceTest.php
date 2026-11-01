@@ -184,7 +184,72 @@ final class SurveyResourceTest extends ModuleTestCase
         $this->assertTrue($this->surveys->findOrFail($survey->id())->isAnonymous());
     }
 
-    private function survey(): Survey
+    public function test_the_announcement_box_starts_from_the_setting(): void
+    {
+        Livewire::test(CreateSurvey::class)->assertSchemaStateSet(['announce_in_channels' => false]);
+
+        config()->set('modules.settings.surveys.announce_in_channels_by_default', true);
+
+        Livewire::test(CreateSurvey::class)->assertSchemaStateSet(['announce_in_channels' => true]);
+    }
+
+    public function test_creating_a_survey_keeps_whether_it_is_announced(): void
+    {
+        Livewire::test(CreateSurvey::class)
+            ->fillForm([
+                'title' => 'Horario del local',
+                'sections' => DefinitionFormState::fromDefinition($this->definition()),
+                'anonymous' => true,
+                'audience_type' => 'all_users',
+                'closes_at' => '2030-01-10 20:00:00',
+                'announce_in_channels' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue($this->stored()->announceInChannels());
+    }
+
+    public function test_a_draft_can_change_whether_it_is_announced(): void
+    {
+        $survey = $this->survey(open: false);
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->assertFormFieldIsEnabled('announce_in_channels')
+            ->fillForm(['announce_in_channels' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue($this->stored()->announceInChannels());
+    }
+
+    public function test_an_opened_survey_keeps_whether_it_was_announced(): void
+    {
+        $survey = $this->survey();
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->assertFormFieldIsDisabled('announce_in_channels');
+    }
+
+    public function test_a_subject_survey_has_no_announcement_box(): void
+    {
+        $survey = $this->survey(open: false);
+        SurveyModel::query()->whereKey($survey->id()->value)->update(['subject_type' => 'example-thing', 'subject_id' => 'thing-1']);
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->assertFormFieldIsHidden('announce_in_channels');
+    }
+
+    public function test_a_quick_poll_can_be_announced(): void
+    {
+        Livewire::test(ListSurveys::class)
+            ->callAction('quick_poll', data: [...$this->quickPollData(), 'announce_in_channels' => true])
+            ->assertHasNoActionErrors();
+
+        $this->assertTrue($this->stored()->announceInChannels());
+    }
+
+    private function survey(bool $open = true): Survey
     {
         $survey = new Survey(
             id: SurveyId::generate(),
@@ -197,7 +262,9 @@ final class SurveyResourceTest extends ModuleTestCase
             audienceType: AudienceType::AllUsers,
             closesAt: new DateTimeImmutable('2030-01-10T20:00:00+00:00'),
         );
-        $survey->open(new DateTimeImmutable('2030-01-01T10:00:00+00:00'));
+        if ($open) {
+            $survey->open(new DateTimeImmutable('2030-01-01T10:00:00+00:00'));
+        }
         $this->surveys->save($survey);
 
         return $survey;

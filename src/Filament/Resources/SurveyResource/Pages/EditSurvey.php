@@ -76,6 +76,10 @@ final class EditSurvey extends EditRecord
                 array_key_exists('public_link_mode', $data) ? SurveyFormData::publicLinkMode($data) : null,
             ));
         }
+        // Only in the data while the box shows: a general survey that is still a draft
+        if (array_key_exists('announce_in_channels', $data)) {
+            $this->onField('data.announce_in_channels', fn () => $survey->chooseChannelAnnouncement((bool) $data['announce_in_channels']));
+        }
         $this->onField('data.closes_at', fn () => $survey->reschedule(SurveyFormData::closesAt($data), SurveyFormData::reminderHoursBefore($data), now()->toDateTimeImmutable()));
         $survey->changeResults(SurveyFormData::results($data, $survey->results()));
 
@@ -104,6 +108,7 @@ final class EditSurvey extends EditRecord
             'data.anonymous' => 'anonymity',
             'data.audience_type' => 'audience_fixed',
             'data.closes_at' => 'closing_date',
+            'data.announce_in_channels' => 'announcement_fixed',
             default => 'locked_by_responses',
         };
     }
