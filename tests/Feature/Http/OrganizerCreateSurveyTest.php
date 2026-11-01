@@ -71,6 +71,7 @@ final class OrganizerCreateSurveyTest extends ModuleTestCase
                 ->where('survey.durationDays', 3)
                 ->where('survey.liveResults', true)
                 ->where('survey.visibleToRespondents', true)
+                ->where('survey.closingSummary', true)
                 ->where('survey.opened', false)
                 ->where('survey.sendable', true)
                 ->where('definition.sections.0.questions.0.type', 'single_choice')

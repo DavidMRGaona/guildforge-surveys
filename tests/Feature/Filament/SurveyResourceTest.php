@@ -269,7 +269,66 @@ final class SurveyResourceTest extends ModuleTestCase
         $this->assertTrue($this->stored()->announceInChannels());
     }
 
-    private function survey(bool $open = true): Survey
+    public function test_the_closing_summary_box_starts_from_the_setting(): void
+    {
+        Livewire::test(CreateSurvey::class)->assertSchemaStateSet(['closing_summary' => true]);
+
+        config()->set('modules.settings.surveys.closing_summary_by_default', false);
+
+        Livewire::test(CreateSurvey::class)->assertSchemaStateSet(['closing_summary' => false]);
+    }
+
+    public function test_creating_a_survey_keeps_whether_it_mails_a_summary(): void
+    {
+        Livewire::test(CreateSurvey::class)
+            ->fillForm([
+                'title' => 'Horario del local',
+                'sections' => DefinitionFormState::fromDefinition($this->definition()),
+                'anonymous' => true,
+                'audience_type' => 'all_users',
+                'closes_at' => '2030-01-10 20:00:00',
+                'closing_summary' => false,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse($this->stored()->sendsClosingSummary());
+    }
+
+    public function test_an_open_survey_can_change_whether_it_mails_a_summary(): void
+    {
+        $survey = $this->survey();
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->assertFormFieldIsEnabled('closing_summary')
+            ->fillForm(['closing_summary' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue($this->stored()->sendsClosingSummary());
+    }
+
+    public function test_a_closed_survey_keeps_whether_it_mailed_a_summary(): void
+    {
+        $survey = $this->survey(closed: true);
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->assertFormFieldIsDisabled('closing_summary')
+            ->call('save');
+
+        $this->assertFalse($this->stored()->sendsClosingSummary());
+    }
+
+    public function test_a_quick_poll_keeps_whether_it_mails_a_summary(): void
+    {
+        Livewire::test(ListSurveys::class)
+            ->callAction('quick_poll', data: [...$this->quickPollData(), 'closing_summary' => false])
+            ->assertHasNoActionErrors();
+
+        $this->assertFalse($this->stored()->sendsClosingSummary());
+    }
+
+    private function survey(bool $open = true, bool $closed = false): Survey
     {
         $survey = new Survey(
             id: SurveyId::generate(),
@@ -282,8 +341,11 @@ final class SurveyResourceTest extends ModuleTestCase
             audienceType: AudienceType::AllUsers,
             closesAt: new DateTimeImmutable('2030-01-10T20:00:00+00:00'),
         );
-        if ($open) {
+        if ($open || $closed) {
             $survey->open(new DateTimeImmutable('2030-01-01T10:00:00+00:00'));
+        }
+        if ($closed) {
+            $survey->close(new DateTimeImmutable('2030-01-02T10:00:00+00:00'));
         }
         $this->surveys->save($survey);
 

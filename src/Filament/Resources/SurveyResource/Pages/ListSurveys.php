@@ -115,6 +115,7 @@ final class ListSurveys extends ListRecords
                     ->seconds(false)
                     ->default(static fn (): string => now()->addDays(app(SurveySettings::class)->defaultCloseDays())->startOfHour()->toDateTimeString()),
                 SurveyResource::announceInChannelsToggle(),
+                SurveyResource::closingSummaryToggle(),
             ])
             ->action(function (array $data): void {
                 try {
@@ -172,6 +173,7 @@ final class ListSurveys extends ListRecords
             closesAt: SurveyFormData::closesAt($data),
             createdBy: is_string(auth()->id()) ? auth()->id() : null,
             announceInChannels: (bool) ($data['announce_in_channels'] ?? false),
+            closingSummary: (bool) ($data['closing_summary'] ?? false),
         );
     }
 }

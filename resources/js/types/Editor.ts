@@ -15,6 +15,8 @@ export interface EditSurveyProps {
         reminderHoursBefore: number | null;
         liveResults: boolean;
         visibleToRespondents: boolean;
+        /** Closing mails its organizers a summary of the results. */
+        closingSummary: boolean;
         opened: boolean;
         pendingReview: boolean;
         rejectionReason: string | null;

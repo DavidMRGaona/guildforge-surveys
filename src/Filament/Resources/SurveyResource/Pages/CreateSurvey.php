@@ -54,6 +54,7 @@ final class CreateSurvey extends CreateRecord
                 createdBy: is_string(auth()->id()) ? auth()->id() : null,
                 publicLinkMode: SurveyFormData::publicLinkMode($data),
                 announceInChannels: (bool) ($data['announce_in_channels'] ?? false),
+                closingSummary: (bool) ($data['closing_summary'] ?? false),
             );
         });
 

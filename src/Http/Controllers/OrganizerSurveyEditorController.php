@@ -81,6 +81,7 @@ final class OrganizerSurveyEditorController extends Controller
                 'reminderHoursBefore' => null,
                 'liveResults' => $defaults['liveResults'],
                 'visibleToRespondents' => $defaults['visibleToRespondents'],
+                'closingSummary' => $defaults['closingSummary'],
                 'opened' => false,
                 'pendingReview' => false,
                 'rejectionReason' => null,
@@ -149,6 +150,7 @@ final class OrganizerSurveyEditorController extends Controller
                 'reminderHoursBefore' => $found->reminderHoursBefore(),
                 'liveResults' => $found->results()->liveResults,
                 'visibleToRespondents' => $found->results()->visibleToRespondents,
+                'closingSummary' => $found->sendsClosingSummary(),
                 'opened' => $found->wasOpened(),
                 'pendingReview' => $found->status() === SurveyStatus::PendingReview,
                 'rejectionReason' => $found->rejectionReason(),
@@ -235,6 +237,7 @@ final class OrganizerSurveyEditorController extends Controller
             visibleToRespondents: $request->boolean('visible_to_respondents'),
             sendOnEnd: $request->has('send_on_end') ? $request->boolean('send_on_end') : null,
             sendDelayHours: $request->filled('send_delay_hours') ? $request->integer('send_delay_hours') : null,
+            closingSummary: $request->has('closing_summary') ? $request->boolean('closing_summary') : null,
         );
     }
 }

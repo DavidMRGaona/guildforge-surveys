@@ -71,6 +71,7 @@ final class OrganizerSurveyEditorTest extends ModuleTestCase
                 ->where('survey.durationDays', 7)
                 ->where('survey.opened', false)
                 ->where('survey.sendable', true)
+                ->where('survey.closingSummary', true)
                 ->where('locked', false)
                 ->where('definition', $survey->definition()->toArray())
                 ->where('submitUrl', route('surveys.manage.update', $survey->id()->value))
@@ -178,6 +179,25 @@ final class OrganizerSurveyEditorTest extends ModuleTestCase
         $this->actingAs($this->organizer)->get(route('surveys.manage.edit', $survey->id()->value))
             ->assertRedirect(route('surveys.subject', [ExampleThingSource::TYPE, 'thing-1']))
             ->assertSessionHas('error', __('surveys::messages.manage.not_editable'));
+    }
+
+    public function test_the_editor_saves_whether_closing_mails_a_summary(): void
+    {
+        $survey = $this->offered();
+
+        $this->actingAs($this->organizer)
+            ->put(route('surveys.manage.update', $survey->id()->value), $this->payload($survey, ['closing_summary' => false]))
+            ->assertSessionHasNoErrors();
+        $this->assertFalse($this->surveys->findOrFail($survey->id())->sendsClosingSummary());
+
+        $this->actingAs($this->organizer)
+            ->put(route('surveys.manage.update', $survey->id()->value), $this->payload($survey))
+            ->assertSessionHasNoErrors();
+        $this->assertFalse($this->surveys->findOrFail($survey->id())->sendsClosingSummary());
+
+        $this->actingAs($this->organizer)
+            ->put(route('surveys.manage.update', $survey->id()->value), $this->payload($survey, ['closing_summary' => 'no']))
+            ->assertSessionHasErrors('closing_summary');
     }
 
     /**

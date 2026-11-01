@@ -32,6 +32,7 @@ const closesTime = ref(props.survey.closesAt?.slice(11, 16) ?? '');
 const reminderHoursBefore = ref<number | null>(props.survey.reminderHoursBefore);
 const liveResults = ref(props.survey.liveResults);
 const visibleToRespondents = ref(props.survey.visibleToRespondents);
+const closingSummary = ref(props.survey.closingSummary);
 const sendOnEnd = ref(props.endSending?.sendOnEnd ?? false);
 const sendDelayHours = ref<number | null>(props.endSending?.sendDelayHours ?? 0);
 const definition = ref<SurveyDefinition>(cloneDefinition(props.definition));
@@ -95,6 +96,7 @@ function submit(send: boolean): void {
             reminder_hours_before: reminderHoursBefore.value,
             live_results: liveResults.value,
             visible_to_respondents: visibleToRespondents.value,
+            closing_summary: closingSummary.value,
             // Only a survey prepared for its subject's end says how it goes out then
             ...(props.endSending
                 ? { send_on_end: sendOnEnd.value, send_delay_hours: sendDelayHours.value ?? 0 }
@@ -344,6 +346,16 @@ function submit(send: boolean): void {
                         data-testid="live-results-warning"
                     >
                         {{ t('surveys.editor.live_results_warning') }}
+                    </p>
+                </div>
+                <div>
+                    <FormCheckbox
+                        id="survey-closing-summary"
+                        v-model="closingSummary"
+                        :label="t('surveys.editor.closing_summary')"
+                    />
+                    <p class="mt-1 text-sm text-base-secondary">
+                        {{ t('surveys.editor.closing_summary_help') }}
                     </p>
                 </div>
             </section>

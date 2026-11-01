@@ -162,6 +162,7 @@ return [
         'pending_review' => 'La encuesta está esperando revisión: su contenido no se puede cambiar hasta que la aprueben o la rechacen.',
         'send_delay' => 'Las horas tras terminar no pueden ser negativas.',
         'announcement_fixed' => 'Si se anuncia en los canales se decide mientras la encuesta es un borrador general.',
+        'closing_summary_fixed' => 'Si se envía el resumen al cerrar ya no se puede cambiar: la encuesta está cerrada.',
     ],
 
     'response' => [
