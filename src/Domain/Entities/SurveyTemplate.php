@@ -9,6 +9,7 @@ use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 
 /**
  * Reusable content. Its questions carry stable keys that every survey made from it keeps.
@@ -22,6 +23,7 @@ final class SurveyTemplate
         private readonly SurveyKind $kind,
         private SurveyDefinition $definition,
         private readonly ?string $createdBy = null,
+        private TemplateUses $uses = new TemplateUses([]),
     ) {}
 
     /**
@@ -41,6 +43,11 @@ final class SurveyTemplate
     {
         $this->name = $name;
         $this->description = $description;
+    }
+
+    public function changeUses(TemplateUses $uses): void
+    {
+        $this->uses = $uses;
     }
 
     public function id(): SurveyTemplateId
@@ -71,5 +78,10 @@ final class SurveyTemplate
     public function createdBy(): ?string
     {
         return $this->createdBy;
+    }
+
+    public function uses(): TemplateUses
+    {
+        return $this->uses;
     }
 }

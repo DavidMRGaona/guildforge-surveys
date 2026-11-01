@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Tests\Feature\Filament;
 
+use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Infrastructure\Persistence\Eloquent\Models\PermissionModel;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Filament\Forms\Components\Select;
+use Illuminate\Database\Eloquent\Collection;
 use Livewire\Livewire;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\SurveyKind;
@@ -15,11 +17,15 @@ use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
+use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages\CreateSurveyTemplate;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages\EditSurveyTemplate;
+use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages\ListSurveyTemplates;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
+use Modules\Surveys\Tests\Support\ExampleThingSource;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\InteractsWithModulePanel;
 use Tests\Support\Modules\ModuleTestCase;
@@ -36,7 +42,8 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
     {
         parent::setUp();
 
-        $this->registerOnAdminPanel([SurveyTemplateResource::class]);
+        $this->registerOnAdminPanel([SurveyTemplateResource::class], [SurveyTrendsPage::class]);
+        $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
     }
 
     public function test_creates_a_template_through_the_domain(): void
@@ -152,6 +159,111 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
         $this->assertEquals($this->definition(), $stored->definition());
     }
 
+    public function test_saves_what_a_template_is_for(): void
+    {
+        $this->actingAsPanelAdmin();
+
+        Livewire::test(CreateSurveyTemplate::class)
+            ->fillForm([
+                'name' => 'Tras la partida',
+                'kind' => 'form',
+                'uses' => [ExampleThingSource::TYPE, TemplateUses::GENERAL],
+                'sections' => DefinitionFormState::fromDefinition($this->definition()),
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $model = SurveyTemplateModel::query()->sole();
+        $this->assertSame([ExampleThingSource::TYPE, TemplateUses::GENERAL], $model->uses);
+        $template = $this->app->make(SurveyTemplateRepositoryInterface::class)->findOrFail(SurveyTemplateId::fromString($model->id));
+        $this->assertSame([ExampleThingSource::TYPE, TemplateUses::GENERAL], $template->uses()->values);
+    }
+
+    public function test_a_template_for_nothing_in_particular_stores_no_use(): void
+    {
+        $this->actingAsPanelAdmin();
+
+        Livewire::test(CreateSurveyTemplate::class)
+            ->fillForm(['name' => 'Para todo', 'kind' => 'form', 'uses' => [], 'sections' => DefinitionFormState::fromDefinition($this->definition())])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertNull(SurveyTemplateModel::query()->sole()->uses);
+    }
+
+    public function test_offers_general_and_the_kinds_of_subject_installed(): void
+    {
+        $this->actingAsPanelAdmin();
+
+        Livewire::test(CreateSurveyTemplate::class)
+            ->assertFormFieldExists('uses', static fn ($field): bool => $field->getOptions() === [
+                TemplateUses::GENERAL => 'General',
+                ExampleThingSource::TYPE => 'Cosa de ejemplo',
+            ]);
+    }
+
+    public function test_editing_keeps_a_kind_of_subject_whose_module_is_gone(): void
+    {
+        $this->actingAsPanelAdmin();
+        $template = $this->template('Del módulo retirado', ['retired-thing']);
+
+        Livewire::test(EditSurveyTemplate::class, ['record' => $template->id()->value])
+            ->assertFormFieldExists('uses', static fn ($field): bool => ($field->getOptions()['retired-thing'] ?? null) === 'retired-thing (sin módulo)')
+            ->fillForm(['name' => 'Renombrada'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(['retired-thing'], SurveyTemplateModel::query()->sole()->uses);
+    }
+
+    public function test_filters_templates_by_what_they_are_for(): void
+    {
+        $this->actingAsPanelAdmin();
+        $forThing = $this->template('De cosas', [ExampleThingSource::TYPE]);
+        $general = $this->template('General', [TemplateUses::GENERAL]);
+        $both = $this->template('De todo', [TemplateUses::GENERAL, ExampleThingSource::TYPE]);
+        $unspecified = $this->template('Sin indicar', []);
+
+        Livewire::test(ListSurveyTemplates::class)
+            ->filterTable('uses', ExampleThingSource::TYPE)
+            ->assertCanSeeTableRecords($this->models($forThing, $both))
+            ->assertCanNotSeeTableRecords($this->models($general, $unspecified))
+            ->filterTable('uses', TemplateUses::GENERAL)
+            ->assertCanSeeTableRecords($this->models($general, $both))
+            ->assertCanNotSeeTableRecords($this->models($forThing, $unspecified))
+            ->filterTable('uses', SurveyTemplateResource::UNSPECIFIED_USE)
+            ->assertCanSeeTableRecords($this->models($unspecified))
+            ->assertCanNotSeeTableRecords($this->models($forThing, $general, $both));
+    }
+
+    public function test_shows_what_each_template_is_for(): void
+    {
+        $this->actingAsPanelAdmin();
+        $template = $this->template('De cosas', [ExampleThingSource::TYPE, TemplateUses::GENERAL]);
+        $unspecified = $this->template('Sin indicar', []);
+
+        Livewire::test(ListSurveyTemplates::class)
+            ->assertTableColumnStateSet('uses', ['Cosa de ejemplo', 'General'], $this->models($template)->sole())
+            ->assertTableColumnStateSet('uses', null, $this->models($unspecified)->sole())
+            ->assertSee('Sin indicar');
+    }
+
+    public function test_filters_recommended_and_own_templates(): void
+    {
+        $this->actingAsPanelAdmin();
+        $own = $this->template('Propia', []);
+        $recommended = $this->template('Recomendada', []);
+        SurveyTemplateModel::query()->whereKey($recommended->id()->value)->update(['catalog_key' => 'game_table']);
+
+        Livewire::test(ListSurveyTemplates::class)
+            ->filterTable('recommended', true)
+            ->assertCanSeeTableRecords($this->models($recommended))
+            ->assertCanNotSeeTableRecords($this->models($own))
+            ->filterTable('recommended', false)
+            ->assertCanSeeTableRecords($this->models($own))
+            ->assertCanNotSeeTableRecords($this->models($recommended));
+    }
+
     public function test_only_people_who_manage_surveys_see_templates(): void
     {
         $this->actingAs($this->userWith('surveys:surveys.view_results'));
@@ -173,6 +285,25 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
         $user->roles()->attach($role->id);
 
         return $user;
+    }
+
+    /**
+     * @param  list<string>  $uses
+     */
+    private function template(string $name, array $uses): SurveyTemplate
+    {
+        $template = new SurveyTemplate(SurveyTemplateId::generate(), $name, null, SurveyKind::Form, $this->definition(), uses: new TemplateUses($uses));
+        $this->app->make(SurveyTemplateRepositoryInterface::class)->save($template);
+
+        return $template;
+    }
+
+    /**
+     * @return Collection<int, SurveyTemplateModel>
+     */
+    private function models(SurveyTemplate ...$templates): Collection
+    {
+        return SurveyTemplateModel::query()->whereKey(array_map(static fn (SurveyTemplate $template): string => $template->id()->value, $templates))->get();
     }
 
     private function definition(): SurveyDefinition

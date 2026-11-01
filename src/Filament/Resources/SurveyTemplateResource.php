@@ -9,17 +9,23 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Modules\Surveys\Domain\Enums\SurveyKind;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 use Modules\Surveys\Filament\Forms\DefinitionEditor;
 use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages;
+use Modules\Surveys\Filament\Support\SubjectTypeOptions;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 
 final class SurveyTemplateResource extends BaseResource
@@ -29,6 +35,11 @@ final class SurveyTemplateResource extends BaseResource
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document-duplicate';
 
     protected static ?int $navigationSort = 2;
+
+    /**
+     * The filter value for templates meant for anything: never a kind of subject, which is kebab-case.
+     */
+    public const string UNSPECIFIED_USE = '_unspecified';
 
     public static function getNavigationGroup(): string
     {
@@ -66,6 +77,12 @@ final class SurveyTemplateResource extends BaseResource
                             ->label(__('surveys::filament.survey_template.fields.description'))
                             ->rows(2)
                             ->columnSpanFull(),
+                        CheckboxList::make('uses')
+                            ->label(__('surveys::filament.survey_template.fields.uses'))
+                            ->helperText(__('surveys::filament.survey_template.fields.uses_help'))
+                            ->options(static fn (?SurveyTemplateModel $record): array => SubjectTypeOptions::options($record->uses ?? []))
+                            ->columns(3)
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
                 Section::make(__('surveys::filament.definition.title'))
@@ -86,6 +103,11 @@ final class SurveyTemplateResource extends BaseResource
                     ->label(__('surveys::filament.fields.kind'))
                     ->badge()
                     ->formatStateUsing(static fn (string $state): string => self::kindOptions()[$state] ?? $state),
+                TextColumn::make('uses')
+                    ->label(__('surveys::filament.survey_template.fields.uses'))
+                    ->badge()
+                    ->state(static fn (SurveyTemplateModel $record): array => array_map(SubjectTypeOptions::label(...), $record->uses ?? []))
+                    ->placeholder(__('surveys::filament.survey_template.fields.uses_unspecified')),
                 TextColumn::make('questions_count')
                     ->label(__('surveys::filament.fields.questions_count'))
                     ->state(static fn (SurveyTemplateModel $record): int => self::questionCount($record->definition)),
@@ -95,6 +117,31 @@ final class SurveyTemplateResource extends BaseResource
                     ->sortable(),
             ])
             ->defaultSort('name')
+            ->filters([
+                SelectFilter::make('uses')
+                    ->label(__('surveys::filament.survey_template.fields.uses'))
+                    ->options(static fn (): array => [
+                        ...SubjectTypeOptions::options(self::storedUses()),
+                        self::UNSPECIFIED_USE => __('surveys::filament.survey_template.fields.uses_unspecified'),
+                    ])
+                    ->query(static function (Builder $query, array $data): Builder {
+                        $use = $data['value'] ?? null;
+                        if (! is_string($use) || $use === '') {
+                            return $query;
+                        }
+
+                        return $use === self::UNSPECIFIED_USE ? $query->whereNull('uses') : $query->whereJsonContains('uses', $use);
+                    }),
+                TernaryFilter::make('recommended')
+                    ->label(__('surveys::filament.survey_template.fields.origin'))
+                    ->trueLabel(__('surveys::filament.survey_template.origins.recommended'))
+                    ->falseLabel(__('surveys::filament.survey_template.origins.own'))
+                    ->queries(
+                        true: static fn (Builder $query): Builder => $query->whereNotNull('catalog_key'),
+                        false: static fn (Builder $query): Builder => $query->whereNull('catalog_key'),
+                        blank: static fn (Builder $query): Builder => $query,
+                    ),
+            ])
             ->recordActions([
                 Action::make('trends')
                     ->label(__('surveys::filament.trends.action'))
@@ -125,6 +172,35 @@ final class SurveyTemplateResource extends BaseResource
             SurveyKind::Form->value => __('surveys::filament.kinds.form'),
             SurveyKind::Poll->value => __('surveys::filament.kinds.poll'),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public static function usesFrom(array $data): TemplateUses
+    {
+        $uses = is_array($data['uses'] ?? null) ? $data['uses'] : [];
+
+        return new TemplateUses(array_values(array_filter($uses, is_string(...))));
+    }
+
+    /**
+     * Every use some template keeps, so a kind of subject whose module is gone can still be filtered.
+     *
+     * @return list<string>
+     */
+    private static function storedUses(): array
+    {
+        $uses = [];
+        foreach (SurveyTemplateModel::query()->whereNotNull('uses')->pluck('uses') as $values) {
+            foreach (is_array($values) ? $values : [] as $use) {
+                if (is_string($use)) {
+                    $uses[$use] = true;
+                }
+            }
+        }
+
+        return array_keys($uses);
     }
 
     /**

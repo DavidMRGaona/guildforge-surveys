@@ -22,6 +22,11 @@ return [
         'closed' => 'Cerrada',
     ],
 
+    'subject_types' => [
+        'general' => 'General',
+        'retired' => ':type (sin módulo)',
+    ],
+
     'audiences' => [
         'all_users' => 'Todas las personas con cuenta',
         'association_members' => 'Solo socios',
@@ -86,8 +91,16 @@ return [
         'fields' => [
             'name' => 'Nombre',
             'description' => 'Descripción',
+            'uses' => 'Para',
+            'uses_help' => 'Para qué encuestas sirve. Sin marcar, sirve para cualquiera.',
+            'uses_unspecified' => 'Sin indicar',
+            'origin' => 'Origen',
             'created_at' => 'Creada',
             'updated_at' => 'Actualizada',
+        ],
+        'origins' => [
+            'recommended' => 'Recomendadas',
+            'own' => 'Propias',
         ],
     ],
 
@@ -104,6 +117,13 @@ return [
         'public_link' => [
             'copy' => 'Copiar enlace',
             'copied' => 'Enlace copiado',
+        ],
+        'tabs' => [
+            'open' => 'Abiertas',
+            'pending_review' => 'Pendientes de revisión',
+            'draft' => 'Borradores',
+            'closed' => 'Cerradas',
+            'all' => 'Todas',
         ],
         'locked_by_responses' => 'La encuesta ya tiene respuestas: solo se pueden cambiar los textos de ayuda y la fecha de cierre.',
         'awaiting_end_auto' => 'Preparada: se enviará :hours h después de terminar',
@@ -139,6 +159,8 @@ return [
             'live_results_anonymous_help' => 'Los resultados se ven mientras la encuesta está abierta. En una encuesta anónima esto debilita el anonimato: comparar los resultados antes y después de una respuesta puede delatarla. Se sigue aplicando el mínimo de respuestas.',
             'visible_to_respondents' => 'Quien responde ve los resultados',
             'responses' => 'Respuestas',
+            'subject' => 'De',
+            'subject_type' => 'Tipo de sujeto',
             'created_at' => 'Creada',
             'updated_at' => 'Actualizada',
         ],

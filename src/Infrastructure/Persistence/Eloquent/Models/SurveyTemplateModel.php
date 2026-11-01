@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property array<mixed> $definition
  * @property string|null $created_by
  * @property string|null $catalog_key
+ * @property list<string>|null $uses
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -34,13 +35,13 @@ final class SurveyTemplateModel extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['id', 'name', 'description', 'kind', 'definition', 'created_by', 'catalog_key'];
+    protected $fillable = ['id', 'name', 'description', 'kind', 'definition', 'created_by', 'catalog_key', 'uses'];
 
     /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
-        return ['definition' => 'array'];
+        return ['definition' => 'array', 'uses' => 'array'];
     }
 }
