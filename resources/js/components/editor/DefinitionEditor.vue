@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import type { EditorLocks } from '../../types/Editor';
 import type { SurveyDefinition, SurveySection } from '../../types/Respond';
-import { move, newSection } from '../../utils/definition';
+import { move, newSection, withoutSection } from '../../utils/definition';
 import SectionEditor from './SectionEditor.vue';
 import { ITEM_BUTTON_CLASS } from './styles';
 
@@ -62,7 +62,7 @@ function setSection(index: number, section: SurveySection): void {
                     type="button"
                     :class="ITEM_BUTTON_CLASS"
                     :aria-label="t('surveys.editor.remove_section')"
-                    @click="setSections(definition.sections.filter((_, i) => i !== index))"
+                    @click="setSections(withoutSection(definition.sections, section.id))"
                 >
                     ✕
                 </button>
@@ -73,6 +73,7 @@ function setSection(index: number, section: SurveySection): void {
                 :errors="props.errors"
                 :path="`sections.${index}`"
                 :number="index + 1"
+                :sections="definition.sections"
                 @update:model-value="setSection(index, $event)"
             />
         </section>

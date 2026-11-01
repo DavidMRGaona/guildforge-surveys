@@ -1,9 +1,10 @@
-import type {
-    QuestionType,
-    SurveyDefinition,
-    SurveyOption,
-    SurveyQuestion,
-    SurveySection,
+import {
+    OTHER,
+    type QuestionType,
+    type SurveyDefinition,
+    type SurveyOption,
+    type SurveyQuestion,
+    type SurveySection,
 } from '../types/Respond';
 
 /**
@@ -30,6 +31,11 @@ const WITH_OPTIONS: QuestionType[] = ['single_choice', 'multiple_choice', 'dropd
 
 export function hasOptions(type: QuestionType): boolean {
     return WITH_OPTIONS.includes(type);
+}
+
+/** Whether the chosen option may decide the next section, as QuestionType::canBranch(). */
+export function canBranch(type: QuestionType): boolean {
+    return type === 'single_choice' || type === 'dropdown';
 }
 
 export function newId(): string {
@@ -79,9 +85,78 @@ export function changeType(question: SurveyQuestion, type: QuestionType): Survey
             scale: null,
             stars: null,
             grid: null,
+            next_by_option: canBranch(type) && keepsOptions ? question.next_by_option : [],
         },
         type
     );
+}
+
+/**
+ * Sets where an option ("Other" is OTHER) leads; null follows the section. The jumps stay in
+ * the order of the options with "Other" last, as the server keeps them.
+ */
+export function setJump(
+    question: SurveyQuestion,
+    optionId: string,
+    next: string | null
+): SurveyQuestion {
+    const targets = new Map(question.next_by_option.map((jump) => [jump.option_id, jump.next]));
+    if (next === null) {
+        targets.delete(optionId);
+    } else {
+        targets.set(optionId, next);
+    }
+
+    const order = [...question.options.map((option) => option.id), OTHER];
+    const known = order.filter((id) => targets.has(id));
+    const unknown = [...targets.keys()].filter((id) => !order.includes(id));
+
+    return {
+        ...question,
+        next_by_option: [...known, ...unknown].map((id) => ({
+            option_id: id,
+            next: targets.get(id) ?? '',
+        })),
+    };
+}
+
+/** Leaves out the jumps of options the question no longer has, and of "Other" once it is off. */
+export function pruneJumps(question: SurveyQuestion): SurveyQuestion {
+    const ids = question.options.map((option) => option.id);
+    if (question.allow_other) {
+        ids.push(OTHER);
+    }
+
+    return {
+        ...question,
+        next_by_option: question.next_by_option.filter((jump) => ids.includes(jump.option_id)),
+    };
+}
+
+/** The sections a jump from the given one may lead to: only later ones, so a survey never loops. */
+export function jumpTargets(
+    sections: SurveySection[],
+    sectionId: string
+): { id: string; number: number; title: string | null }[] {
+    const index = sections.findIndex((section) => section.id === sectionId);
+
+    return sections
+        .map((section, i) => ({ id: section.id, number: i + 1, title: section.title }))
+        .filter((_, i) => index !== -1 && i > index);
+}
+
+/** The sections without the given one, and without the jumps that led to it. */
+export function withoutSection(sections: SurveySection[], sectionId: string): SurveySection[] {
+    return sections
+        .filter((section) => section.id !== sectionId)
+        .map((section) => ({
+            ...section,
+            next: section.next === sectionId ? null : section.next,
+            questions: section.questions.map((question) => ({
+                ...question,
+                next_by_option: question.next_by_option.filter((jump) => jump.next !== sectionId),
+            })),
+        }));
 }
 
 function withSettingsFor(question: SurveyQuestion, type: QuestionType): SurveyQuestion {

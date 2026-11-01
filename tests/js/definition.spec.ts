@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { changeType, move, newQuestion } from '../../resources/js/utils/definition';
+import { OTHER, SUBMIT } from '../../resources/js/types/Respond';
+import {
+    canBranch,
+    changeType,
+    jumpTargets,
+    move,
+    newQuestion,
+    newSection,
+    pruneJumps,
+    setJump,
+    withoutSection,
+} from '../../resources/js/utils/definition';
 
 describe('definition utils', () => {
     it('starts each type with what it needs', () => {
@@ -37,5 +48,70 @@ describe('definition utils', () => {
         expect(move(['a', 'b', 'c'], 0, 1)).toEqual(['b', 'a', 'c']);
         expect(move(['a', 'b', 'c'], 2, -1)).toEqual(['a', 'c', 'b']);
         expect(move(['a', 'b'], 0, -1)).toEqual(['a', 'b']);
+    });
+
+    it('lets only single choice and dropdown questions jump', () => {
+        expect(canBranch('single_choice')).toBe(true);
+        expect(canBranch('dropdown')).toBe(true);
+        expect(canBranch('multiple_choice')).toBe(false);
+
+        const question = setJump(newQuestion('single_choice'), 'o-x', 's-3');
+        expect(changeType(question, 'dropdown').next_by_option).toEqual(question.next_by_option);
+        expect(changeType(question, 'multiple_choice').next_by_option).toEqual([]);
+    });
+
+    it('keeps the jumps in the order of the options, "Other" last', () => {
+        const base = { ...newQuestion('single_choice'), allow_other: true };
+        const [first, second] = base.options.map((option) => option.id);
+
+        let question = setJump(base, OTHER, SUBMIT);
+        question = setJump(question, String(second), 's-3');
+        question = setJump(question, String(first), 's-2');
+
+        expect(question.next_by_option).toEqual([
+            { option_id: first, next: 's-2' },
+            { option_id: second, next: 's-3' },
+            { option_id: OTHER, next: SUBMIT },
+        ]);
+        expect(setJump(question, String(second), null).next_by_option).toHaveLength(2);
+    });
+
+    it('drops the jumps of removed options and of "Other" once it is gone', () => {
+        const base = { ...newQuestion('single_choice'), allow_other: true };
+        const question = setJump(setJump(base, String(base.options[0]?.id), 's-2'), OTHER, SUBMIT);
+
+        expect(pruneJumps({ ...question, options: base.options.slice(1) }).next_by_option).toEqual([
+            { option_id: OTHER, next: SUBMIT },
+        ]);
+        expect(pruneJumps({ ...question, allow_other: false }).next_by_option).toEqual([
+            { option_id: base.options[0]?.id, next: 's-2' },
+        ]);
+    });
+
+    it('offers the later sections as targets', () => {
+        const sections = [newSection(), { ...newSection(), title: 'Final' }, newSection()];
+
+        expect(jumpTargets(sections, String(sections[0]?.id))).toEqual([
+            { id: sections[1]?.id, number: 2, title: 'Final' },
+            { id: sections[2]?.id, number: 3, title: null },
+        ]);
+        expect(jumpTargets(sections, String(sections[2]?.id))).toEqual([]);
+    });
+
+    it('removes a section with the jumps that led to it', () => {
+        const [first, second, third] = [newSection(), newSection(), newSection()];
+        const jumping = setJump(newQuestion('dropdown'), 'o-1', third.id);
+        const sections = [
+            { ...first, next: third.id, questions: [jumping] },
+            { ...second, next: third.id },
+            third,
+        ];
+
+        const left = withoutSection(sections, third.id);
+
+        expect(left).toHaveLength(2);
+        expect(left[0]?.next).toBeNull();
+        expect(left[0]?.questions[0]?.next_by_option).toEqual([]);
+        expect(left[1]?.next).toBeNull();
     });
 });

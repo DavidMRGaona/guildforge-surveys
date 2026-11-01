@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FormSelect } from '@/components/form';
 import type { EditorLocks } from '../../types/Editor';
-import type { QuestionType, SurveyQuestion, SurveySection } from '../../types/Respond';
-import { move, newQuestion, QUESTION_TYPES } from '../../utils/definition';
+import {
+    SUBMIT,
+    type QuestionType,
+    type SurveyQuestion,
+    type SurveySection,
+} from '../../types/Respond';
+import { jumpTargets, move, newQuestion, QUESTION_TYPES } from '../../utils/definition';
 import QuestionEditor from './QuestionEditor.vue';
 import { INPUT_CLASS, ITEM_BUTTON_CLASS } from './styles';
 
@@ -14,6 +19,8 @@ const props = defineProps<{
     path: string;
     /** Shown as "Sección 2"; sections have no title of their own until one is written. */
     number: number;
+    /** Every section of the survey, to offer the later ones as jump targets. */
+    sections: SurveySection[];
 }>();
 
 const section = defineModel<SurveySection>({ required: true });
@@ -21,6 +28,15 @@ const section = defineModel<SurveySection>({ required: true });
 const { t } = useI18n();
 
 const newType = ref<QuestionType>('single_choice');
+
+const targets = computed(() => [
+    ...jumpTargets(props.sections, section.value.id).map((target) => ({
+        value: target.id,
+        label: target.title || t('surveys.editor.section', { number: target.number }),
+    })),
+    { value: SUBMIT, label: t('surveys.editor.submit_form') },
+]);
+const nextError = computed(() => props.errors[`definition.${props.path}.next`]);
 
 function set<K extends keyof SurveySection>(field: K, value: SurveySection[K]): void {
     section.value = { ...section.value, [field]: value };
@@ -35,6 +51,10 @@ function setQuestion(index: number, question: SurveyQuestion): void {
 
 function addQuestion(): void {
     set('questions', [...section.value.questions, newQuestion(newType.value)]);
+}
+
+function setNext(value: string | number | null): void {
+    set('next', typeof value === 'string' && value !== '' ? value : null);
 }
 
 function setNewType(value: string | number | null): void {
@@ -135,6 +155,7 @@ function setNewType(value: string | number | null): void {
                     :locks="props.locks"
                     :errors="props.errors"
                     :path="`${props.path}.questions.${index}`"
+                    :targets="targets"
                     @update:model-value="setQuestion(index, $event)"
                 />
             </li>
@@ -171,6 +192,26 @@ function setNewType(value: string | number | null): void {
             >
                 {{ t('surveys.editor.add_question') }}
             </button>
+        </div>
+
+        <div v-if="!props.locks.poll" class="max-w-md">
+            <label
+                :for="`section-${section.id}-next`"
+                class="block text-sm font-medium text-base-primary"
+            >
+                {{ t('surveys.editor.section_next') }}
+            </label>
+            <FormSelect
+                :id="`section-${section.id}-next`"
+                class="mt-1"
+                :model-value="section.next ?? ''"
+                :options="[{ value: '', label: t('surveys.editor.continue') }, ...targets]"
+                :placeholder="t('surveys.editor.continue')"
+                :disabled="props.locks.structure"
+                :error="nextError ?? ''"
+                @update:model-value="setNext"
+            />
+            <p v-if="nextError" class="mt-1 text-sm text-error">{{ nextError }}</p>
         </div>
     </div>
 </template>

@@ -166,6 +166,8 @@ final class SurveyResourceTest extends ModuleTestCase
         $page->fillForm(['sections' => $withHelp])->call('save')->assertHasNoFormErrors();
         $this->assertSame('Como te llamen en la mesa', $this->surveys->findOrFail($survey->id())->definition()->question('q-short')?->help);
 
+        $page->assertFormFieldIsDisabled("sections.{$sectionKey}.next");
+
         $retitled = $withHelp;
         $retitled[$sectionKey]['questions'][$questionKey]['data']['title'] = 'Otra pregunta';
         $page->fillForm(['sections' => $retitled])->call('save')->assertHasFormErrors(['sections']);

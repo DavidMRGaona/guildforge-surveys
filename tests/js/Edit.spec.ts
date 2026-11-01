@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
+import { mount, type VueWrapper } from '@vue/test-utils';
 import { router } from '@inertiajs/vue3';
+import { FormSelect } from '@/components/form';
 import Edit from '../../resources/js/pages/Surveys/Manage/Edit.vue';
 import type { EditSurveyProps } from '../../resources/js/types/Editor';
-import type { SurveyDefinition } from '../../resources/js/types/Respond';
+import {
+    SUBMIT,
+    type SurveyDefinition,
+    type SurveyQuestion,
+} from '../../resources/js/types/Respond';
 
 function definition(): SurveyDefinition {
     return {
@@ -46,6 +52,72 @@ function definition(): SurveyDefinition {
             },
         ],
     };
+}
+
+/** Three sections: a single choice and a checkbox question first, then two more sections. */
+function jumping(firstQuestion: Partial<SurveyQuestion> = {}): SurveyDefinition {
+    const question = (
+        id: string,
+        type: SurveyQuestion['type'],
+        extra: Partial<SurveyQuestion> = {}
+    ): SurveyQuestion => ({
+        id,
+        key: null,
+        type,
+        title: `Pregunta ${id}`,
+        help: null,
+        required: false,
+        options: [],
+        allow_other: false,
+        scale: null,
+        stars: null,
+        grid: null,
+        next_by_option: [],
+        ...extra,
+    });
+    const options = [
+        { id: 'o-1', label: 'Sí' },
+        { id: 'o-2', label: 'No' },
+    ];
+
+    return {
+        sections: [
+            {
+                id: 's-1',
+                title: null,
+                description: null,
+                next: null,
+                questions: [
+                    question('q-1', 'single_choice', { options, ...firstQuestion }),
+                    question('q-2', 'multiple_choice', { options }),
+                ],
+            },
+            {
+                id: 's-2',
+                title: 'Detalles',
+                description: null,
+                next: null,
+                questions: [question('q-3', 'paragraph')],
+            },
+            {
+                id: 's-3',
+                title: null,
+                description: null,
+                next: null,
+                questions: [question('q-4', 'paragraph')],
+            },
+        ],
+    };
+}
+
+function select(wrapper: VueWrapper, id: string): VueWrapper | undefined {
+    return wrapper.findAllComponents(FormSelect).find((field) => field.props('id') === id);
+}
+
+function sentDefinition(): SurveyDefinition {
+    const data = vi.mocked(router.put).mock.calls[0]?.[1] as { definition: SurveyDefinition };
+
+    return data.definition;
 }
 
 function props(
@@ -301,5 +373,114 @@ describe('Edit', () => {
 
         expect(wrapper.find('h1').text()).toBe('Nueva encuesta');
         expect(wrapper.find('#survey-title').exists()).toBe(true);
+    });
+
+    describe('section jumps', () => {
+        it('offers them on single choice and dropdown questions, to later sections and the end', async () => {
+            const wrapper = mount(Edit, { props: props({ definition: jumping() }) });
+
+            expect(wrapper.find('#question-q-1-branches').exists()).toBe(true);
+            expect(wrapper.find('#question-q-2-branches').exists()).toBe(false);
+            expect(select(wrapper, 'question-q-1-jump-o-1')).toBeUndefined();
+            expect(select(wrapper, 'section-s-1-next')?.props('options')).toEqual([
+                { value: '', label: 'Seguir con la sección siguiente' },
+                { value: 's-2', label: 'Detalles' },
+                { value: 's-3', label: 'Sección 3' },
+                { value: SUBMIT, label: 'Enviar el formulario' },
+            ]);
+
+            await wrapper.find('#question-q-1-branches').trigger('change');
+
+            expect(select(wrapper, 'question-q-1-jump-o-1')?.props('options')).toEqual([
+                { value: '', label: 'Lo que diga la sección' },
+                { value: 's-2', label: 'Detalles' },
+                { value: 's-3', label: 'Sección 3' },
+                { value: SUBMIT, label: 'Enviar el formulario' },
+            ]);
+        });
+
+        it('saves the jumps chosen', async () => {
+            vi.mocked(router.put).mockClear();
+            const wrapper = mount(Edit, { props: props({ definition: jumping() }) });
+
+            await wrapper.find('#question-q-1-branches').trigger('change');
+            select(wrapper, 'question-q-1-jump-o-2')?.vm.$emit('update:modelValue', 's-3');
+            await nextTick();
+            select(wrapper, 'section-s-2-next')?.vm.$emit('update:modelValue', SUBMIT);
+            await nextTick();
+            await wrapper.find('form').trigger('submit');
+
+            const sent = sentDefinition();
+            expect(sent.sections[0]?.questions[0]?.next_by_option).toEqual([
+                { option_id: 'o-2', next: 's-3' },
+            ]);
+            expect(sent.sections[1]?.next).toBe(SUBMIT);
+        });
+
+        it('switching them off drops them', async () => {
+            vi.mocked(router.put).mockClear();
+            const wrapper = mount(Edit, {
+                props: props({
+                    definition: jumping({ next_by_option: [{ option_id: 'o-1', next: SUBMIT }] }),
+                }),
+            });
+
+            expect(select(wrapper, 'question-q-1-jump-o-1')?.props('modelValue')).toBe(SUBMIT);
+
+            await wrapper.find('#question-q-1-branches').trigger('change');
+            await wrapper.find('form').trigger('submit');
+
+            expect(sentDefinition().sections[0]?.questions[0]?.next_by_option).toEqual([]);
+        });
+
+        it('removing a section clears the jumps that led to it', async () => {
+            vi.mocked(router.put).mockClear();
+            const wrapper = mount(Edit, {
+                props: props({
+                    definition: jumping({ next_by_option: [{ option_id: 'o-2', next: 's-3' }] }),
+                }),
+            });
+
+            await wrapper.findAll('button[aria-label="Quitar la sección"]')[2]?.trigger('click');
+            await wrapper.find('form').trigger('submit');
+
+            expect(sentDefinition().sections).toHaveLength(2);
+            expect(sentDefinition().sections[0]?.questions[0]?.next_by_option).toEqual([]);
+        });
+
+        it('shows each jump error next to its select', async () => {
+            vi.mocked(router.put).mockImplementationOnce((_url, _data, options) => {
+                options?.onError?.({
+                    'definition.sections.0.questions.0.next_by_option.0.next':
+                        'Solo se puede ir a una sección posterior o enviar el formulario.',
+                    'definition.sections.1.next': 'La sección de destino ya no existe: elige otra.',
+                });
+            });
+            const wrapper = mount(Edit, {
+                props: props({
+                    definition: jumping({ next_by_option: [{ option_id: 'o-2', next: 's-1' }] }),
+                }),
+            });
+
+            await wrapper.find('form').trigger('submit');
+
+            expect(select(wrapper, 'question-q-1-jump-o-2')?.props('error')).toBe(
+                'Solo se puede ir a una sección posterior o enviar el formulario.'
+            );
+            expect(select(wrapper, 'section-s-2-next')?.props('error')).toBe(
+                'La sección de destino ya no existe: elige otra.'
+            );
+        });
+
+        it('are locked with responses and absent from polls', () => {
+            const locked = mount(Edit, { props: props({ definition: jumping(), locked: true }) });
+
+            expect(select(locked, 'section-s-1-next')?.props('disabled')).toBe(true);
+            expect(locked.find('#question-q-1-branches').attributes('disabled')).toBeDefined();
+
+            const poll = mount(Edit, { props: props({}, { kind: 'poll' }) });
+
+            expect(poll.text()).not.toContain('Después de esta sección');
+        });
     });
 });
