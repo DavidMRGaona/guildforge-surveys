@@ -24,6 +24,8 @@ return [
         'days' => 'días',
         'anonymous_by_default' => 'Anónima por defecto',
         'anonymous_by_default_help' => 'Una encuesta anónima no guarda quién respondió qué y nunca puede dejar de serlo.',
+        'announce_in_channels_by_default' => 'Anunciar en los canales por defecto',
+        'announce_in_channels_by_default_help' => 'Marca de entrada «Anunciar en los canales» en las encuestas generales nuevas. Necesita el módulo de notificaciones a canales con el tipo «Encuestas» activo en cada canal.',
         'title' => 'Ajustes de encuestas',
         'saved' => 'Ajustes guardados',
         'review' => 'Revisión',
@@ -112,6 +114,7 @@ return [
         'closed' => 'Esta encuesta ya está cerrada o descartada: no se puede cambiar.',
         'pending_review' => 'La encuesta está esperando revisión: su contenido no se puede cambiar hasta que la aprueben o la rechacen.',
         'send_delay' => 'Las horas tras terminar no pueden ser negativas.',
+        'announcement_fixed' => 'Si se anuncia en los canales se decide mientras la encuesta es un borrador general.',
     ],
 
     'response' => [

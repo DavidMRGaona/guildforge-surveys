@@ -43,6 +43,15 @@ final class SettingsTest extends ModuleTestCase
         $this->assertSame(7, $settings->defaultCloseDays());
     }
 
+    public function test_channel_announcements_are_off_by_default(): void
+    {
+        $this->assertFalse((new SurveySettings)->announceInChannelsByDefault());
+
+        config()->set('modules.settings.surveys.announce_in_channels_by_default', true);
+
+        $this->assertTrue((new SurveySettings)->announceInChannelsByDefault());
+    }
+
     public function test_review_is_off_by_default(): void
     {
         $this->assertFalse((new SurveySettings)->reviewRequired());

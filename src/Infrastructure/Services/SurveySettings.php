@@ -41,6 +41,11 @@ final readonly class SurveySettings implements SurveySettingsInterface
         return (bool) config('modules.settings.surveys.anonymous_by_default', true);
     }
 
+    public function announceInChannelsByDefault(): bool
+    {
+        return (bool) config('modules.settings.surveys.announce_in_channels_by_default', false);
+    }
+
     public function reviewRequired(): bool
     {
         return (bool) config('modules.settings.surveys.review_required', false);

@@ -44,6 +44,12 @@ Cada acción comprueba en el momento que la persona sigue organizando el sujeto:
 
 La ficha del sujeto, en su propio módulo, enlaza con sus encuestas a través del contrato del core `SurveySubjectLinksInterface`, que este módulo implementa: a quien lo organiza, con la página de encuestas del sujeto; a cada participante, con su encuesta mientras puede responderla y con sus resultados cuando la encuesta los comparte con quien responde (con las mismas reglas que la página de respuesta). Sin este módulo, la ficha no muestra nada.
 
+## Anuncio en los canales
+
+Una encuesta general (no la de un sujeto) puede anunciarse al abrirse en los canales del módulo de notificaciones a canales (Telegram, Discord, Slack y WhatsApp), con la casilla «Anunciar en los canales» del panel, que se elige mientras es un borrador. El anuncio lleva el título, la descripción, la fecha de cierre y el enlace: el público si la encuesta lo tiene; si no, el de responder, que pide iniciar sesión y solo deja responder a la audiencia. Solo se anuncia la primera apertura, ni el recordatorio ni el cierre.
+
+Los módulos no dependen entre sí: este despacha el evento del core `GeneralSurveyOpened` (core ≥ 3.30) y el de notificaciones a canales lo escucha si está instalado, siempre que cada canal tenga activo el tipo «Encuestas».
+
 ## Revisión
 
 Con el ajuste «Las encuestas cambiadas fuera del panel requieren revisión», una encuesta cuyo contenido se ha cambiado o escrito desde la web (los sondeos y encuestas propios de quien organiza, siempre) queda «En revisión» al enviarla y no sale hasta que alguien con `surveys.moderate` la apruebe en el panel (o la rechace con un motivo, que vuelve a quien la organiza). Una encuesta ya abierta que se cambia vuelve a revisión y deja de aceptar respuestas mientras tanto; mientras espera, su contenido no se puede tocar. Las fechas y los ajustes no son contenido y nunca pasan por revisión. Apagar el ajuste no aprueba las que ya esperan.
@@ -77,6 +83,6 @@ Ninguno se concede solo; se dan en el editor de roles.
 
 ## Ajustes
 
-En «Ajustes de encuestas», en el panel (con `surveys.manage`): mínimo de respuestas de las encuestas anónimas (3 por defecto; 0 lo quita), días hasta el cierre por defecto (7), si las encuestas nuevas son anónimas y si los cambios hechos fuera del panel se revisan.
+En «Ajustes de encuestas», en el panel (con `surveys.manage`): mínimo de respuestas de las encuestas anónimas (3 por defecto; 0 lo quita), días hasta el cierre por defecto (7), si las encuestas nuevas son anónimas, si las encuestas generales nuevas marcan «Anunciar en los canales» (no por defecto) y si los cambios hechos fuera del panel se revisan.
 
 Por cada tipo de sujeto que ofrezcan los módulos activos: la plantilla de su encuesta (sin plantilla no se prepara ninguna), si se envía sola y con cuántas horas de retraso, los días que queda abierta y si es anónima.

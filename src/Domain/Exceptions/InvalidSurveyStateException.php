@@ -117,4 +117,14 @@ final class InvalidSurveyStateException extends DomainException
     {
         return new self("Survey {$surveyId} is about another subject.");
     }
+
+    public static function subjectSurveyNotAnnounced(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} is about a subject: only general surveys are announced on the channels.");
+    }
+
+    public static function announcementFixed(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} is no longer a draft: whether it is announced is fixed.");
+    }
 }

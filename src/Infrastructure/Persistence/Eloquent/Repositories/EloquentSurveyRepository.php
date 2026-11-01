@@ -99,6 +99,7 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             'subject_end_key' => $survey->subjectEndKey(),
             'subject_ended_at' => $survey->subjectEndedAt(),
             'send_on_end' => $survey->sendsOnEnd(),
+            'announce_in_channels' => $survey->announceInChannels(),
             'send_delay_hours' => $survey->sendDelayHours(),
         ]);
     }
@@ -281,6 +282,7 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             sendOnEnd: $model->send_on_end,
             sendDelayHours: $model->send_delay_hours,
             publicLinkMode: PublicLinkMode::from($model->public_link_mode),
+            announceInChannels: $model->announce_in_channels,
         );
     }
 

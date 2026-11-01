@@ -30,6 +30,7 @@ use Modules\Surveys\Application\Contracts\OrganizerNotifierInterface;
 use Modules\Surveys\Application\Contracts\PendingSurveysQueryInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\Contracts\ReviewNotifierInterface;
+use Modules\Surveys\Application\Contracts\SurveyAnnouncerInterface;
 use Modules\Surveys\Application\Contracts\SurveyNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
@@ -54,6 +55,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSur
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyResultsQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyTemplateRepository;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentTrendsQuery;
+use Modules\Surveys\Infrastructure\Services\ChannelSurveyAnnouncer;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
 use Modules\Surveys\Infrastructure\Services\OrganizerMailer;
 use Modules\Surveys\Infrastructure\Services\ReviewMailer;
@@ -96,6 +98,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(AudienceResolverInterface::class, EloquentAudienceResolver::class);
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
         $this->app->bind(SurveyNotifierInterface::class, SurveyInvitationSender::class);
+        $this->app->bind(SurveyAnnouncerInterface::class, ChannelSurveyAnnouncer::class);
         $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
         $this->app->bind(OrganizedSurveysQueryInterface::class, EloquentOrganizedSurveysQuery::class);
         $this->app->bind(SurveyResultsQueryInterface::class, EloquentSurveyResultsQuery::class);

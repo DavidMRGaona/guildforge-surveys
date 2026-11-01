@@ -104,6 +104,19 @@ final class SurveySettingsPageTest extends ModuleTestCase
         $this->assertFalse($type->anonymous);
     }
 
+    public function test_it_saves_whether_general_surveys_are_announced_by_default(): void
+    {
+        $this->actingAs($this->userWith([self::MANAGE]));
+
+        Livewire::test(SurveySettingsPage::class)
+            ->assertFormSet(['announce_in_channels_by_default' => false])
+            ->fillForm(['announce_in_channels_by_default' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue(app(SurveySettingsInterface::class)->announceInChannelsByDefault());
+    }
+
     public function test_saving_keeps_the_settings_of_a_disabled_module(): void
     {
         app(SettingsServiceInterface::class)->set(
