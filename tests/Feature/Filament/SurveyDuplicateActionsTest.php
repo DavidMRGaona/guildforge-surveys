@@ -110,6 +110,7 @@ final class SurveyDuplicateActionsTest extends ModuleTestCase
         Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
             ->mountAction('save_as_template')
             ->assertActionDataSet(['name' => 'Satisfacción del trimestre'])
+            ->assertMountedActionModalSee(__('surveys::filament.actions.save_as_template_submit'))
             ->setActionData(['name' => 'Valoración de partidas', 'description' => 'Para las mesas'])
             ->callMountedAction()
             ->assertHasNoActionErrors()

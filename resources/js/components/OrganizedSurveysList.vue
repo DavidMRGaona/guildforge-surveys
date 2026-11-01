@@ -126,7 +126,8 @@ function confirmClose(): void {
             ]"
             :data-status="survey.status"
         >
-            <div class="min-w-0 space-y-1">
+            <!-- The title keeps room beside the actions, which wrap onto a second row instead -->
+            <div class="min-w-0 space-y-1 sm:flex-[1_0_14rem]">
                 <p class="font-semibold break-words text-base-primary">{{ survey.title }}</p>
                 <p
                     v-if="props.showSubject && survey.subjectTitle"
@@ -176,7 +177,7 @@ function confirmClose(): void {
                 </p>
             </div>
 
-            <div class="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                 <Link v-if="survey.resultsUrl" :href="survey.resultsUrl" :class="LINK_ACTION_CLASS">
                     {{ t('surveys.manage.results') }}
                 </Link>

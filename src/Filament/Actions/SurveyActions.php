@@ -218,6 +218,7 @@ final class SurveyActions
             ->icon('heroicon-o-bookmark')
             ->color('gray')
             ->modalDescription(__('surveys::filament.actions.save_as_template_description'))
+            ->modalSubmitActionLabel(__('surveys::filament.actions.save_as_template_submit'))
             ->fillForm(static fn (SurveyModel $record): array => ['name' => $record->title, 'description' => $record->description])
             ->schema([
                 TextInput::make('name')
