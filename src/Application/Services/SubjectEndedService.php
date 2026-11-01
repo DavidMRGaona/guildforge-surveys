@@ -53,7 +53,7 @@ final readonly class SubjectEndedService
         }
 
         $type = $this->settings->forSubjectType($sourceType);
-        $template = $this->endTemplates->templateFor($sourceType, $subjectId);
+        $template = $this->endTemplates->templateFor($sourceType, $subjectId, $subject);
         if (! $template instanceof SurveyTemplate) {
             return;
         }
