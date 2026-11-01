@@ -170,11 +170,11 @@ final class OrganizerOwnSurveysTest extends ModuleTestCase
     public function test_the_defaults_come_from_the_subject_type(): void
     {
         $this->assertSame(
-            ['anonymous' => false, 'durationDays' => 3, 'liveResults' => false, 'visibleToRespondents' => false],
+            ['anonymous' => false, 'durationDays' => 3, 'liveResults' => false, 'visibleToRespondents' => false, 'closingSummary' => true],
             $this->service->defaultsFor(ExampleThingSource::TYPE, SurveyKind::Form),
         );
         $this->assertSame(
-            ['anonymous' => false, 'durationDays' => 3, 'liveResults' => true, 'visibleToRespondents' => true],
+            ['anonymous' => false, 'durationDays' => 3, 'liveResults' => true, 'visibleToRespondents' => true, 'closingSummary' => true],
             $this->service->defaultsFor(ExampleThingSource::TYPE, SurveyKind::Poll),
         );
     }

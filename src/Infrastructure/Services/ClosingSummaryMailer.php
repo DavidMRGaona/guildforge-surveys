@@ -7,7 +7,6 @@ namespace Modules\Surveys\Infrastructure\Services;
 use App\Application\Services\SiteBrandingServiceInterface;
 use App\Infrastructure\Authorization\Services\PermissionHolderFinder;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
-use Illuminate\Support\Collection;
 use Modules\Surveys\Application\Contracts\ClosingSummaryNotifierInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\Services\ClosingSummaryService;
@@ -64,18 +63,21 @@ final readonly class ClosingSummaryMailer implements ClosingSummaryNotifierInter
             $recipients[$userId] = false;
         }
 
-        $viewers = null;
         $creator = $survey->createdBy();
-        if ($creator !== null && ! isset($recipients[$creator])) {
-            if ($this->gate->canManage($creator, $survey)) {
-                $recipients[$creator] = false;
-            } elseif ($this->resultsViewers($viewers)->contains($creator)) {
-                $recipients[$creator] = true;
-            }
+        if ($creator !== null && ! isset($recipients[$creator]) && $this->gate->canManage($creator, $survey)) {
+            $recipients[$creator] = false;
         }
 
-        if ($this->settings->closingSummaryToResultsViewers()) {
-            foreach ($this->resultsViewers($viewers) as $userId) {
+        $toViewers = $this->settings->closingSummaryToResultsViewers();
+        $creatorLeft = $creator !== null && ! isset($recipients[$creator]);
+        $viewers = $toViewers || $creatorLeft ? $this->resultsViewers() : [];
+
+        if ($creatorLeft && in_array($creator, $viewers, true)) {
+            $recipients[$creator] = true;
+        }
+
+        if ($toViewers) {
+            foreach ($viewers as $userId) {
                 $recipients[$userId] ??= true;
             }
         }
@@ -84,13 +86,15 @@ final readonly class ClosingSummaryMailer implements ClosingSummaryNotifierInter
     }
 
     /**
-     * Who may open results in the panel, looked up once.
+     * Who may open results in the panel.
      *
-     * @param  Collection<int, string>|null  $viewers
-     * @return Collection<int, string>
+     * @return list<string>
      */
-    private function resultsViewers(?Collection &$viewers): Collection
+    private function resultsViewers(): array
     {
-        return $viewers ??= $this->holders->usersWhoCan('admin.access', self::VIEW_RESULTS)->pluck('id');
+        return array_values(array_map(
+            static fn (UserModel $user): string => $user->id,
+            $this->holders->usersWhoCan('admin.access', self::VIEW_RESULTS)->all(),
+        ));
     }
 }
