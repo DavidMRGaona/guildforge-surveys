@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp, GripVertical, Plus, RotateCcw, X } from '@lucide/vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { SurveyOption } from '../../types/Respond';
 import { move } from '../../utils/definition';
@@ -118,19 +118,24 @@ async function clear(): Promise<void> {
     root.value?.querySelector<HTMLElement>('[data-unplaced]')?.focus();
 }
 
+/**
+ * The moves and the release are followed on the window: reordering moves the dragged item's
+ * node, which loses the pointer capture, and the handle would stop hearing the pointer.
+ */
 function startDrag(event: PointerEvent, optionId: string): void {
     if (event.button !== 0) {
         return;
     }
     event.preventDefault();
     dragging.value = optionId;
-    const handle = event.currentTarget as HTMLElement;
-    handle.setPointerCapture?.(event.pointerId);
+    window.addEventListener('pointermove', drag);
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
 }
 
 /**
  * The dragged option goes where the pointer is among the others: one place per option whose
- * middle the pointer has passed. The others have not moved yet, so their boxes still hold.
+ * middle the pointer has passed. Nothing glides while dragging, so the boxes are where they are.
  */
 function drag(event: PointerEvent): void {
     const optionId = dragging.value;
@@ -151,17 +156,22 @@ function drag(event: PointerEvent): void {
     }
 }
 
-function endDrag(event: PointerEvent): void {
+function endDrag(): void {
+    stopListening();
     const option = placed.value.find((candidate) => candidate.id === dragging.value);
     dragging.value = null;
-    const handle = event.currentTarget as HTMLElement;
-    if (handle.hasPointerCapture?.(event.pointerId) === true) {
-        handle.releasePointerCapture(event.pointerId);
-    }
     if (option !== undefined) {
         announcement.value = placedAt(option, placed.value.indexOf(option) + 1);
     }
 }
+
+function stopListening(): void {
+    window.removeEventListener('pointermove', drag);
+    window.removeEventListener('pointerup', endDrag);
+    window.removeEventListener('pointercancel', endDrag);
+}
+
+onBeforeUnmount(stopListening);
 
 function item(optionId: string): HTMLElement | undefined {
     return [...(root.value?.querySelectorAll<HTMLElement>('[data-ranked]') ?? [])].find(
@@ -191,7 +201,11 @@ const iconButton =
             v-if="placed.length > 0"
             tag="ol"
             class="space-y-2"
-            move-class="transition-transform duration-200 motion-reduce:transition-none"
+            :move-class="
+                dragging === null
+                    ? 'transition-transform duration-200 motion-reduce:transition-none'
+                    : ''
+            "
             :aria-label="t('surveys.respond.ranking.order', { label: props.label })"
         >
             <li
@@ -208,9 +222,6 @@ const iconButton =
                     class="flex h-9 w-6 shrink-0 cursor-grab touch-none select-none items-center justify-center text-base-secondary active:cursor-grabbing"
                     aria-hidden="true"
                     @pointerdown="startDrag($event, option.id)"
-                    @pointermove="drag"
-                    @pointerup="endDrag"
-                    @pointercancel="endDrag"
                 >
                     <GripVertical class="h-5 w-5" />
                 </span>
