@@ -14,6 +14,19 @@ Requiere el core de GuildForge `^3.29`.
 - **Resultados** en el panel, con un gráfico por pregunta (tipo de gráfico y preguntas ocultas configurables), la tasa de respuesta y la exportación a CSV y Excel. Si la encuesta lo permite, quien responde también ve los resultados.
 - **Cierre** por fecha o a mano. Las encuestas solo se borran a mano, con doble confirmación.
 
+## Plantillas recomendadas
+
+El módulo trae 12 plantillas pensadas para una asociación de rol y wargames, todas con una sola pregunta obligatoria y con claves estables para las tendencias:
+
+- **Rol**: «Partida de rol» (mesas sueltas), «Sesión de campaña» (corta) y «Campaña completa».
+- **Torneos**: «Torneo de wargames» y sus variantes de Warhammer 40.000, Age of Sigmar, Kill Team y Blood Bowl, que repiten la sección general con las mismas claves y añaden una sección del juego.
+- **Eventos**: «Evento de la asociación» (jornadas, puertas abiertas).
+- **Junta**: «Satisfacción de los socios», «Interés por actividades y sistemas» y «Disponibilidad de días y franjas». Para elegir entre fechas concretas está el sondeo rápido.
+
+Llegan al instalar el módulo, o con la primera actualización que las trae, también en producción, y solo se crean las que falten (cada una se reconoce por su clave de catálogo): una plantilla que la asociación haya renombrado o cambiado no se toca nunca, y una que haya borrado no vuelve. Las plantillas creadas en esa ejecución pasan a ser las predeterminadas de su tipo de sujeto (mesa, sesión de campaña, campaña, torneo y evento; en torneos, la general) solo donde no había ninguna elegida, con el envío a un clic. Las variantes de cada juego se eligen a mano en «Ajustes de encuestas». Ninguna plantilla guarda el anonimato: lo decide el ajuste de cada tipo de sujeto o la propia encuesta.
+
+Los nombres de los juegos solo sirven para identificarlos; las plantillas no incluyen logos ni textos de sus reglamentos.
+
 ## Encuestas de lo que organizas
 
 Cuando termina algo que otro módulo ofrece como sujeto (una mesa, una campaña, un torneo, un evento), se prepara su encuesta con la plantilla configurada para ese tipo y se avisa por correo a quien lo organiza. Una sola encuesta por final: si el aviso de que ha terminado llega dos veces, no se duplica.
