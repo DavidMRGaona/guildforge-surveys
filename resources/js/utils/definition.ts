@@ -17,6 +17,7 @@ export const QUESTION_TYPES: QuestionType[] = [
     'single_choice',
     'multiple_choice',
     'dropdown',
+    'ranking',
     'linear_scale',
     'star_rating',
     'date',
@@ -27,10 +28,19 @@ export const QUESTION_TYPES: QuestionType[] = [
 /** The only types a poll may use. */
 export const POLL_TYPES: QuestionType[] = ['single_choice', 'multiple_choice'];
 
-const WITH_OPTIONS: QuestionType[] = ['single_choice', 'multiple_choice', 'dropdown'];
+const CHOICES: QuestionType[] = ['single_choice', 'multiple_choice', 'dropdown'];
 
+/** As SurveyDefinitionValidator::RANKING_OPTIONS_MAX on the server. */
+export const RANKING_OPTIONS_MAX = 10;
+
+/** Whether the question has a list of options: to pick from, or to put in order. */
 export function hasOptions(type: QuestionType): boolean {
-    return WITH_OPTIONS.includes(type);
+    return CHOICES.includes(type) || type === 'ranking';
+}
+
+/** Whether the question may offer "Other", as QuestionType::allowsOther(). */
+export function allowsOther(type: QuestionType): boolean {
+    return CHOICES.includes(type);
 }
 
 /** Whether the chosen option may decide the next section, as QuestionType::canBranch(). */
@@ -81,7 +91,7 @@ export function changeType(question: SurveyQuestion, type: QuestionType): Survey
             ...question,
             type,
             options: keepsOptions ? question.options : [],
-            allow_other: keepsOptions ? question.allow_other : false,
+            allow_other: keepsOptions && allowsOther(type) ? question.allow_other : false,
             scale: null,
             stars: null,
             grid: null,

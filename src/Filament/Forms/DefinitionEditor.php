@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
+use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 
 /**
@@ -123,6 +124,14 @@ final class DefinitionEditor
      */
     private static function typeFields(QuestionType $type, Closure|bool $locked): array
     {
+        if ($type === QuestionType::Ranking) {
+            return [
+                self::optionList('options', 'surveys::filament.definition.options', 2, $locked)
+                    ->maxItems(SurveyDefinitionValidator::RANKING_OPTIONS_MAX)
+                    ->helperText(__('surveys::filament.definition.ranking_options_help', ['max' => SurveyDefinitionValidator::RANKING_OPTIONS_MAX])),
+            ];
+        }
+
         if ($type->hasOptions()) {
             $fields = [
                 self::optionList('options', 'surveys::filament.definition.options', 2, $locked, withTargets: $type->canBranch()),

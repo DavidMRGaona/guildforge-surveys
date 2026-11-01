@@ -15,6 +15,8 @@ const props = defineProps<{
     errors: Record<string, string>;
     /** Path of the list in the definition, for its errors. */
     path: string;
+    /** Most items the list takes, if any. */
+    max?: number;
 }>();
 
 const options = defineModel<SurveyOption[]>({ required: true });
@@ -83,7 +85,7 @@ function error(index: number): string | undefined {
             <p v-if="error(index)" class="text-sm text-error">{{ error(index) }}</p>
         </div>
         <button
-            v-if="!props.locked"
+            v-if="!props.locked && (props.max === undefined || options.length < props.max)"
             type="button"
             :class="ADD_BUTTON_CLASS"
             @click="options = [...options, newOption()]"

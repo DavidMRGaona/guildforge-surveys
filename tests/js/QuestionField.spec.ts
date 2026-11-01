@@ -52,6 +52,19 @@ function draftOf(wrapper: VueWrapper): AnswerDraft {
 }
 
 describe('QuestionField', () => {
+    it('keeps the order of a ranking in the choices, best first', async () => {
+        const wrapper = mountField(question('ranking'));
+
+        await wrapper.find('[data-unplaced="o-2"]').trigger('click');
+
+        // Two options: placing one places the other
+        expect(draftOf(wrapper).choices).toEqual(['o-2', 'o-1']);
+        expect(wrapper.findAll('[data-ranked]').map((item) => item.text())).toEqual([
+            expect.stringContaining('Dos'),
+            expect.stringContaining('Uno'),
+        ]);
+    });
+
     it('shows single choices as cards that mark the chosen one', async () => {
         const wrapper = mountField(question('single_choice'));
 

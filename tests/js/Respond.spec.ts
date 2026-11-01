@@ -33,10 +33,10 @@ describe('Respond', () => {
         sessionStorage.clear();
     });
 
-    it('renders a field for each of the ten question types', () => {
+    it('renders a field for each of the eleven question types', () => {
         const wrapper = mountPage();
 
-        expect(wrapper.findAll('fieldset')).toHaveLength(10);
+        expect(wrapper.findAll('fieldset')).toHaveLength(11);
         expect(wrapper.find('input[type="text"]').exists()).toBe(true);
         expect(wrapper.find('textarea').exists()).toBe(true);
         expect(wrapper.findComponent(FormSelect).exists()).toBe(true);

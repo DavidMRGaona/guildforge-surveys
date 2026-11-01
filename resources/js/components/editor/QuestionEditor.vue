@@ -5,12 +5,14 @@ import { FormCheckbox, FormNumberInput, FormSelect } from '@/components/form';
 import type { EditorLocks } from '../../types/Editor';
 import type { QuestionType, SurveyOption, SurveyQuestion } from '../../types/Respond';
 import {
+    allowsOther,
     canBranch,
     changeType,
     hasOptions,
     POLL_TYPES,
     pruneJumps,
     QUESTION_TYPES,
+    RANKING_OPTIONS_MAX,
 } from '../../utils/definition';
 import JumpsEditor from './JumpsEditor.vue';
 import OptionListEditor from './OptionListEditor.vue';
@@ -142,10 +144,14 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                 :locked="props.locks.structure"
                 :errors="props.errors"
                 :path="`${props.path}.options`"
+                :max="question.type === 'ranking' ? RANKING_OPTIONS_MAX : undefined"
                 @update:model-value="set('options', $event)"
             />
+            <p v-if="question.type === 'ranking'" class="text-sm text-base-secondary">
+                {{ t('surveys.editor.ranking_hint', { max: RANKING_OPTIONS_MAX }) }}
+            </p>
             <FormCheckbox
-                v-if="!props.locks.poll"
+                v-if="!props.locks.poll && allowsOther(question.type)"
                 :id="`${fieldId}-other`"
                 :model-value="question.allow_other"
                 :label="t('surveys.editor.allow_other')"

@@ -31,7 +31,7 @@ const options = [
     { id: 'o-2', label: 'Dos' },
 ];
 
-/** One question of each of the ten types, as SurveyDefinition::toArray() sends them. */
+/** One question of each of the eleven types, as SurveyDefinition::toArray() sends them. */
 export const everyType: SurveyDefinition = {
     sections: [
         {
@@ -65,6 +65,13 @@ export const everyType: SurveyDefinition = {
                             { id: 'c-2', label: 'Bien' },
                         ],
                     },
+                }),
+                question('q-rank', 'ranking', {
+                    options: [
+                        { id: 'k-1', label: 'Rol' },
+                        { id: 'k-2', label: 'Wargames' },
+                        { id: 'k-3', label: 'Tablero' },
+                    ],
                 }),
             ],
         },
