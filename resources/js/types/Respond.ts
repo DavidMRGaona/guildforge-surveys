@@ -146,6 +146,30 @@ export interface QuestionResult {
     median: number | null;
     /** Only on rankings. */
     ranking: RankingResult | null;
+    /** Only on availability questions. */
+    availability: AvailabilityResult | null;
+}
+
+/** An availability question's results, the slots in the survey's order (see AvailabilityResultDTO). */
+export interface AvailabilityResult {
+    /** The date fixed once the survey closed, if any. */
+    chosenSlotId: string | null;
+    slots: AvailabilitySlotResult[];
+}
+
+export interface AvailabilitySlotResult {
+    id: string;
+    label: string;
+    shortLabel: string;
+    yes: number;
+    ifNeeded: number;
+    no: number;
+    /** Among the most "yes" and, of those, the most "if needed". */
+    best: boolean;
+    /** Names, only on named surveys. */
+    yesNames: string[];
+    ifNeededNames: string[];
+    noNames: string[];
 }
 
 /** A ranking's results, best option first (see RankingResultDTO). */

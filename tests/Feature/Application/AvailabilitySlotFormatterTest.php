@@ -45,6 +45,15 @@ final class AvailabilitySlotFormatterTest extends ModuleTestCase
         $this->assertSame('jueves, 31 de diciembre de 2026, de 22:00 a 02:00', $this->formatter()->label($slot));
     }
 
+    public function test_a_chart_reads_a_short_label(): void
+    {
+        $formatter = $this->formatter();
+
+        $this->assertSame('sáb 5 dic', $formatter->shortLabel(new Slot('d-1', date: '2026-12-05')));
+        $this->assertSame('vie 11 dic · 17:00–21:00', $formatter->shortLabel(new Slot('d-2', startsAt: '2026-12-11T16:00:00+00:00', endsAt: '2026-12-11T20:00:00+00:00')));
+        $this->assertSame('sáb 12 dic · 11:00', $formatter->shortLabel(new Slot('d-3', startsAt: '2026-12-12T10:00:00+00:00')));
+    }
+
     public function test_a_late_evening_in_madrid_keeps_its_day(): void
     {
         $slot = new Slot('d-5', startsAt: '2026-12-11T23:30:00+00:00');

@@ -7,11 +7,15 @@ namespace Modules\Surveys\Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Js;
+use Modules\Surveys\Application\DTOs\Results\AvailabilityResultDTO;
 use Modules\Surveys\Application\Exceptions\SubjectCancelledException;
+use Modules\Surveys\Application\Services\AvailabilityDateService;
+use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Application\Services\SurveyDuplicationService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Application\Services\SurveyReviewService;
@@ -72,6 +76,63 @@ final class SurveyActions
                 self::run(static fn () => app(SurveyLifecycleService::class)->close(SurveyId::fromString($record->id)), 'close');
                 $record->refresh();
             });
+    }
+
+    /**
+     * Fixes the date of a closed availability survey among its slots, the best first. It is told
+     * to everyone and cannot change, so the box saying so must be ticked.
+     */
+    public static function chooseDate(): Action
+    {
+        return Action::make('choose_date')
+            ->label(__('surveys::filament.actions.choose_date'))
+            ->icon('heroicon-o-calendar-days')
+            ->modalHeading(__('surveys::filament.actions.choose_date_heading'))
+            ->modalDescription(__('surveys::filament.actions.choose_date_description'))
+            ->modalSubmitActionLabel(__('surveys::filament.actions.choose_date_submit'))
+            ->visible(static fn (SurveyModel $record): bool => $record->kind === SurveyKind::Availability->value
+                && $record->status === SurveyStatus::Closed->value
+                && $record->chosen_slot_id === null)
+            ->authorize(static fn (SurveyModel $record): bool => auth()->user()?->can('update', $record) === true)
+            ->schema(static fn (SurveyModel $record): array => [
+                Select::make('slot_id')
+                    ->label(__('surveys::filament.actions.choose_date_slot'))
+                    ->options(self::slotOptions($record))
+                    ->default(self::bestSlotId($record))
+                    ->required()
+                    ->native(false),
+                Checkbox::make('confirmed')
+                    ->label(__('surveys::filament.actions.choose_date_confirm'))
+                    ->accepted(),
+            ])
+            ->action(static function (SurveyModel $record, array $data): void {
+                $slotId = is_string($data['slot_id'] ?? null) ? $data['slot_id'] : '';
+                self::run(static fn () => app(AvailabilityDateService::class)->choose(SurveyId::fromString($record->id), $slotId), 'choose_date');
+                $record->refresh();
+            });
+    }
+
+    /**
+     * @return array<string, string> slot id => how it reads, in the survey's order
+     */
+    private static function slotOptions(SurveyModel $record): array
+    {
+        $options = [];
+        foreach (self::availability($record)->slots ?? [] as $slot) {
+            $options[$slot->slotId] = mb_ucfirst($slot->label);
+        }
+
+        return $options;
+    }
+
+    private static function bestSlotId(SurveyModel $record): ?string
+    {
+        return self::availability($record)?->best()[0]->slotId ?? null;
+    }
+
+    private static function availability(SurveyModel $record): ?AvailabilityResultDTO
+    {
+        return app(ResultsService::class)->forPanel(SurveyId::fromString($record->id))->questions[0]->availability ?? null;
     }
 
     /**

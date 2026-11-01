@@ -51,6 +51,8 @@ use Illuminate\Support\Carbon;
  * @property bool $send_on_end
  * @property bool $announce_in_channels
  * @property bool $closing_summary
+ * @property string|null $chosen_slot_id
+ * @property Carbon|null $chosen_slot_at
  * @property int $send_delay_hours
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -110,6 +112,8 @@ final class SurveyModel extends Model
         'send_on_end',
         'announce_in_channels',
         'closing_summary',
+        'chosen_slot_id',
+        'chosen_slot_at',
         'send_delay_hours',
     ];
 
@@ -150,6 +154,7 @@ final class SurveyModel extends Model
             'send_on_end' => 'boolean',
             'announce_in_channels' => 'boolean',
             'closing_summary' => 'boolean',
+            'chosen_slot_at' => 'datetime',
             'send_delay_hours' => 'integer',
         ];
     }

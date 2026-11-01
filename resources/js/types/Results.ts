@@ -36,5 +36,7 @@ export interface ManageResultsProps {
     /** Questions left out of the results, so they can be shown again. */
     hiddenQuestions: { id: string; title: string }[];
     settingsUrl: string;
+    /** Only while a closed availability survey has no date: where it is fixed. */
+    chooseDateUrl: string | null;
     backUrl: string;
 }

@@ -138,6 +138,11 @@ final class InvalidSurveyStateException extends DomainException
         return new self("Survey {$surveyId} is closed: whether it mails a summary is fixed.");
     }
 
+    public static function cannotChooseSlot(string $surveyId): self
+    {
+        return new self("Survey {$surveyId} cannot fix that date: only one of its slots, once, after an availability survey closes.");
+    }
+
     public static function cannotBecomeEndSurvey(string $surveyId): self
     {
         return new self("Survey {$surveyId} cannot become its subject's end survey: only an unsent, undismissed form about that subject without an end key can.");

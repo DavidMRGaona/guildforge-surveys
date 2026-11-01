@@ -6,6 +6,7 @@ namespace Modules\Surveys\Tests\Feature\Filament;
 
 use DateTimeImmutable;
 use Filament\Forms\Components\Builder;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AudienceType;
@@ -19,6 +20,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\EditSurvey;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ListSurveys;
+use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ViewSurveyResults;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Tests\Unit\Domain\Services\AvailabilityDefinitionTest;
@@ -151,6 +153,43 @@ final class AvailabilitySurveyPanelTest extends ModuleTestCase
     {
         Livewire::test(EditSurvey::class, ['record' => $this->survey()->id()->value])
             ->assertActionHidden('save_as_template');
+    }
+
+    public function test_the_results_page_shows_each_slot_and_fixes_the_date_once_confirmed(): void
+    {
+        Notification::fake();
+        $survey = $this->survey();
+        $survey->open(new DateTimeImmutable('2030-01-01T10:00:00+00:00'));
+        $survey->close(new DateTimeImmutable('2030-01-02T10:00:00+00:00'));
+        $this->surveys->save($survey);
+
+        Livewire::test(ViewSurveyResults::class, ['record' => $survey->id()->value])
+            ->assertSee('Sábado, 5 de diciembre de 2026')
+            ->assertSee('Si hace falta')
+            ->assertActionVisible('choose_date')
+            ->callAction('choose_date', data: ['slot_id' => 'd-2', 'confirmed' => false])
+            ->assertHasActionErrors(['confirmed']);
+        $before = $this->surveys->findOrFail($survey->id());
+        $this->assertNull($before->chosenSlot());
+
+        Livewire::test(ViewSurveyResults::class, ['record' => $survey->id()->value])
+            ->callAction('choose_date', data: ['slot_id' => 'd-2', 'confirmed' => true])
+            ->assertHasNoActionErrors();
+
+        $this->assertSame('d-2', $this->surveys->findOrFail($survey->id())->chosenSlot()?->id);
+        Livewire::test(ViewSurveyResults::class, ['record' => $survey->id()->value])
+            ->assertSee('Fecha elegida')
+            ->assertActionHidden('choose_date');
+    }
+
+    public function test_an_open_survey_has_no_date_to_fix_yet(): void
+    {
+        $survey = $this->survey();
+        $survey->open(new DateTimeImmutable('2030-01-01T10:00:00+00:00'));
+        $this->surveys->save($survey);
+
+        Livewire::test(ViewSurveyResults::class, ['record' => $survey->id()->value])
+            ->assertActionHidden('choose_date');
     }
 
     /**

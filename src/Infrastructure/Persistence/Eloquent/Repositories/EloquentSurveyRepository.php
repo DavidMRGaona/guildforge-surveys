@@ -101,6 +101,8 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             'send_on_end' => $survey->sendsOnEnd(),
             'announce_in_channels' => $survey->announceInChannels(),
             'closing_summary' => $survey->sendsClosingSummary(),
+            'chosen_slot_id' => $survey->chosenSlot()?->id,
+            'chosen_slot_at' => $survey->chosenSlotAt(),
             'send_delay_hours' => $survey->sendDelayHours(),
         ]);
     }
@@ -285,6 +287,8 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
             publicLinkMode: PublicLinkMode::from($model->public_link_mode),
             announceInChannels: $model->announce_in_channels,
             closingSummary: $model->closing_summary,
+            chosenSlotId: $model->chosen_slot_id,
+            chosenSlotAt: $this->instant($model->chosen_slot_at),
         );
     }
 

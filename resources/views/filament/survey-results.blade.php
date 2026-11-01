@@ -53,6 +53,44 @@
             @else
                 @livewire(\Modules\Surveys\Filament\Widgets\QuestionResultChart::class, ['surveyId' => $this->surveyId()->value, 'questionId' => $question->questionId], key('chart-'.$question->questionId))
 
+                @if ($question->availability !== null)
+                    <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.8;">{{ __('surveys::filament.results.availability.help') }}</p>
+                    <div style="overflow-x: auto; margin-top: 0.5rem;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgb(127 127 127 / 0.3);">
+                                    <th scope="col" style="padding: 0.5rem 0.75rem 0.5rem 0; text-align: start; font-weight: 600;">{{ __('surveys::filament.results.availability.slot') }}</th>
+                                    @foreach (['yes', 'if_needed', 'no'] as $answer)
+                                        <th scope="col" style="padding: 0.5rem 0.75rem; text-align: end; font-weight: 600;">{{ __('surveys::messages.availability.answers.'.$answer) }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($question->availability->slots as $slot)
+                                    <tr style="border-bottom: 1px solid rgb(127 127 127 / 0.2);">
+                                        <th scope="row" style="padding: 0.5rem 0.75rem 0.5rem 0; text-align: start; font-weight: 400;">
+                                            {{ mb_ucfirst($slot->label) }}
+                                            @if ($question->availability->chosenSlotId === $slot->slotId)
+                                                <x-filament::badge color="success" style="display: inline-flex; margin-inline-start: 0.5rem;">{{ __('surveys::filament.results.availability.chosen') }}</x-filament::badge>
+                                            @elseif ($slot->best)
+                                                <x-filament::badge color="info" style="display: inline-flex; margin-inline-start: 0.5rem;">{{ __('surveys::filament.results.availability.best') }}</x-filament::badge>
+                                            @endif
+                                            @foreach (['yes' => $slot->yesNames, 'if_needed' => $slot->ifNeededNames] as $answer => $names)
+                                                @if ($names !== [])
+                                                    <span style="display: block; font-size: 0.75rem; opacity: 0.75;">{{ __('surveys::messages.availability.answers.'.$answer) }}: {{ implode(', ', $names) }}</span>
+                                                @endif
+                                            @endforeach
+                                        </th>
+                                        <td style="padding: 0.5rem 0.75rem; text-align: end; font-variant-numeric: tabular-nums;">{{ $slot->yes }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; text-align: end; font-variant-numeric: tabular-nums;">{{ $slot->ifNeeded }}</td>
+                                        <td style="padding: 0.5rem 0.75rem; text-align: end; font-variant-numeric: tabular-nums;">{{ $slot->no }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
                 @if ($question->ranking !== null)
                     <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.8;">{{ __('surveys::filament.results.ranking.help', ['positions' => $question->ranking->positions]) }}</p>
                     <div style="overflow-x: auto; margin-top: 0.5rem;">

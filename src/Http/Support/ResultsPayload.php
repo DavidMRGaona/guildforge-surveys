@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Http\Support;
 
+use Modules\Surveys\Application\DTOs\Results\AvailabilityResultDTO;
+use Modules\Surveys\Application\DTOs\Results\AvailabilitySlotResultDTO;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
 use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
@@ -85,6 +87,21 @@ final class ResultsPayload
                     'meanPosition' => $option->meanPosition,
                     'places' => array_values($option->positions),
                 ], $question->ranking->options),
+            ] : null,
+            'availability' => $question->availability instanceof AvailabilityResultDTO ? [
+                'chosenSlotId' => $question->availability->chosenSlotId,
+                'slots' => array_map(static fn (AvailabilitySlotResultDTO $slot): array => [
+                    'id' => $slot->slotId,
+                    'label' => $slot->label,
+                    'shortLabel' => $slot->shortLabel,
+                    'yes' => $slot->yes,
+                    'ifNeeded' => $slot->ifNeeded,
+                    'no' => $slot->no,
+                    'best' => $slot->best,
+                    'yesNames' => $withVoters ? $slot->yesNames : [],
+                    'ifNeededNames' => $withVoters ? $slot->ifNeededNames : [],
+                    'noNames' => $withVoters ? $slot->noNames : [],
+                ], $question->availability->slots),
             ] : null,
         ];
     }

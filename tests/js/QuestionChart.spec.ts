@@ -57,6 +57,7 @@ function question(overrides: Partial<OrganizerQuestionResult> = {}): OrganizerQu
         mean: null,
         median: null,
         ranking: null,
+        availability: null,
         chartType: 'bar',
         chartTypes: ['bar', 'pie'],
         texts: ['Depende del día'],

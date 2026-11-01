@@ -18,6 +18,7 @@ final readonly class AvailabilitySlotResultDTO
      * @param  list<string>  $yesNames
      * @param  list<string>  $ifNeededNames
      * @param  list<string>  $noNames
+     * @param  string  $shortLabel  for a chart axis ("sáb 5 dic · 17:00–21:00")
      */
     public function __construct(
         public string $slotId,
@@ -32,5 +33,6 @@ final readonly class AvailabilitySlotResultDTO
         public array $yesNames = [],
         public array $ifNeededNames = [],
         public array $noNames = [],
+        public string $shortLabel = '',
     ) {}
 }

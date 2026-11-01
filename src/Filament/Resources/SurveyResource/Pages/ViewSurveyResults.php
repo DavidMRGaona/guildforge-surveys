@@ -20,6 +20,7 @@ use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Infrastructure\Export\CsvSurveyExport;
 use Modules\Surveys\Infrastructure\Export\SurveyExportTable;
@@ -85,6 +86,7 @@ final class ViewSurveyResults extends Page
     protected function getHeaderActions(): array
     {
         return [
+            SurveyActions::chooseDate(),
             $this->exportAction('export_csv', 'csv'),
             $this->exportAction('export_xlsx', 'xlsx'),
             $this->configureResultsAction(),

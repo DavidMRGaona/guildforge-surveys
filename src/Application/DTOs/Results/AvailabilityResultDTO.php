@@ -13,8 +13,12 @@ final readonly class AvailabilityResultDTO
 {
     /**
      * @param  list<AvailabilitySlotResultDTO>  $slots
+     * @param  ?string  $chosenSlotId  the date fixed once the survey closed, if any
      */
-    public function __construct(public array $slots) {}
+    public function __construct(
+        public array $slots,
+        public ?string $chosenSlotId = null,
+    ) {}
 
     /**
      * @return list<AvailabilitySlotResultDTO>

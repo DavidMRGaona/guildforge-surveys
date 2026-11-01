@@ -25,6 +25,7 @@ function question(overrides: Partial<QuestionResult> = {}): QuestionResult {
         mean: null,
         median: null,
         ranking: null,
+        availability: null,
         reached: null,
         ...overrides,
     };
@@ -43,7 +44,76 @@ const ranked = {
     ],
 };
 
+const availability = {
+    chosenSlotId: null,
+    slots: [
+        {
+            id: 'd-1',
+            label: 'sábado, 12 de enero de 2030',
+            shortLabel: 'sáb 12 ene',
+            yes: 2,
+            ifNeeded: 1,
+            no: 0,
+            best: true,
+            yesNames: ['Persona A', 'Persona B'],
+            ifNeededNames: ['Persona C'],
+            noNames: [],
+        },
+        {
+            id: 'd-2',
+            label: 'domingo, 13 de enero de 2030, de 10:00 a 14:00',
+            shortLabel: 'dom 13 ene · 10:00–14:00',
+            yes: 1,
+            ifNeeded: 0,
+            no: 2,
+            best: false,
+            yesNames: [],
+            ifNeededNames: [],
+            noNames: [],
+        },
+    ],
+};
+
 describe('ResultsSummary', () => {
+    it('lists each proposed date with its answers, the best marked and who can', () => {
+        const wrapper = mount(ResultsSummary, {
+            props: {
+                results: results([
+                    question({ type: 'availability', answered: 3, buckets: [], availability }),
+                ]),
+            },
+        });
+
+        const first = wrapper.get('[data-slot="d-1"]');
+        expect(first.text()).toContain('sábado, 12 de enero de 2030');
+        expect(first.text()).toContain('2 sí · 1 si hace falta · 0 no');
+        expect(first.text()).toContain('Sí: Persona A, Persona B');
+        expect(first.find('[data-testid="best"]').exists()).toBe(true);
+        expect(wrapper.get('[data-slot="d-2"]').find('[data-testid="best"]').exists()).toBe(false);
+    });
+
+    it('marks the date fixed once the survey closed instead of the best', () => {
+        const wrapper = mount(ResultsSummary, {
+            props: {
+                results: results([
+                    question({
+                        type: 'availability',
+                        answered: 3,
+                        buckets: [],
+                        availability: { ...availability, chosenSlotId: 'd-2' },
+                    }),
+                ]),
+            },
+        });
+
+        expect(wrapper.get('[data-slot="d-2"]').find('[data-testid="chosen"]').text()).toBe(
+            'Fecha elegida'
+        );
+        expect(wrapper.get('[data-slot="d-1"]').find('[data-testid="chosen"]').exists()).toBe(
+            false
+        );
+    });
+
     it('draws a bar per option with its share and who voted', () => {
         const wrapper = mount(ResultsSummary, { props: { results: results([question()]) } });
 

@@ -2,9 +2,10 @@
 import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-import { FormCheckbox } from '@/components/form';
+import { FormCheckbox, FormSelect } from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import PageHeader from '../../../components/PageHeader.vue';
+import AvailabilityResults from '../../../components/results/AvailabilityResults.vue';
 import QuestionChart from '../../../components/results/QuestionChart.vue';
 import { BADGE_CLASS, CARD_CLASS } from '../../../components/styles';
 import type { ChartType, ManageResultsProps } from '../../../types/Results';
@@ -18,6 +19,44 @@ const chartTypes = ref<Record<string, ChartType>>(
 );
 const hidden = ref<string[]>(props.hiddenQuestions.map((question) => question.id));
 const saving = ref(false);
+
+// The date of a closed availability survey: its slots, the best first chosen
+const availability = computed(
+    () => props.results.questions.find((question) => question.availability)?.availability ?? null
+);
+const slotOptions = computed(() =>
+    (availability.value?.slots ?? []).map((slot) => ({
+        value: slot.id,
+        label: slot.label.charAt(0).toUpperCase() + slot.label.slice(1),
+    }))
+);
+const chosenSlot = ref<string>(availability.value?.slots.find((slot) => slot.best)?.id ?? '');
+const dateConfirmed = ref(false);
+const choosingDate = ref(false);
+const dateErrors = ref<Record<string, string>>({});
+
+function chooseDate(): void {
+    if (props.chooseDateUrl === null) {
+        return;
+    }
+    router.post(
+        props.chooseDateUrl,
+        { slot_id: chosenSlot.value, confirmed: dateConfirmed.value },
+        {
+            preserveScroll: true,
+            onStart: () => {
+                choosingDate.value = true;
+                dateErrors.value = {};
+            },
+            onError: (received: Record<string, string>) => {
+                dateErrors.value = received;
+            },
+            onFinish: () => {
+                choosingDate.value = false;
+            },
+        }
+    );
+}
 
 const rate = computed(() =>
     props.results.rate === null
@@ -115,6 +154,54 @@ function save(): void {
             </p>
         </section>
 
+        <section
+            v-if="props.chooseDateUrl && availability"
+            :class="[CARD_CLASS, 'space-y-4 p-4 sm:p-6']"
+            aria-labelledby="choose-date-title"
+            data-testid="choose-date"
+        >
+            <div class="space-y-1">
+                <h2 id="choose-date-title" class="text-lg font-semibold text-base-primary">
+                    {{ t('surveys.manage.choose_date_title') }}
+                </h2>
+                <p class="text-sm text-base-secondary">
+                    {{ t('surveys.manage.choose_date_description') }}
+                </p>
+            </div>
+            <div>
+                <label for="choose-date-slot" class="block text-sm font-medium text-base-primary">
+                    {{ t('surveys.manage.choose_date_slot') }}
+                </label>
+                <FormSelect
+                    id="choose-date-slot"
+                    v-model="chosenSlot"
+                    class="mt-1"
+                    :options="slotOptions"
+                    :error="dateErrors.slot_id ?? ''"
+                />
+            </div>
+            <div>
+                <FormCheckbox
+                    id="choose-date-confirm"
+                    v-model="dateConfirmed"
+                    :label="t('surveys.manage.choose_date_confirm')"
+                />
+                <p v-if="dateErrors.confirmed" class="mt-1 text-sm text-error">
+                    {{ dateErrors.confirmed }}
+                </p>
+            </div>
+            <div class="flex justify-end">
+                <BaseButton
+                    class="w-full sm:w-auto"
+                    :loading="choosingDate"
+                    :disabled="!dateConfirmed || chosenSlot === '' || choosingDate"
+                    @click="chooseDate"
+                >
+                    {{ t('surveys.manage.choose_date_submit') }}
+                </BaseButton>
+            </div>
+        </section>
+
         <p
             v-if="hiddenNotice"
             class="rounded-lg bg-info-bg p-4 text-sm text-base-primary"
@@ -175,8 +262,13 @@ function save(): void {
                 </p>
             </div>
 
+            <AvailabilityResults
+                v-if="!isHidden(question.id) && question.availability"
+                :availability="question.availability"
+                :answered="question.answered"
+            />
             <QuestionChart
-                v-if="!isHidden(question.id)"
+                v-else-if="!isHidden(question.id)"
                 :question="question"
                 :chart-type="chartTypes[question.id] ?? question.chartType"
             />

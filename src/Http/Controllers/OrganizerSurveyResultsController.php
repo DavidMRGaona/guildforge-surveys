@@ -12,11 +12,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Surveys\Application\Services\AvailabilityDateService;
 use Modules\Surveys\Application\Services\OrganizerSurveyService;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Application\Services\SurveyManagerGate;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
+use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
@@ -34,6 +36,7 @@ final class OrganizerSurveyResultsController extends Controller
         private readonly ResultsService $results,
         private readonly OrganizerSurveyService $service,
         private readonly SeoMetadataFactoryInterface $seo,
+        private readonly AvailabilityDateService $dates,
     ) {}
 
     public function show(Request $request, string $survey): Response
@@ -58,12 +61,34 @@ final class OrganizerSurveyResultsController extends Controller
                 array_filter($found->definition()->questions(), static fn ($question): bool => $found->results()->isHidden($question->id)),
             )),
             'settingsUrl' => route('surveys.manage.results.update', $found->id()->value),
+            // Once an availability survey closes, its organizer fixes the date
+            'chooseDateUrl' => $found->awaitsChosenSlot() ? route('surveys.manage.choose-date', $found->id()->value) : null,
             'backUrl' => route('surveys.subject', [$subject->sourceType, $subject->subjectId]),
             'seo' => $this->seo->forPage(new SeoPageDTO(
                 title: (string) __('surveys::messages.manage.results_title', ['title' => $found->title()]),
                 noindex: true,
             ))->toArray(),
         ]);
+    }
+
+    /**
+     * Fixes the date of the closed availability survey; everyone is told, so it must be confirmed.
+     */
+    public function chooseDate(Request $request, string $survey): RedirectResponse
+    {
+        $found = $this->surveys->find(SurveyId::fromString($survey));
+        abort_unless($found instanceof Survey && $found->subject() instanceof SubjectSnapshot, 404);
+        abort_unless($this->gate->canManage((string) $request->user()?->getAuthIdentifier(), $found), 403);
+
+        $request->validate(['slot_id' => ['required', 'string'], 'confirmed' => ['accepted']]);
+
+        try {
+            $this->dates->choose($found->id(), (string) $request->string('slot_id'));
+        } catch (InvalidSurveyStateException) {
+            return back()->with('error', __('surveys::messages.manage.date_not_chosen'));
+        }
+
+        return back()->with('success', __('surveys::messages.manage.date_chosen'));
     }
 
     public function update(Request $request, string $survey): RedirectResponse

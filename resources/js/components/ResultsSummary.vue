@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import type { QuestionResult, RespondResults, ResultBucket } from '../types/Respond';
 import { bucketLabel, percent } from '../utils/buckets';
+import AvailabilityResults from './results/AvailabilityResults.vue';
 
 defineProps<{
     results: RespondResults;
@@ -68,6 +69,13 @@ function rowTotal(counts: Record<string, number>): number {
             <p v-if="question.belowMinimum" class="mt-3 text-sm text-base-secondary">
                 {{ t('surveys.results.below_minimum') }}
             </p>
+
+            <AvailabilityResults
+                v-else-if="question.availability"
+                class="mt-3"
+                :availability="question.availability"
+                :answered="question.answered"
+            />
 
             <ol v-else-if="question.ranking" class="mt-3 space-y-3">
                 <li
