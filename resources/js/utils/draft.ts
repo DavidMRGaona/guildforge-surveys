@@ -68,6 +68,34 @@ export function removeDraft(storage: Storage | null, key: string): void {
     }
 }
 
+/** The storage key of a survey's draft for one respondent (see RespondController::draftScope). */
+export function draftKeyFor(surveyId: string, scope: string): string {
+    return `${draftPrefix(surveyId)}${scope}`;
+}
+
+/**
+ * Drops every draft of the survey except the one kept (none when it is null): whoever signs
+ * in next in the same tab never finds someone else's answers, and an answered or closed
+ * survey leaves nothing behind.
+ */
+export function pruneDrafts(storage: Storage | null, surveyId: string, keep: string | null): void {
+    try {
+        if (storage === null) {
+            return;
+        }
+        const stale: string[] = [];
+        for (let index = 0; index < storage.length; index++) {
+            const key = storage.key(index);
+            if (key !== null && key.startsWith(draftPrefix(surveyId)) && key !== keep) {
+                stale.push(key);
+            }
+        }
+        stale.forEach((key) => storage.removeItem(key));
+    } catch {
+        // Nothing to forget
+    }
+}
+
 /**
  * Where to resume: the saved section and the way that leads to it with these answers.
  * The way taken is always the start of the path the answers walk (going back is the only
@@ -100,6 +128,10 @@ function fingerprint(definition: SurveyDefinition): string {
                 `${section.id}:${section.questions.map((question) => `${question.id}=${question.type}`).join(',')}`
         )
         .join('|');
+}
+
+function draftPrefix(surveyId: string): string {
+    return `surveys.draft.${surveyId}.`;
 }
 
 function sanitize(saved: Record<string, unknown>): AnswerDraft {

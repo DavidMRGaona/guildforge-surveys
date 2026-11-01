@@ -84,6 +84,8 @@ export interface RespondProps {
     profileUrl?: string;
     definition?: SurveyDefinition;
     submitUrl?: string;
+    /** While it can be answered: an opaque name for whoever answers, which keys their draft. */
+    draftScope?: string;
     /** Only on the verified public link: where the address is sent to get a single-use link. */
     requestUrl?: string;
     /** Only when the survey shares its results with the people who answer, and they may be seen. */

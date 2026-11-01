@@ -22,6 +22,7 @@ function mountPage(props: Partial<RespondProps> = {}): VueWrapper {
             },
             definition: everyType,
             submitUrl: '/encuestas/survey-1',
+            draftScope: 'scope-a',
             ...props,
         },
     });
@@ -275,9 +276,20 @@ describe('Respond', () => {
         expect(sessionStorage.length).toBe(1);
         wrapper.unmount();
 
-        mountPage({ result: 'submitted' });
+        mountPage({ result: 'submitted', draftScope: undefined });
 
         expect(sessionStorage.length).toBe(0);
+    });
+
+    it('never offers a draft kept for someone else in the same tab', async () => {
+        const first = mountPage();
+        await first.find('input[type="text"]').setValue('Ana');
+        first.unmount();
+
+        const wrapper = mountPage({ draftScope: 'scope-b' });
+
+        expect((wrapper.find('input[type="text"]').element as HTMLInputElement).value).toBe('');
+        expect(Object.keys(sessionStorage).some((key) => key.endsWith('scope-a'))).toBe(false);
     });
 
     it('says what the survey is about, until when, and whether it is anonymous', () => {

@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { emptyDraft } from '../../resources/js/utils/answers';
-import { readDraft, removeDraft, resumeAt, writeDraft } from '../../resources/js/utils/draft';
+import {
+    pruneDrafts,
+    readDraft,
+    removeDraft,
+    resumeAt,
+    writeDraft,
+} from '../../resources/js/utils/draft';
 import { branching, everyType } from './support/definition';
 
 const KEY = 'surveys.draft.survey-1';
@@ -62,6 +68,36 @@ describe('draft', () => {
         removeDraft(sessionStorage, KEY);
 
         expect(sessionStorage.getItem(KEY)).toBeNull();
+    });
+});
+
+describe('pruneDrafts', () => {
+    beforeEach(() => {
+        sessionStorage.clear();
+    });
+
+    it('drops the drafts of a survey kept for anyone else', () => {
+        sessionStorage.setItem('surveys.draft.survey-1.mine', '{}');
+        sessionStorage.setItem('surveys.draft.survey-1.someone-else', '{}');
+        sessionStorage.setItem('surveys.draft.survey-2.someone-else', '{}');
+        sessionStorage.setItem('unrelated', '{}');
+
+        pruneDrafts(sessionStorage, 'survey-1', 'surveys.draft.survey-1.mine');
+
+        expect(Object.keys(sessionStorage).sort()).toEqual([
+            'surveys.draft.survey-1.mine',
+            'surveys.draft.survey-2.someone-else',
+            'unrelated',
+        ]);
+    });
+
+    it('drops every draft of the survey when none is kept', () => {
+        sessionStorage.setItem('surveys.draft.survey-1.mine', '{}');
+
+        pruneDrafts(sessionStorage, 'survey-1', null);
+        pruneDrafts(null, 'survey-1', null);
+
+        expect(sessionStorage.length).toBe(0);
     });
 });
 

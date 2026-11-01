@@ -128,6 +128,7 @@ final class RespondController extends Controller
         if ($survey instanceof Survey && $state === SubmissionService::STATE_OPEN) {
             $props['definition'] = $survey->definition()->toArray();
             $props['submitUrl'] = $submitUrl;
+            $props['draftScope'] = $this->draftScope($id, $respondent);
         }
 
         if ($state === SubmissionService::STATE_VERIFY_EMAIL && $requestUrl !== null) {
@@ -166,6 +167,18 @@ final class RespondController extends Controller
             'startsAt' => $subject->startsAt?->format(DATE_ATOM),
             'url' => $subject->url,
         ];
+    }
+
+    /**
+     * An opaque name for whoever answers, under which the page keeps its draft in the browser
+     * tab: someone else signing in there never gets it offered. It never reveals who it is.
+     */
+    private function draftScope(SurveyId $survey, Respondent $respondent): string
+    {
+        $key = config('app.key');
+        $identity = implode('|', [$survey->value, $respondent->kind, $respondent->userId ?? '', $respondent->token ?? '']);
+
+        return substr(hash_hmac('sha256', $identity, is_string($key) ? $key : ''), 0, 32);
     }
 
     private function submit(Request $request, string $surveyId, Respondent $respondent, string $pageUrl): RedirectResponse

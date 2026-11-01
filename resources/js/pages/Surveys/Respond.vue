@@ -9,7 +9,14 @@ import QuestionField from '../../components/QuestionField.vue';
 import ResultsSummary from '../../components/ResultsSummary.vue';
 import type { AnswerDraft, RespondProps } from '../../types/Respond';
 import { allAnswers, draftsFor, emptyDraft, missingAnswer, toPayload } from '../../utils/answers';
-import { readDraft, removeDraft, resumeAt, writeDraft } from '../../utils/draft';
+import {
+    draftKeyFor,
+    pruneDrafts,
+    readDraft,
+    removeDraft,
+    resumeAt,
+    writeDraft,
+} from '../../utils/draft';
 import { nextSectionId, reachedSectionIds } from '../../utils/navigation';
 
 const props = defineProps<RespondProps>();
@@ -93,8 +100,13 @@ const subjectStartsAt = computed(() =>
         : null
 );
 
-// The draft lives in this browser tab only (see utils/draft.ts)
-const draftKey = computed(() => (props.survey ? `surveys.draft.${props.survey.id}` : null));
+// The draft lives in this browser tab only, under a name for whoever answers (see
+// utils/draft.ts); drafts of this survey kept for anyone else are dropped on arrival
+const draftKey = computed(() =>
+    props.survey && props.draftScope && showForm.value
+        ? draftKeyFor(props.survey.id, props.draftScope)
+        : null
+);
 
 function tabStorage(): Storage | null {
     try {
@@ -104,11 +116,11 @@ function tabStorage(): Storage | null {
     }
 }
 
-if (submitted.value && draftKey.value !== null) {
-    removeDraft(tabStorage(), draftKey.value);
+if (props.survey) {
+    pruneDrafts(tabStorage(), props.survey.id, draftKey.value);
 }
 
-if (showForm.value && props.definition !== undefined && draftKey.value !== null) {
+if (props.definition !== undefined && draftKey.value !== null) {
     const saved = readDraft(tabStorage(), draftKey.value, props.definition);
     if (saved !== null) {
         drafts.value = { ...drafts.value, ...saved.drafts };
@@ -121,7 +133,7 @@ if (showForm.value && props.definition !== undefined && draftKey.value !== null)
 watch(
     [drafts, current],
     () => {
-        if (!showForm.value || props.definition === undefined || draftKey.value === null) {
+        if (props.definition === undefined || draftKey.value === null) {
             return;
         }
         writeDraft(
