@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { router } from '@inertiajs/vue3';
+import { FormDatePicker, FormSelect, FormTimePicker } from '@/components/form';
 import Respond from '../../resources/js/pages/Surveys/Respond.vue';
 import type { RespondProps } from '../../resources/js/types/Respond';
 import { OTHER } from '../../resources/js/types/Respond';
@@ -33,10 +34,12 @@ describe('Respond', () => {
         expect(wrapper.findAll('fieldset')).toHaveLength(10);
         expect(wrapper.find('input[type="text"]').exists()).toBe(true);
         expect(wrapper.find('textarea').exists()).toBe(true);
-        expect(wrapper.find('select').exists()).toBe(true);
-        expect(wrapper.find('input[type="date"]').exists()).toBe(true);
-        expect(wrapper.find('input[type="time"]').exists()).toBe(true);
-        expect(wrapper.findAll('table tbody tr')).toHaveLength(2);
+        expect(wrapper.findComponent(FormSelect).exists()).toBe(true);
+        expect(wrapper.findComponent(FormDatePicker).exists()).toBe(true);
+        expect(wrapper.findComponent(FormTimePicker).exists()).toBe(true);
+        expect(wrapper.find('select').exists()).toBe(false);
+        expect(wrapper.find('input[type="date"]').exists()).toBe(false);
+        expect(wrapper.findAll('[aria-labelledby$="-label"][role="radiogroup"]')).toHaveLength(2);
         expect(wrapper.text()).toContain('Como te llamen en la mesa');
         expect(wrapper.text()).toContain('Esta encuesta es anónima');
     });
@@ -48,7 +51,7 @@ describe('Respond', () => {
         await wrapper.find(`input[type="radio"][value="${OTHER}"]`).setValue(true);
         await wrapper.find('input[placeholder="Escribe tu respuesta"]').setValue('Ninguna');
         await wrapper.find('input[type="checkbox"][value="o-2"]').setValue(true);
-        await wrapper.find('select').setValue('o-1');
+        wrapper.findComponent(FormSelect).vm.$emit('update:modelValue', 'o-1');
         await wrapper.find('input[name="question-q-scale"][value="4"]').setValue(true);
         await wrapper.find('input[name="question-q-grid-r-1"][value="c-2"]').setValue(true);
         await wrapper.find('form').trigger('submit');
