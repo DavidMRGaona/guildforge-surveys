@@ -17,6 +17,7 @@ final readonly class QuestionResultDTO
      * @param  ?int  $reached  responses whose way through the sections reached this question, only
      *                         when that is fewer than all of them and, on an anonymous survey, at
      *                         least the minimum
+     * @param  ?QuizQuestionResultDTO  $quiz  a scored question of a quiz, never for respondents
      */
     public function __construct(
         public string $questionId,
@@ -34,5 +35,6 @@ final readonly class QuestionResultDTO
         public ?int $reached = null,
         public ?RankingResultDTO $ranking = null,
         public ?AvailabilityResultDTO $availability = null,
+        public ?QuizQuestionResultDTO $quiz = null,
     ) {}
 }

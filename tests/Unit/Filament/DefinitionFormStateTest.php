@@ -9,6 +9,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
+use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use PHPUnit\Framework\TestCase;
 
@@ -158,6 +159,18 @@ final class DefinitionFormStateTest extends TestCase
             $this->assertEquals($before->options, $question->options);
             $this->assertEquals($before->grid, $question->grid);
         }
+    }
+
+    public function test_fresh_ids_keep_a_quiz_with_its_correct_options_and_points(): void
+    {
+        $original = SurveyDefinition::fromArray(QuizDefinitionTest::data());
+
+        $copy = DefinitionFormState::withFreshQuestionIds($original);
+
+        $this->assertEquals($original->quiz, $copy->quiz);
+        $this->assertSame(['o-b'], $copy->questions()[0]->correctOptionIds);
+        $this->assertSame(2, $copy->questions()[0]->points);
+        $this->assertSame(['o-blue', 'o-red'], $copy->questions()[1]->correctOptionIds);
     }
 
     private function definition(): SurveyDefinition

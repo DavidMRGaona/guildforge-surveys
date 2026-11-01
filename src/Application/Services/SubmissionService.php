@@ -17,7 +17,10 @@ use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
 use Modules\Surveys\Domain\Exceptions\NotInvitedException;
 use Modules\Surveys\Domain\Exceptions\SurveyNotAcceptingResponsesException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Services\QuizScorer;
 use Modules\Surveys\Domain\Services\SubmissionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\QuizSettings;
+use Modules\Surveys\Domain\ValueObjects\Submission\QuizScore;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
@@ -50,6 +53,9 @@ final readonly class SubmissionService
     ) {}
 
     /**
+     * Returns the score when the survey is a quiz. It is never stored: results work it out
+     * again from the answers.
+     *
      * @param  array<mixed>  $input  answers keyed by question id (see Submission::fromInput())
      *
      * @throws SurveyNotAcceptingResponsesException
@@ -57,11 +63,11 @@ final readonly class SubmissionService
      * @throws InvalidSubmissionException
      * @throws AlreadyAnsweredException
      */
-    public function submit(SurveyId $id, Respondent $respondent, array $input): void
+    public function submit(SurveyId $id, Respondent $respondent, array $input): ?QuizScore
     {
         // The survey's row stays locked until the response is stored, so an organizer's edit
         // (which locks it too) never changes the content under a first response
-        DB::transaction(fn () => $this->submitLocked($id, $respondent, $input));
+        return DB::transaction(fn (): ?QuizScore => $this->submitLocked($id, $respondent, $input));
     }
 
     /**
@@ -72,7 +78,7 @@ final readonly class SubmissionService
      * @throws InvalidSubmissionException
      * @throws AlreadyAnsweredException
      */
-    private function submitLocked(SurveyId $id, Respondent $respondent, array $input): void
+    private function submitLocked(SurveyId $id, Respondent $respondent, array $input): ?QuizScore
     {
         $survey = $this->surveys->findForUpdate($id);
         $now = now()->toDateTimeImmutable();
@@ -98,6 +104,8 @@ final readonly class SubmissionService
             responseGuestName: $named ? $guestName : null,
             values: $submission->values,
         );
+
+        return $survey->definition()->quiz instanceof QuizSettings ? (new QuizScorer)->score($survey->definition(), $submission) : null;
     }
 
     /**

@@ -168,6 +168,15 @@ return [
         'availability_type' => 'La pregunta de un sondeo de disponibilidad propone fechas.',
         'kind_without_templates' => 'Un sondeo de disponibilidad no se guarda como plantilla: sus fechas solo valen una vez.',
         'availability_kind_only' => 'Las fechas a elegir van en un sondeo de disponibilidad, no dentro de una encuesta.',
+        'unknown_correct_option' => 'Marca como correctas solo opciones de esta pregunta, sin repetirlas.',
+        'too_many_correct_options' => 'Esta pregunta admite una sola respuesta: marca solo una opción correcta.',
+        'correct_not_allowed' => 'Solo las preguntas de opción única, casillas y desplegable tienen respuesta correcta.',
+        'points_not_allowed' => 'Solo puntúan las preguntas con respuesta correcta.',
+        'invalid_points' => 'Una pregunta puntuada da entre 1 y 100 puntos.',
+        'other_not_allowed_in_quiz' => '«Otra» no se admite en una pregunta puntuada.',
+        'quiz_without_scored_questions' => 'Marca la respuesta correcta de al menos una pregunta.',
+        'quiz_off' => 'Las respuestas correctas solo se marcan en un cuestionario.',
+        'quiz_kind_only' => 'Solo las encuestas pueden ser cuestionarios.',
     ],
 
     'state_errors' => [
@@ -219,6 +228,7 @@ return [
         'date' => 'Fecha',
         'person' => 'Persona',
         'other' => 'Otra: :text',
+        'score' => 'Nota (sobre :max)',
     ],
 
     'trends' => [

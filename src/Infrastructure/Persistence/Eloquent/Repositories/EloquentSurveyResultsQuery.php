@@ -207,8 +207,17 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
         }
 
         $responses = [];
-        foreach (SurveyResponseModel::query()->where('survey_id', $surveyId->value)->toBase()->get(['id', 'verified']) as $response) {
-            $responses[] = ['verified' => (bool) $response->verified, 'values' => $values[$this->string($response->id)] ?? []];
+        $rows = DB::table('surveys_responses as r')
+            ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            ->where('r.survey_id', $surveyId->value)
+            ->get(['r.id', 'r.verified', 'u.name as user_name', 'r.guest_name']);
+        foreach ($rows as $response) {
+            $name = $response->user_name ?? $response->guest_name;
+            $responses[] = [
+                'verified' => (bool) $response->verified,
+                'name' => is_string($name) && $name !== '' ? $name : null,
+                'values' => $values[$this->string($response->id)] ?? [],
+            ];
         }
 
         return $responses;

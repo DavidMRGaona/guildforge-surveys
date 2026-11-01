@@ -77,7 +77,7 @@ final class SurveyDefinitionTest extends TestCase
     public function test_reads_a_definition_stored_before_section_jumps(): void
     {
         $data = self::everyTypeDefinition();
-        unset($data['sections'][0]['next'], $data['sections'][0]['questions'][2]['next_by_option'], $data['sections'][0]['questions'][2]['slots']);
+        unset($data['sections'][0]['next'], $data['sections'][0]['questions'][2]['next_by_option'], $data['sections'][0]['questions'][2]['slots'], $data['quiz']);
 
         $definition = SurveyDefinition::fromArray($data);
 
@@ -148,7 +148,7 @@ final class SurveyDefinitionTest extends TestCase
      * Three sections: the first question sends "no" straight to the last section and "Other"
      * to the end of the survey; the middle section continues to the last one.
      *
-     * @return array{sections: list<array<string, mixed>>}
+     * @return array{sections: list<array<string, mixed>>, quiz: null}
      */
     public static function branchingDefinition(): array
     {
@@ -161,11 +161,12 @@ final class SurveyDefinitionTest extends TestCase
                 ['id' => 's-campaign', 'title' => 'Campaña', 'description' => null, 'next' => 's-end', 'questions' => [self::question('q-finale', 'paragraph')]],
                 ['id' => 's-end', 'title' => null, 'description' => null, 'next' => null, 'questions' => [self::question('q-comments', 'paragraph')]],
             ],
+            'quiz' => null,
         ];
     }
 
     /**
-     * @return array{sections: list<array<string, mixed>>}
+     * @return array{sections: list<array<string, mixed>>, quiz: null}
      */
     public static function everyTypeDefinition(): array
     {
@@ -204,6 +205,7 @@ final class SurveyDefinitionTest extends TestCase
                     ],
                 ],
             ],
+            'quiz' => null,
         ];
     }
 
@@ -237,6 +239,8 @@ final class SurveyDefinitionTest extends TestCase
             'grid' => $grid,
             'next_by_option' => [],
             'slots' => [],
+            'correct_option_ids' => [],
+            'points' => null,
         ];
     }
 }

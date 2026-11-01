@@ -60,6 +60,7 @@ return [
         'question_no_slot' => '**:title**: nadie puede en ninguna de las fechas.',
         'question_unanswered' => '**:title**: sin respuestas.',
         'question_below_minimum' => '**:title**: tiene pocas respuestas para mostrarla.',
+        'quiz_mean' => 'Nota media: :mean de :max puntos.',
         'other_questions' => 'Hay :count pregunta más en los resultados completos.|Hay :count preguntas más en los resultados completos.',
         'other' => 'Otra',
         'and' => 'y',

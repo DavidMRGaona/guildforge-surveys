@@ -18,7 +18,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
  * The summary mailed when a survey closes, read from what its organizers see (the minimum
  * applied, hidden questions left out). Only choices, availability, scales and star ratings are summed up;
  * anything else, a kind of question this summary does not know included, is left to the
- * results page. Free text never enters it.
+ * results page. A quiz adds its mean score. Free text never enters it.
  */
 final readonly class ClosingSummaryService
 {
@@ -57,6 +57,8 @@ final readonly class ClosingSummaryService
             rate: $results->rate,
             questions: $questions,
             otherQuestions: $others,
+            quizMean: $results->quiz?->mean,
+            quizMaxPoints: $results->quiz?->maxPoints,
         );
     }
 

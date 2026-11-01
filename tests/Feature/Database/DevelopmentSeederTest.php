@@ -8,8 +8,10 @@ use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Modules\Surveys\Application\DTOs\Results\QuizStandingDTO;
 use Modules\Surveys\Application\DTOs\Trends\TrendFilters;
 use Modules\Surveys\Application\DTOs\Trends\TrendPeriod;
+use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Database\Seeders\DevelopmentSeeder;
 use Modules\Surveys\Database\Seeders\RecommendedTemplatesSeeder;
@@ -19,10 +21,12 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Services\SectionNavigator;
 use Modules\Surveys\Domain\Services\SubmissionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\QuizSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
+use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyOrganizerModel;
@@ -144,6 +148,24 @@ final class DevelopmentSeederTest extends ModuleTestCase
         $closed = SurveyModel::query()->where('kind', SurveyKind::Availability->value)->where('status', SurveyStatus::Closed->value)->get();
         $this->assertTrue($closed->contains(static fn (SurveyModel $survey): bool => $survey->chosen_slot_id === null), 'waiting for its date');
         $this->assertTrue($closed->contains(static fn (SurveyModel $survey): bool => $survey->chosen_slot_id !== null), 'with its date');
+    }
+
+    public function test_quizzes_show_a_leaderboard_when_named_and_only_their_spread_when_anonymous(): void
+    {
+        $this->runSeeder();
+
+        $quizzes = SurveyModel::query()->get()->filter(static fn (SurveyModel $survey): bool => SurveyDefinition::fromArray($survey->definition)->quiz instanceof QuizSettings);
+        $named = $quizzes->firstOrFail(static fn (SurveyModel $survey): bool => ! $survey->anonymous);
+        $anonymous = $quizzes->firstOrFail(static fn (SurveyModel $survey): bool => $survey->anonymous);
+        $results = $this->app->make(ResultsService::class);
+
+        $leaderboard = $results->forPanel(SurveyId::fromString($named->id))->quiz->leaderboard ?? [];
+        $this->assertGreaterThanOrEqual(5, count($leaderboard));
+        $points = array_map(static fn (QuizStandingDTO $standing): int => $standing->points, $leaderboard);
+        $this->assertNotSame(count($points), count(array_unique($points)), 'two people share a place');
+        $spread = $results->forPanel(SurveyId::fromString($anonymous->id))->quiz;
+        $this->assertNotNull($spread?->mean);
+        $this->assertNull($spread->leaderboard);
     }
 
     public function test_it_covers_every_kind_of_subject_audience_and_public_link_mode(): void

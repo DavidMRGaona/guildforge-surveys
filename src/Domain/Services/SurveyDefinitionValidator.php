@@ -13,6 +13,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\DefinitionViolation;
 use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
+use Modules\Surveys\Domain\ValueObjects\Definition\QuizSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\ScaleSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
@@ -44,6 +45,10 @@ final class SurveyDefinitionValidator
 
     /** Enough for every evening of a month; more is no longer a choice people can weigh. */
     public const int SLOTS_MAX = 30;
+
+    public const int POINTS_MIN = 1;
+
+    public const int POINTS_MAX = 100;
 
     /**
      * @return list<DefinitionViolation>
@@ -104,6 +109,8 @@ final class SurveyDefinitionValidator
         if ($kind === SurveyKind::Availability) {
             array_push($violations, ...$this->checkAvailability($definition));
         }
+
+        array_push($violations, ...$this->checkQuiz($definition, $kind));
 
         return $violations;
     }
@@ -427,6 +434,81 @@ final class SurveyDefinitionValidator
                     $violations[] = new DefinitionViolation("sections.{$s}.questions.{$q}.type", 'availability_type');
                 }
             }
+        }
+
+        return $violations;
+    }
+
+    /**
+     * Quizzes are forms whose choice questions may mark their correct options. A scored question
+     * gives 1 to 100 points and has no "Other" (free text cannot be marked right); a question
+     * without correct options gives no points. Outside a quiz no question carries answers.
+     *
+     * @return list<DefinitionViolation>
+     */
+    private function checkQuiz(SurveyDefinition $definition, SurveyKind $kind): array
+    {
+        $violations = [];
+        $scored = 0;
+        foreach ($definition->sections as $s => $section) {
+            foreach ($section->questions as $q => $question) {
+                $path = "sections.{$s}.questions.{$q}";
+                if (! $definition->quiz instanceof QuizSettings) {
+                    if ($question->isScored()) {
+                        $violations[] = new DefinitionViolation("{$path}.correct_option_ids", 'quiz_off');
+                    }
+                    if ($question->points !== null) {
+                        $violations[] = new DefinitionViolation("{$path}.points", 'points_not_allowed');
+                    }
+
+                    continue;
+                }
+
+                $scored += $question->isScored() ? 1 : 0;
+                array_push($violations, ...$this->checkScoredQuestion($question, $path));
+            }
+        }
+
+        if (! $definition->quiz instanceof QuizSettings) {
+            return $violations;
+        }
+
+        if ($kind !== SurveyKind::Form) {
+            $violations[] = new DefinitionViolation('quiz', 'quiz_kind_only');
+        } elseif ($scored === 0) {
+            $violations[] = new DefinitionViolation('quiz', 'quiz_without_scored_questions');
+        }
+
+        return $violations;
+    }
+
+    /**
+     * @return list<DefinitionViolation>
+     */
+    private function checkScoredQuestion(Question $question, string $path): array
+    {
+        if (! $question->isScored()) {
+            return $question->points === null ? [] : [new DefinitionViolation("{$path}.points", 'points_not_allowed')];
+        }
+
+        if (! in_array($question->type, [QuestionType::SingleChoice, QuestionType::MultipleChoice, QuestionType::Dropdown], true)) {
+            return [new DefinitionViolation("{$path}.correct_option_ids", 'correct_not_allowed')];
+        }
+
+        $violations = [];
+        $optionIds = array_map(static fn (Option $option): string => $option->id, $question->options);
+        if (array_diff($question->correctOptionIds, $optionIds) !== [] || count(array_unique($question->correctOptionIds)) !== count($question->correctOptionIds)) {
+            $violations[] = new DefinitionViolation("{$path}.correct_option_ids", 'unknown_correct_option');
+        } elseif ($question->type !== QuestionType::MultipleChoice && count($question->correctOptionIds) > 1) {
+            $violations[] = new DefinitionViolation("{$path}.correct_option_ids", 'too_many_correct_options');
+        }
+
+        if ($question->points === null || $question->points < self::POINTS_MIN || $question->points > self::POINTS_MAX) {
+            $violations[] = new DefinitionViolation("{$path}.points", 'invalid_points');
+        }
+
+        if ($question->allowOther) {
+            $violations[] = new DefinitionViolation("{$path}.allow_other", 'other_not_allowed_in_quiz');
         }
 
         return $violations;

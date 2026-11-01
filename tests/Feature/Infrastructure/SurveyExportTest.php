@@ -22,6 +22,7 @@ use Modules\Surveys\Infrastructure\Export\XlsxSurveyExport;
 use Modules\Surveys\Tests\Feature\Application\AvailabilityResultsTest;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
 use Modules\Surveys\Tests\Support\ExampleThingSource;
+use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use OpenSpout\Reader\XLSX\Reader;
 use Tests\Support\Modules\InteractsWithModulePanel;
@@ -165,6 +166,35 @@ final class SurveyExportTest extends ModuleTestCase
         $this->expectException(ResultsNotAvailableException::class);
 
         $this->app->make(SurveyExportTable::class)->build($id);
+    }
+
+    public function test_a_quiz_ends_each_row_with_its_score(): void
+    {
+        $id = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(QuizDefinitionTest::data()), false, ResultsSettings::defaultsFor(SurveyKind::Form))[0];
+        $this->answer($id, 0, ['q-capital' => 'o-b', 'q-colours' => ['o-blue', 'o-red']]);
+        $this->answer($id, 1, ['q-capital' => 'o-b', 'q-colours' => ['o-green']]);
+
+        $table = $this->app->make(SurveyExportTable::class)->build($id);
+        $rows = $this->rows($table);
+
+        $this->assertSame(__('surveys::messages.export.score', ['max' => 5]), array_last($table->headers));
+        $this->assertSame(5, $this->rowOf($rows, 'Persona A')[5]);
+        $this->assertSame(2, $this->rowOf($rows, 'Persona B')[5]);
+    }
+
+    public function test_an_anonymous_quiz_leaves_the_score_out_while_a_scored_question_is_withheld(): void
+    {
+        config(['modules.settings.surveys.min_responses' => 2]);
+        $live = new ResultsSettings(liveResults: true);
+        $id = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(QuizDefinitionTest::data()), true, $live)[0];
+        // Only one person answers the optional q-colours: below the minimum of two
+        $this->answer($id, 0, ['q-capital' => 'o-b', 'q-colours' => ['o-blue', 'o-red']]);
+        $this->answer($id, 1, ['q-capital' => 'o-a']);
+
+        $table = $this->app->make(SurveyExportTable::class)->build($id);
+
+        $this->assertNotContains(__('surveys::messages.export.score', ['max' => 5]), $table->headers);
+        $this->assertCount(3, $table->headers);
     }
 
     public function test_the_csv_neutralises_formulas_and_keeps_accents(): void

@@ -11,6 +11,7 @@ use Modules\Surveys\Application\DTOs\Results\AvailabilityResultDTO;
 use Modules\Surveys\Application\DTOs\Results\AvailabilitySlotResultDTO;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizQuestionResultDTO;
 use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
 use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
@@ -40,6 +41,7 @@ final readonly class ResultsService
         private SurveyResultsQueryInterface $query,
         private SurveySettingsInterface $settings,
         private AvailabilitySlotFormatter $slots,
+        private QuizResultsCalculator $quizzes,
     ) {}
 
     /**
@@ -161,6 +163,8 @@ final readonly class ResultsService
 
             return $counts['all'];
         };
+        // Scores are the organizer's: whoever answers only sees their own, once, on sending
+        [$quiz, $correct] = ($forRespondents ? null : $this->quizzes->calculate($survey, $minimum)) ?? [null, []];
 
         $results = [];
         foreach ($questions as $question) {
@@ -192,10 +196,13 @@ final readonly class ResultsService
                 $voters[$question->id] ?? [],
                 $cellVoters[$question->id] ?? [],
                 $reached($question->id),
+                $quiz !== null && $question->isScored()
+                    ? $this->scoredQuestion($question, $correct[$question->id] ?? 0, $answered[$question->id] ?? 0)
+                    : null,
             );
         }
 
-        return new SurveyResultsDTO($responses, $audience, $rate, true, null, $results);
+        return new SurveyResultsDTO($responses, $audience, $rate, true, null, $results, $quiz);
     }
 
     /**
@@ -208,7 +215,7 @@ final readonly class ResultsService
      * @param  array<string, list<string>>  $voters
      * @param  array<string, array<string, list<string>>>  $cellVoters  row id => column id => names
      */
-    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $places, array $numbers, array $dates, array $texts, array $voters, array $cellVoters, ?int $reached): QuestionResultDTO
+    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $places, array $numbers, array $dates, array $texts, array $voters, array $cellVoters, ?int $reached, ?QuizQuestionResultDTO $quiz): QuestionResultDTO
     {
         $buckets = [];
         $grid = null;
@@ -269,6 +276,17 @@ final readonly class ResultsService
             reached: $reached,
             ranking: $ranking,
             availability: $availability,
+            quiz: $quiz,
+        );
+    }
+
+    private function scoredQuestion(Question $question, int $correct, int $answered): QuizQuestionResultDTO
+    {
+        return new QuizQuestionResultDTO(
+            correctOptionIds: $question->correctOptionIds,
+            points: (int) $question->points,
+            correct: $correct,
+            rate: $answered > 0 ? round($correct / $answered, 4) : null,
         );
     }
 

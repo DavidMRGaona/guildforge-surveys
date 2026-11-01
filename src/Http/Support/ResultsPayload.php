@@ -8,6 +8,10 @@ use Modules\Surveys\Application\DTOs\Results\AvailabilityResultDTO;
 use Modules\Surveys\Application\DTOs\Results\AvailabilitySlotResultDTO;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizQuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizResultDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizScoreCountDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizStandingDTO;
 use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
 use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
@@ -17,7 +21,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 
 /**
  * A survey's results as the public site's pages receive them. Respondents get the counts;
- * the organizer also gets free text and each question's chart choices.
+ * the organizer also gets free text, each question's chart choices and a quiz's scores.
  */
 final class ResultsPayload
 {
@@ -33,7 +37,7 @@ final class ResultsPayload
     }
 
     /**
-     * @return array{visible: bool, hiddenReason: ?string, responses: int, audienceSize: int, rate: ?float, questions: list<array<string, mixed>>}
+     * @return array{visible: bool, hiddenReason: ?string, responses: int, audienceSize: int, rate: ?float, questions: list<array<string, mixed>>, quiz: ?array<string, mixed>}
      */
     public static function forOrganizer(SurveyResultsDTO $results): array
     {
@@ -48,7 +52,31 @@ final class ResultsPayload
                 'chartType' => $question->chartType->value,
                 'chartTypes' => array_map(static fn (ChartType $type): string => $type->value, $question->type->chartTypes()),
                 'texts' => $question->texts,
+                'quiz' => $question->quiz instanceof QuizQuestionResultDTO ? [
+                    'correctOptionIds' => $question->quiz->correctOptionIds,
+                    'points' => $question->quiz->points,
+                    'correct' => $question->quiz->correct,
+                    'rate' => $question->quiz->rate,
+                ] : null,
             ], $results->questions),
+            'quiz' => $results->quiz instanceof QuizResultDTO ? self::quiz($results->quiz) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function quiz(QuizResultDTO $quiz): array
+    {
+        return [
+            'maxPoints' => $quiz->maxPoints,
+            'mean' => $quiz->mean,
+            'belowMinimum' => $quiz->belowMinimum,
+            'distribution' => array_map(static fn (QuizScoreCountDTO $count): array => ['points' => $count->points, 'responses' => $count->responses], $quiz->distribution),
+            'leaderboard' => $quiz->leaderboard === null ? null : array_map(
+                static fn (QuizStandingDTO $standing): array => ['name' => $standing->name, 'points' => $standing->points, 'rank' => $standing->rank],
+                $quiz->leaderboard,
+            ),
         ];
     }
 
