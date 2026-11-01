@@ -99,6 +99,10 @@ describe('Results', () => {
         expect(radios).toHaveLength(2);
         for (const radio of radios) {
             expect(radio.classes()).toContain('sr-only');
+            // The chosen segment inverts the theme colours: a lighter grey would not tell it apart
+            expect(
+                radio.element.nextElementSibling?.classList.contains('peer-checked:bg-base-primary')
+            ).toBe(true);
         }
     });
 
