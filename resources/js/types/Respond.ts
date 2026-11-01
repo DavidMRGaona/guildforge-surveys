@@ -65,12 +65,27 @@ export interface RespondSurvey {
     closesAt: string | null;
 }
 
+/** What the survey is about, as it was when it opened. */
+export interface RespondSubject {
+    /** The kind of subject ("Mesa de juego"), or null once its module is gone. */
+    typeLabel: string | null;
+    title: string;
+    startsAt: string | null;
+    url: string | null;
+}
+
 export interface RespondProps {
     state: RespondState;
     result: 'submitted' | 'link_sent' | null;
     survey?: RespondSurvey;
+    /** Missing for a survey about nothing in particular. */
+    subject?: RespondSubject;
+    /** Only for whoever answers with an account: their pending surveys. */
+    profileUrl?: string;
     definition?: SurveyDefinition;
     submitUrl?: string;
+    /** While it can be answered: an opaque name for whoever answers, which keys their draft. */
+    draftScope?: string;
     /** Only on the verified public link: where the address is sent to get a single-use link. */
     requestUrl?: string;
     /** Only when the survey shares its results with the people who answer, and they may be seen. */

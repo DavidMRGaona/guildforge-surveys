@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { CalendarClock, CircleCheck, ShieldCheck, UserRound } from '@lucide/vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -8,6 +9,14 @@ import QuestionField from '../../components/QuestionField.vue';
 import ResultsSummary from '../../components/ResultsSummary.vue';
 import type { AnswerDraft, RespondProps } from '../../types/Respond';
 import { allAnswers, draftsFor, emptyDraft, missingAnswer, toPayload } from '../../utils/answers';
+import {
+    draftKeyFor,
+    pruneDrafts,
+    readDraft,
+    removeDraft,
+    resumeAt,
+    writeDraft,
+} from '../../utils/draft';
 import { nextSectionId, reachedSectionIds } from '../../utils/navigation';
 
 const props = defineProps<RespondProps>();
@@ -40,6 +49,18 @@ const nextId = computed(() => {
 });
 const onLastPage = computed(() => !paged.value || nextId.value === null);
 
+// There is no fixed number of steps when answers jump: the total is the way the current
+// answers take, so it changes as soon as a jumping answer does
+const stepTotal = computed(() =>
+    props.definition === undefined
+        ? 1
+        : reachedSectionIds(props.definition, allAnswers(props.definition, drafts.value)).length
+);
+const stepNumber = computed(() => trail.value.length + 1);
+const stepLabel = computed(() =>
+    t('surveys.respond.step_of', { current: stepNumber.value, total: stepTotal.value })
+);
+
 const submitted = computed(() => props.result === 'submitted');
 const verifyingEmail = computed(() => props.state === 'verify_email');
 const linkSent = computed(() => verifyingEmail.value && props.result === 'link_sent');
@@ -52,17 +73,79 @@ const stateMessage = computed(() =>
         ? null
         : t(`surveys.respond.states.${props.state}`)
 );
-const closesAt = computed(() => {
-    if (!props.survey?.closesAt) {
+const hasAnswerErrors = computed(() =>
+    Object.keys(errors.value).some((key) => key.startsWith('answers.'))
+);
+
+function formatInstant(value: string, options: Intl.DateTimeFormatOptions): string {
+    return new Intl.DateTimeFormat(locale.value, { ...options, timeZone: VENUE_TIMEZONE }).format(
+        new Date(value)
+    );
+}
+
+const closesAt = computed(() =>
+    props.survey?.closesAt
+        ? formatInstant(props.survey.closesAt, { dateStyle: 'long', timeStyle: 'short' })
+        : null
+);
+const subjectStartsAt = computed(() =>
+    props.subject?.startsAt
+        ? formatInstant(props.subject.startsAt, {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              hour: '2-digit',
+              minute: '2-digit',
+          })
+        : null
+);
+
+// The draft lives in this browser tab only, under a name for whoever answers (see
+// utils/draft.ts); drafts of this survey kept for anyone else are dropped on arrival
+const draftKey = computed(() =>
+    props.survey && props.draftScope && showForm.value
+        ? draftKeyFor(props.survey.id, props.draftScope)
+        : null
+);
+
+function tabStorage(): Storage | null {
+    try {
+        return window.sessionStorage;
+    } catch {
         return null;
     }
+}
 
-    return new Intl.DateTimeFormat(locale.value, {
-        dateStyle: 'long',
-        timeStyle: 'short',
-        timeZone: VENUE_TIMEZONE,
-    }).format(new Date(props.survey.closesAt));
-});
+if (props.survey) {
+    pruneDrafts(tabStorage(), props.survey.id, draftKey.value);
+}
+
+if (props.definition !== undefined && draftKey.value !== null) {
+    const saved = readDraft(tabStorage(), draftKey.value, props.definition);
+    if (saved !== null) {
+        drafts.value = { ...drafts.value, ...saved.drafts };
+        const resumed = resumeAt(props.definition, drafts.value, saved.section);
+        current.value = resumed.current;
+        trail.value = resumed.trail;
+    }
+}
+
+watch(
+    [drafts, current],
+    () => {
+        if (props.definition === undefined || draftKey.value === null) {
+            return;
+        }
+        writeDraft(
+            tabStorage(),
+            draftKey.value,
+            props.definition,
+            drafts.value,
+            sections.value[current.value]?.id ?? null
+        );
+    },
+    { deep: true }
+);
 
 function requestLink(): void {
     if (props.requestUrl === undefined) {
@@ -178,6 +261,11 @@ function submit(): void {
                 isSubmitting.value = true;
                 errors.value = {};
             },
+            onSuccess: () => {
+                if (draftKey.value !== null) {
+                    removeDraft(tabStorage(), draftKey.value);
+                }
+            },
             onError: (received: Record<string, string>) => {
                 errors.value = received;
                 showFirstError(received);
@@ -188,41 +276,124 @@ function submit(): void {
         }
     );
 }
+
+const primaryLinkClass =
+    'inline-flex min-h-11 items-center justify-center rounded-lg text-center bg-brand px-5 py-2.5 font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500';
+const secondaryLinkClass =
+    'inline-flex min-h-11 items-center justify-center rounded-lg text-center border-2 border-line bg-surface px-5 py-2.5 font-medium text-base-primary hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary-500';
 </script>
 
 <template>
-    <div class="mx-auto max-w-2xl px-4 py-12">
+    <div class="mx-auto max-w-2xl px-4 py-10 sm:py-12">
         <header v-if="survey" class="mb-8">
-            <h1 class="text-3xl font-bold tracking-tight text-base-primary">{{ survey.title }}</h1>
-            <p v-if="survey.description" class="mt-3 whitespace-pre-line text-base-secondary">
+            <p
+                v-if="subject"
+                class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-base-secondary"
+            >
+                <span
+                    v-if="subject.typeLabel"
+                    class="rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-semibold text-base-primary"
+                    >{{ subject.typeLabel }}</span
+                >
+                <Link
+                    v-if="subject.url"
+                    :href="subject.url"
+                    class="font-medium text-base-primary underline decoration-line-strong underline-offset-4 hover:decoration-current"
+                    >{{ subject.title }}</Link
+                >
+                <span v-else class="font-medium text-base-primary">{{ subject.title }}</span>
+                <span v-if="subjectStartsAt" class="hidden sm:inline" aria-hidden="true">·</span>
+                <span v-if="subjectStartsAt" class="w-full sm:w-auto">{{ subjectStartsAt }}</span>
+            </p>
+            <h1
+                class="mt-3 text-3xl font-bold tracking-tight text-base-primary text-balance sm:text-4xl"
+            >
+                {{ survey.title }}
+            </h1>
+            <p
+                v-if="survey.description"
+                class="mt-3 whitespace-pre-line text-lg text-base-secondary"
+            >
                 {{ survey.description }}
             </p>
             <p
                 v-if="closesAt && (showForm || verifyingEmail)"
-                class="mt-3 text-sm text-base-secondary"
+                class="mt-4 flex items-center gap-2 text-sm text-base-secondary"
             >
+                <CalendarClock class="h-4 w-4 shrink-0" aria-hidden="true" />
                 {{ t('surveys.respond.closes_at', { date: closesAt }) }}
             </p>
+            <div
+                v-if="showForm || verifyingEmail"
+                class="mt-5 flex gap-3 rounded-lg border-2 border-line bg-muted p-4"
+            >
+                <component
+                    :is="survey.anonymous ? ShieldCheck : UserRound"
+                    class="mt-0.5 h-5 w-5 shrink-0 text-base-primary"
+                    aria-hidden="true"
+                />
+                <div>
+                    <p class="font-semibold text-base-primary">
+                        {{
+                            survey.anonymous
+                                ? t('surveys.respond.anonymous_title')
+                                : t('surveys.respond.named_title')
+                        }}
+                    </p>
+                    <p class="mt-0.5 text-sm text-base-secondary">
+                        {{
+                            survey.anonymous
+                                ? t('surveys.respond.anonymous_notice')
+                                : t('surveys.respond.named_notice')
+                        }}
+                    </p>
+                </div>
+            </div>
         </header>
 
-        <div v-if="submitted" role="status" class="rounded-lg bg-success-light p-6 text-success">
-            <p class="text-lg font-semibold">{{ t('surveys.respond.thanks_title') }}</p>
-            <p class="mt-1">{{ t('surveys.respond.thanks_description') }}</p>
-        </div>
+        <section
+            v-if="submitted"
+            role="status"
+            class="rounded-xl border-2 border-line bg-surface p-6 text-center sm:p-8"
+        >
+            <span
+                class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success-light text-success"
+            >
+                <CircleCheck class="h-8 w-8" aria-hidden="true" />
+            </span>
+            <h2 class="mt-4 text-2xl font-bold text-base-primary">
+                {{
+                    survey?.kind === 'poll'
+                        ? t('surveys.respond.thanks_poll_title')
+                        : t('surveys.respond.thanks_title')
+                }}
+            </h2>
+            <p class="mt-2 text-base-secondary">
+                {{
+                    survey?.anonymous
+                        ? t('surveys.respond.thanks_anonymous')
+                        : t('surveys.respond.thanks_description')
+                }}
+            </p>
+        </section>
 
         <div
             v-else-if="linkSent"
             role="status"
-            class="rounded-lg bg-success-light p-6 text-success"
+            class="rounded-xl border-2 border-line bg-surface p-6 sm:p-8"
         >
-            <p class="text-lg font-semibold">{{ t('surveys.respond.verify_email.sent_title') }}</p>
-            <p class="mt-1">{{ t('surveys.respond.verify_email.sent_description') }}</p>
+            <p class="text-lg font-semibold text-base-primary">
+                {{ t('surveys.respond.verify_email.sent_title') }}
+            </p>
+            <p class="mt-1 text-base-secondary">
+                {{ t('surveys.respond.verify_email.sent_description') }}
+            </p>
         </div>
 
         <form
             v-else-if="verifyingEmail && requestUrl"
             novalidate
-            class="space-y-4"
+            class="space-y-4 rounded-xl border-2 border-line bg-surface p-5 sm:p-6"
             @submit.prevent="requestLink"
         >
             <p class="text-base-secondary">{{ t('surveys.respond.verify_email.intro') }}</p>
@@ -238,7 +409,8 @@ function submit(): void {
                     autocomplete="email"
                     maxlength="254"
                     required
-                    class="mt-2 block w-full rounded-md border border-neutral-300 bg-surface px-3 py-2 text-base-primary shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    class="mt-2 block w-full rounded-lg border-2 bg-surface px-4 py-2.5 text-base-primary focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    :class="errors.email ? 'border-error' : 'border-line'"
                     :aria-invalid="errors.email ? 'true' : undefined"
                     :aria-describedby="errors.email ? 'survey-email-error' : undefined"
                 />
@@ -259,39 +431,69 @@ function submit(): void {
         <div
             v-else-if="stateMessage"
             role="alert"
-            class="rounded-lg bg-warning-light p-6 text-warning-dark"
+            class="rounded-xl border-2 border-line bg-warning-light p-6 text-warning-dark"
         >
             <p>{{ stateMessage }}</p>
-            <Link href="/" class="mt-4 inline-flex text-sm font-medium underline">{{
-                t('surveys.respond.back_home')
-            }}</Link>
         </div>
 
-        <ResultsSummary v-if="results && !showForm" :results="results" />
+        <ResultsSummary v-if="results && !showForm" :results="results" class="mt-8" />
 
-        <form v-if="showForm && definition" novalidate class="space-y-8" @submit.prevent="onSubmit">
-            <p v-if="survey" class="rounded-md bg-muted p-3 text-sm text-base-secondary">
-                {{
-                    survey.anonymous
-                        ? t('surveys.respond.anonymous_notice')
-                        : t('surveys.respond.named_notice')
-                }}
-            </p>
+        <nav
+            v-if="submitted || stateMessage"
+            class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center"
+        >
+            <Link v-if="subject?.url" :href="subject.url" :class="primaryLinkClass">{{
+                t('surveys.respond.back_to_subject', { title: subject.title })
+            }}</Link>
+            <Link
+                v-if="profileUrl"
+                :href="profileUrl"
+                :class="subject?.url ? secondaryLinkClass : primaryLinkClass"
+                >{{ t('surveys.respond.pending_surveys') }}</Link
+            >
+            <Link v-if="!subject?.url && !profileUrl" href="/" :class="secondaryLinkClass">{{
+                t('surveys.respond.back_home')
+            }}</Link>
+        </nav>
+
+        <form v-if="showForm && definition" novalidate @submit.prevent="onSubmit">
+            <div v-if="paged" class="mb-6">
+                <p class="text-sm font-semibold text-base-primary">{{ stepLabel }}</p>
+                <div
+                    role="progressbar"
+                    :aria-label="stepLabel"
+                    aria-valuemin="1"
+                    :aria-valuemax="stepTotal"
+                    :aria-valuenow="stepNumber"
+                    :aria-valuetext="stepLabel"
+                    class="mt-2 h-2 overflow-hidden rounded-full bg-muted"
+                >
+                    <div
+                        class="h-full rounded-full bg-brand transition-[width] duration-300"
+                        :style="{ width: `${(stepNumber / stepTotal) * 100}%` }"
+                    ></div>
+                </div>
+            </div>
+
             <p
                 v-if="errors.survey"
                 role="alert"
-                class="rounded-md bg-error-light p-3 text-sm text-error"
+                class="mb-6 rounded-lg border-2 border-error bg-error-light p-4 text-sm text-error"
             >
                 {{ errors.survey }}
+            </p>
+            <p
+                v-else-if="hasAnswerErrors && !paged"
+                role="alert"
+                class="mb-6 rounded-lg border-2 border-error bg-error-light p-4 text-sm font-medium text-error"
+            >
+                {{ t('surveys.respond.review_errors') }}
             </p>
 
             <div ref="pageTop" tabindex="-1" class="space-y-8 focus:outline-none">
                 <section v-for="section in shownSections" :key="section.id" class="space-y-4">
-                    <p v-if="paged" class="text-sm font-medium text-base-secondary">
-                        {{ t('surveys.respond.section_number', { number: trail.length + 1 }) }}
-                    </p>
                     <div v-if="section.title || section.description">
-                        <h2 v-if="section.title" class="text-xl font-semibold text-base-primary">
+                        <h2 v-if="section.title" class="text-xl font-bold text-base-primary">
                             {{ section.title }}
                         </h2>
                         <p
@@ -312,12 +514,12 @@ function submit(): void {
                 </section>
             </div>
 
-            <div class="flex flex-col gap-4 sm:flex-row">
+            <div class="mt-8 flex gap-3">
                 <BaseButton
                     v-if="trail.length > 0"
                     type="button"
                     variant="secondary"
-                    class="w-full sm:flex-1"
+                    class="flex-1 sm:flex-none sm:px-8"
                     @click="goBack"
                 >
                     {{ t('surveys.respond.back') }}
@@ -325,7 +527,7 @@ function submit(): void {
                 <BaseButton
                     type="submit"
                     variant="primary"
-                    class="w-full sm:flex-1"
+                    class="flex-1 sm:ml-auto sm:flex-none sm:px-8"
                     :loading="isSubmitting"
                 >
                     {{

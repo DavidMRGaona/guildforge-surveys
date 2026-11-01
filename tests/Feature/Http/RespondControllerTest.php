@@ -8,6 +8,7 @@ use App\Application\Surveys\DTOs\SurveyAudienceDTO;
 use App\Application\Surveys\DTOs\SurveyGuestDTO;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use DateTimeImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Surveys\Application\DTOs\OpenedSurveyDTO;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
@@ -49,6 +50,62 @@ final class RespondControllerTest extends ModuleTestCase
                 ->where('submitUrl', route('surveys.respond.store', $id->value)));
     }
 
+    public function test_the_page_says_what_the_survey_is_about_and_leads_back_to_the_profile(): void
+    {
+        [$id] = $this->openSurvey();
+
+        $this->actingAs($this->player)->get(route('surveys.respond', $id->value))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('subject.typeLabel', 'Cosa de ejemplo')
+                ->where('subject.title', 'Partida de ejemplo')
+                ->where('subject.startsAt', fn (string $startsAt): bool => (new DateTimeImmutable($startsAt))->getTimestamp() === (new DateTimeImmutable('2030-01-05T16:00:00+00:00'))->getTimestamp())
+                ->where('subject.url', null)
+                ->where('profileUrl', route('profile.show', ['tab' => 'surveys'])));
+    }
+
+    public function test_the_draft_belongs_to_whoever_answers_and_never_names_them(): void
+    {
+        $other = UserModel::factory()->create();
+        [$id] = $this->openSurvey(alsoInvited: [$other->id]);
+        $scopeOf = function (UserModel $user) use ($id): string {
+            $scope = null;
+            $this->actingAs($user)->get(route('surveys.respond', $id->value))
+                ->assertInertia(function (Assert $page) use (&$scope): void {
+                    $scope = $page->toArray()['props']['draftScope'];
+                });
+            $this->assertIsString($scope);
+
+            return $scope;
+        };
+
+        $first = $scopeOf($this->player);
+
+        $this->assertSame($first, $scopeOf($this->player));
+        $this->assertNotSame($first, $scopeOf($other));
+        $this->assertStringNotContainsString($this->player->id, $first);
+    }
+
+    public function test_an_answered_survey_has_no_draft(): void
+    {
+        [$id] = $this->openSurvey();
+        $this->actingAs($this->player)->post(route('surveys.respond.store', $id->value), ['answers' => ['q-1' => 'o-1']]);
+
+        $this->actingAs($this->player)->get(route('surveys.respond', $id->value))
+            ->assertInertia(fn (Assert $page) => $page->where('state', 'answered')->missing('draftScope'));
+    }
+
+    public function test_a_guest_sees_the_subject_but_no_profile(): void
+    {
+        [$id, $opened] = $this->openSurvey(guest: true);
+
+        $this->get(route('surveys.guest', [$id->value, $opened->guestTokens['guest-1']]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('subject.title', 'Partida de ejemplo')
+                ->missing('profileUrl'));
+    }
+
     public function test_someone_else_is_told_they_are_not_invited(): void
     {
         [$id] = $this->openSurvey();
@@ -58,6 +115,7 @@ final class RespondControllerTest extends ModuleTestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('state', 'not_invited')
                 ->missing('survey')
+                ->missing('subject')
                 ->missing('definition')
                 ->where('seo.title', fn (string $title): bool => ! str_contains($title, 'Valora la partida')));
     }
@@ -126,12 +184,13 @@ final class RespondControllerTest extends ModuleTestCase
     }
 
     /**
+     * @param  list<string>  $alsoInvited  user ids invited next to the player
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openSurvey(bool $guest = false): array
+    private function openSurvey(bool $guest = false, array $alsoInvited = []): array
     {
         ExampleThingSource::$audience = new SurveyAudienceDTO(
-            [$this->player->id],
+            [$this->player->id, ...$alsoInvited],
             $guest ? [new SurveyGuestDTO('guest-1', 'Invitada de ejemplo', 'invitada@example.test')] : [],
         );
         $lifecycle = $this->app->make(SurveyLifecycleService::class);

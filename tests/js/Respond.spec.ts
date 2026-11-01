@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { mount, type VueWrapper } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { router } from '@inertiajs/vue3';
 import { FormDatePicker, FormSelect, FormTimePicker } from '@/components/form';
 import Respond from '../../resources/js/pages/Surveys/Respond.vue';
@@ -22,12 +22,17 @@ function mountPage(props: Partial<RespondProps> = {}): VueWrapper {
             },
             definition: everyType,
             submitUrl: '/encuestas/survey-1',
+            draftScope: 'scope-a',
             ...props,
         },
     });
 }
 
 describe('Respond', () => {
+    beforeEach(() => {
+        sessionStorage.clear();
+    });
+
     it('renders a field for each of the ten question types', () => {
         const wrapper = mountPage();
 
@@ -163,7 +168,7 @@ describe('Respond', () => {
             const wrapper = mountPage({ definition: branching });
 
             expect(wrapper.findAll('fieldset')).toHaveLength(1);
-            expect(wrapper.text()).toContain('Sección 1');
+            expect(wrapper.text()).toContain('Paso 1 de 3');
             expect(submitButton(wrapper)).toBe('Siguiente');
 
             await wrapper.find('form').trigger('submit');
@@ -182,12 +187,12 @@ describe('Respond', () => {
             await wrapper.find('form').trigger('submit');
 
             expect(wrapper.text()).toContain('Por qué lo dejaste');
-            expect(wrapper.text()).toContain('Sección 2');
+            expect(wrapper.text()).toContain('Paso 2 de 3');
 
             await wrapper.find('form').trigger('submit');
 
             expect(wrapper.text()).toContain('Pregunta q-comments');
-            expect(wrapper.text()).toContain('Sección 3');
+            expect(wrapper.text()).toContain('Paso 3 de 3');
             expect(submitButton(wrapper)).toBe('Enviar respuestas');
 
             await wrapper.find('button[type="button"]').trigger('click');
@@ -227,8 +232,118 @@ describe('Respond', () => {
             await wrapper.find('form').trigger('submit');
             await wrapper.find('form').trigger('submit');
 
-            expect(wrapper.text()).toContain('Sección 1');
+            expect(wrapper.text()).toContain('Paso 1 de 3');
             expect(wrapper.findAll('fieldset')[0]?.text()).toContain('Elige una de las opciones.');
         });
+        it('counts the steps of the way the answers take', async () => {
+            const wrapper = mountPage({ definition: branching });
+
+            await wrapper.find('input[type="radio"][value="o-none"]').setValue(true);
+
+            expect(wrapper.text()).toContain('Paso 1 de 1');
+            expect(wrapper.get('[role="progressbar"]').attributes('aria-valuemax')).toBe('1');
+            expect(submitButton(wrapper)).toBe('Enviar respuestas');
+        });
+
+        it('resumes on the same step after a reload, and goes back the same way', async () => {
+            const first = mountPage({ definition: branching });
+            await first.find('input[type="radio"][value="o-part"]').setValue(true);
+            await first.find('form').trigger('submit');
+            await first.find('input[type="text"]').setValue('Me tuve que ir');
+            first.unmount();
+
+            const wrapper = mountPage({ definition: branching });
+            await flushPromises();
+
+            expect(wrapper.text()).toContain('Por qué lo dejaste');
+            expect(wrapper.text()).toContain('Paso 2 de 3');
+            expect((wrapper.find('input[type="text"]').element as HTMLInputElement).value).toBe(
+                'Me tuve que ir'
+            );
+
+            await wrapper.find('button[type="button"]').trigger('click');
+
+            expect(
+                (wrapper.find('input[type="radio"][value="o-part"]').element as HTMLInputElement)
+                    .checked
+            ).toBe(true);
+        });
+    });
+
+    it('forgets the draft once the answers are in', async () => {
+        const wrapper = mountPage();
+        await wrapper.find('input[type="text"]').setValue('Ana');
+        expect(sessionStorage.length).toBe(1);
+        wrapper.unmount();
+
+        mountPage({ result: 'submitted', draftScope: undefined });
+
+        expect(sessionStorage.length).toBe(0);
+    });
+
+    it('never offers a draft kept for someone else in the same tab', async () => {
+        const first = mountPage();
+        await first.find('input[type="text"]').setValue('Ana');
+        first.unmount();
+
+        const wrapper = mountPage({ draftScope: 'scope-b' });
+
+        expect((wrapper.find('input[type="text"]').element as HTMLInputElement).value).toBe('');
+        expect(Object.keys(sessionStorage).some((key) => key.endsWith('scope-a'))).toBe(false);
+    });
+
+    it('says what the survey is about, until when, and whether it is anonymous', () => {
+        const wrapper = mountPage({
+            subject: {
+                typeLabel: 'Mesa de juego',
+                title: 'La maldición de Strahd',
+                startsAt: '2030-01-05T16:00:00+00:00',
+                url: '/mesas/strahd',
+            },
+            survey: {
+                id: 'survey-1',
+                kind: 'form',
+                title: 'Valora la partida',
+                description: null,
+                anonymous: true,
+                closesAt: '2030-01-12T22:00:00+00:00',
+            },
+        });
+
+        const header = wrapper.get('header');
+        expect(header.text()).toContain('Mesa de juego');
+        expect(header.get('a[href="/mesas/strahd"]').text()).toContain('La maldición de Strahd');
+        expect(header.text()).toContain('Abierta hasta el');
+        expect(header.text()).toContain('Encuesta anónima');
+    });
+
+    it('thanks and leads back to the subject and to the pending surveys', () => {
+        const wrapper = mountPage({
+            result: 'submitted',
+            subject: {
+                typeLabel: 'Mesa de juego',
+                title: 'La maldición de Strahd',
+                startsAt: null,
+                url: '/mesas/strahd',
+            },
+            profileUrl: '/perfil?tab=surveys',
+        });
+
+        const thanks = wrapper.get('[role="status"]');
+        expect(thanks.text()).toContain('¡Gracias por responder!');
+        expect(thanks.text()).toContain('sin tu nombre');
+        expect(wrapper.get('nav a[href="/mesas/strahd"]').text()).toBe(
+            'Volver a La maldición de Strahd'
+        );
+        expect(wrapper.get('a[href="/perfil?tab=surveys"]').text()).toBe(
+            'Ver mis encuestas pendientes'
+        );
+        expect(wrapper.find('a[href="/"]').exists()).toBe(false);
+    });
+
+    it('thanks a guest with a way home', () => {
+        const wrapper = mountPage({ result: 'submitted' });
+
+        expect(wrapper.get('a[href="/"]').text()).toBe('Volver al inicio');
     });
 });
