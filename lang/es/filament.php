@@ -199,6 +199,7 @@ return [
         'duplicate_failed' => 'No se puede duplicar: el sujeto de la encuesta ya no existe o se ha cancelado.',
         'save_as_template' => 'Guardar como plantilla',
         'save_as_template_description' => 'Se crea una plantilla con las preguntas de la encuesta. Las claves se conservan donde ya las había.',
+        'save_as_template_submit' => 'Crear plantilla',
         'save_as_template_done' => 'Plantilla «:name» creada',
         'save_as_template_failed' => 'No se puede guardar como plantilla: sus preguntas no son válidas.',
         'open_template' => 'Abrir la plantilla',
