@@ -7,8 +7,11 @@ namespace Modules\Surveys\Tests\Feature\Application;
 use App\Application\Surveys\DTOs\SurveyAudienceDTO;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Domain\Surveys\Events\GeneralSurveyOpened;
+use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use DateTimeImmutable;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Testing\Fakes\EventFake;
 use Modules\Surveys\Application\Contracts\SurveyRecipientStoreInterface;
 use Modules\Surveys\Application\DTOs\AccessLinkRecipient;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
@@ -118,8 +121,8 @@ final class SurveyChannelAnnouncementTest extends ModuleTestCase
 
         $repository = $this->app->make(SurveyRepositoryInterface::class);
         $reviewed = $repository->findOrFail($survey->id());
-        $reviewed->submitForReview('moderated-user', new DateTimeImmutable);
-        $reviewed->reject('moderator', 'Falta una opción', new DateTimeImmutable);
+        $reviewed->submitForReview(UserModel::factory()->create()->id, new DateTimeImmutable);
+        $reviewed->reject(UserModel::factory()->create()->id, 'Falta una opción', new DateTimeImmutable);
         $repository->save($reviewed);
 
         $this->lifecycle->open($survey->id());
@@ -162,6 +165,29 @@ final class SurveyChannelAnnouncementTest extends ModuleTestCase
         } catch (RuntimeException) {
             Event::assertNotDispatched(GeneralSurveyOpened::class);
         }
+    }
+
+    public function test_a_failing_listener_does_not_break_the_opening(): void
+    {
+        // Back to the real dispatcher, so the listener runs
+        $fake = Event::getFacadeRoot();
+        $this->assertInstanceOf(EventFake::class, $fake);
+        Event::swap($fake->dispatcher);
+        Event::listen(GeneralSurveyOpened::class, static function (): void {
+            throw new RuntimeException('The channel settings could not be read.');
+        });
+        $reported = [];
+        $this->app->make(ExceptionHandler::class)->reportable(static function (RuntimeException $e) use (&$reported): bool {
+            $reported[] = $e->getMessage();
+
+            return false;
+        });
+        $survey = $this->draft(announce: true);
+
+        $this->lifecycle->open($survey->id());
+
+        $this->assertSame('open', SurveyModel::query()->findOrFail($survey->id()->value)->status);
+        $this->assertSame(['The channel settings could not be read.'], $reported);
     }
 
     private function draft(bool $announce, SurveyKind $kind = SurveyKind::Form, bool $publicLink = false, ?DateTimeImmutable $closesAt = new DateTimeImmutable('+7 days'), ?string $description = null): Survey
