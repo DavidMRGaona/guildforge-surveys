@@ -25,6 +25,13 @@ const { t } = useI18n();
 const values = computed<number[]>(() =>
     Array.from({ length: props.max - props.min + 1 }, (_, index) => props.min + index)
 );
+// One row from `sm` up; on a phone a long scale splits into two even rows (0-10: 6 + 5)
+const columns = computed(() => ({
+    '--scale-columns': String(values.value.length),
+    '--scale-columns-narrow': String(
+        values.value.length > 6 ? Math.ceil(values.value.length / 2) : values.value.length
+    ),
+}));
 </script>
 
 <template>
@@ -32,7 +39,8 @@ const values = computed<number[]>(() =>
         <div
             role="radiogroup"
             :aria-label="label"
-            class="grid grid-cols-[repeat(auto-fit,minmax(2.75rem,1fr))] gap-2"
+            class="grid grid-cols-[repeat(var(--scale-columns-narrow),minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(var(--scale-columns),minmax(0,1fr))]"
+            :style="columns"
         >
             <label
                 v-for="option in values"
