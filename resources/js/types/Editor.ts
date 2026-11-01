@@ -1,11 +1,11 @@
-import type { SurveyDefinition } from './Respond';
+import type { SurveyDefinition, SurveyKind } from './Respond';
 
 /** Props of the organizer's editor (OrganizerSurveyEditorController::edit() and create()). */
 export interface EditSurveyProps {
     survey: {
         /** Null while a new survey is written: nothing is saved until the first save. */
         id: string | null;
-        kind: 'form' | 'poll';
+        kind: SurveyKind;
         title: string;
         description: string | null;
         anonymous: boolean;
@@ -39,5 +39,8 @@ export interface EditorLocks {
     structure: boolean;
     /** Help texts too (while the survey waits for review). */
     help: boolean;
+    /** One question, no sections or jumps: a poll or an availability survey. */
     poll: boolean;
+    /** One availability question: its type and whether it is required are fixed. */
+    availability: boolean;
 }

@@ -100,7 +100,7 @@ final readonly class EloquentOrganizedSurveysQuery implements OrganizedSurveysQu
             'resultsUrl' => $survey->wasOpened() ? route('surveys.manage.results', $id) : null,
             'closeUrl' => $status === 'open' ? route('surveys.manage.close', $id) : null,
             'duplicateUrl' => route('surveys.manage.duplicate', $id),
-            'saveTemplateUrl' => $savesTemplates ? route('surveys.manage.save-template', $id) : null,
+            'saveTemplateUrl' => $savesTemplates && $survey->kind()->allowsTemplates() ? route('surveys.manage.save-template', $id) : null,
         ];
     }
 

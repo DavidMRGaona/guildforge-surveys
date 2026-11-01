@@ -1,4 +1,5 @@
 import {
+    AVAILABILITY_ANSWERS,
     OTHER,
     type AnswerDraft,
     type SurveyDefinition,
@@ -92,7 +93,8 @@ export function missingAnswer(
             return 'ranking_incomplete';
         }
     }
-    if (!question.required) {
+    // Unmarked slots count as "no": an availability question is always answered
+    if (!question.required || question.type === 'availability') {
         return null;
     }
     if (draft === undefined || answerOf(question, draft) === undefined) {
@@ -127,6 +129,9 @@ function answerOf(question: SurveyQuestion, draft: AnswerDraft): AnswerPayload |
             return draft.number ?? undefined;
         case 'grid':
             return Object.keys(draft.cells).length === 0 ? undefined : draft.cells;
+        case 'availability':
+            // Slots left unmarked count as "no" on the server, so nothing marked is an answer too
+            return availability(question, draft);
         case 'ranking': {
             const order = ranked(question, draft);
 
@@ -135,6 +140,19 @@ function answerOf(question: SurveyQuestion, draft: AnswerDraft): AnswerPayload |
         default:
             return draft.text.trim() === '' ? undefined : draft.text;
     }
+}
+
+/** The answer to each slot the person marked, without slots or answers the question does not have. */
+function availability(question: SurveyQuestion, draft: AnswerDraft): Record<string, string> {
+    const answers: Record<string, string> = {};
+    for (const slot of question.slots) {
+        const answer = draft.cells[slot.id];
+        if (answer !== undefined && (AVAILABILITY_ANSWERS as string[]).includes(answer)) {
+            answers[slot.id] = answer;
+        }
+    }
+
+    return answers;
 }
 
 /** The placed options of a ranking, best first, without ids the question does not have. */

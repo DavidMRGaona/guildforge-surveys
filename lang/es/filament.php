@@ -53,9 +53,16 @@ return [
         'time' => 'Hora',
         'grid' => 'Cuadrícula de opción única',
         'ranking' => 'Ordenar',
+        'availability' => 'Disponibilidad',
     ],
 
     'definition' => [
+        'slots' => 'Fechas propuestas',
+        'slots_help' => 'Sin hora, la fecha vale para todo el día. Si «Hasta» es anterior a «Desde», la franja acaba al día siguiente.',
+        'slot_day' => 'Día',
+        'slot_start' => 'Desde (opcional)',
+        'slot_end' => 'Hasta (opcional)',
+        'add_slot' => 'Añadir fecha',
         'title' => 'Preguntas',
         'sections' => 'Secciones',
         'section_title' => 'Título de la sección',
@@ -256,6 +263,16 @@ return [
         'question' => 'Pregunta',
         'multiple' => 'Permitir elegir varias opciones',
         'invalid' => 'El sondeo no es válido: revisa la pregunta y las opciones.',
+    ],
+
+    'quick_availability' => [
+        'action' => 'Sondeo de disponibilidad',
+        'heading' => 'Nuevo sondeo de disponibilidad',
+        'description' => 'Propón días o franjas y cada persona marca «Sí», «Si hace falta» o «No» en cada una.',
+        'question' => 'Pregunta',
+        'question_placeholder' => '¿Qué día hacemos la asamblea?',
+        'anonymous_help' => 'Mejor nominal: así sabes quién puede cada día.',
+        'invalid' => 'El sondeo no es válido: revisa la pregunta y las fechas.',
     ],
 
     'review' => [

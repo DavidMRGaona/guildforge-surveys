@@ -10,6 +10,7 @@ import {
     SUBMIT,
     type SurveyDefinition,
     type SurveyQuestion,
+    type SurveySlot,
 } from '../../resources/js/types/Respond';
 
 function definition(): SurveyDefinition {
@@ -34,6 +35,7 @@ function definition(): SurveyDefinition {
                         stars: null,
                         grid: null,
                         next_by_option: [],
+                        slots: [],
                     },
                     {
                         id: 'q-2',
@@ -48,6 +50,7 @@ function definition(): SurveyDefinition {
                         stars: null,
                         grid: null,
                         next_by_option: [],
+                        slots: [],
                     },
                 ],
             },
@@ -74,6 +77,7 @@ function jumping(firstQuestion: Partial<SurveyQuestion> = {}): SurveyDefinition 
         stars: null,
         grid: null,
         next_by_option: [],
+        slots: [],
         ...extra,
     });
     const options = [
@@ -478,6 +482,7 @@ describe('Edit', () => {
                             stars: null,
                             grid: null,
                             next_by_option: [],
+                            slots: [],
                         },
                     ],
                 },
@@ -509,6 +514,130 @@ describe('Edit', () => {
             expect.objectContaining({ title: '¿Qué día jugamos?' }),
             expect.any(Object)
         );
+    });
+
+    it('creates an availability survey whose title is its question, with dates as typed', async () => {
+        vi.mocked(router.post).mockClear();
+        const slot = (id: string, day: string, start: string | null = null): SurveySlot => ({
+            id,
+            date: null,
+            starts_at: null,
+            ends_at: null,
+            day,
+            start,
+            end: null,
+            label: '',
+        });
+        const availability: SurveyDefinition = {
+            sections: [
+                {
+                    id: 's-1',
+                    title: null,
+                    description: null,
+                    next: null,
+                    questions: [
+                        {
+                            id: 'q-1',
+                            key: null,
+                            type: 'availability',
+                            title: '',
+                            help: null,
+                            required: true,
+                            options: [],
+                            allow_other: false,
+                            scale: null,
+                            stars: null,
+                            grid: null,
+                            next_by_option: [],
+                            slots: [slot('d-1', '2030-01-12'), slot('d-2', '')],
+                        },
+                    ],
+                },
+            ],
+        };
+        const wrapper = mount(Edit, {
+            props: props(
+                {
+                    definition: availability,
+                    submitUrl: '/encuestas/sujeto/example-thing/thing-1/nueva/disponibilidad',
+                    submitMethod: 'post',
+                },
+                { id: null, kind: 'availability', title: '', anonymous: false }
+            ),
+        });
+
+        expect(wrapper.find('h1').text()).toBe('Nuevo sondeo de disponibilidad');
+        expect(wrapper.find('#survey-title').exists()).toBe(false);
+        // One availability question: no type to change, no sections or other questions to add
+        expect(select(wrapper, 'question-q-1-type')).toBeUndefined();
+        expect(wrapper.find('#question-q-1-required').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('Añadir sección');
+
+        await wrapper.find('#question-q-1-title').setValue('¿Qué día seguimos?');
+        const days = wrapper.findAllComponents(FormDatePicker);
+        const times = wrapper.findAllComponents(FormTimePicker);
+        days[1]?.vm.$emit('update:modelValue', '2030-01-17');
+        await nextTick();
+        times[2]?.vm.$emit('update:modelValue', '18:00');
+        await nextTick();
+        await wrapper
+            .findAll('button')
+            .find((button) => button.text() === 'Añadir fecha')
+            ?.trigger('click');
+        await wrapper.find('form').trigger('submit');
+
+        const data = vi.mocked(router.post).mock.calls[0]?.[1] as unknown as {
+            title: string;
+            definition: SurveyDefinition;
+        };
+        expect(data.title).toBe('¿Qué día seguimos?');
+        const slots = data.definition.sections[0]?.questions[0]?.slots ?? [];
+        expect(slots.map((sent) => [sent.day, sent.start, sent.end])).toEqual([
+            ['2030-01-12', null, null],
+            ['2030-01-17', '18:00', null],
+            // A new date starts on the day of the last one
+            ['2030-01-17', null, null],
+        ]);
+    });
+
+    it('shows a slot error under its date', () => {
+        const wrapper = mount(Edit, {
+            props: props(
+                {
+                    definition: {
+                        sections: [
+                            {
+                                id: 's-1',
+                                title: null,
+                                description: null,
+                                next: null,
+                                questions: [
+                                    {
+                                        id: 'q-1',
+                                        key: null,
+                                        type: 'availability',
+                                        title: '¿Qué día?',
+                                        help: null,
+                                        required: true,
+                                        options: [],
+                                        allow_other: false,
+                                        scale: null,
+                                        stars: null,
+                                        grid: null,
+                                        next_by_option: [],
+                                        slots: [],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+                { kind: 'availability' }
+            ),
+        });
+
+        expect(wrapper.text()).toContain('Fechas propuestas');
+        expect(wrapper.text()).toContain('Añadir fecha');
     });
 
     it('keeps the title field of a new form', () => {

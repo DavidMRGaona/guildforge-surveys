@@ -5,11 +5,14 @@ import {
     type SurveyOption,
     type SurveyQuestion,
     type SurveySection,
+    type SurveySlot,
 } from '../types/Respond';
 
 /**
  * Builders and edits of a survey definition for the organizer's editor. Ids are stable within
  * the survey (answers point at them), so new items get fresh ones and edits keep the old.
+ *
+ * The types a form may use: availability lives only in a survey of its own kind.
  */
 export const QUESTION_TYPES: QuestionType[] = [
     'short_text',
@@ -32,6 +35,10 @@ const CHOICES: QuestionType[] = ['single_choice', 'multiple_choice', 'dropdown']
 
 /** As SurveyDefinitionValidator::RANKING_OPTIONS_MAX on the server. */
 export const RANKING_OPTIONS_MAX = 10;
+
+/** As SurveyDefinitionValidator::SLOTS_MIN and SLOTS_MAX on the server. */
+export const SLOTS_MIN = 2;
+export const SLOTS_MAX = 30;
 
 /** Whether the question has a list of options: to pick from, or to put in order. */
 export function hasOptions(type: QuestionType): boolean {
@@ -56,6 +63,20 @@ export function newOption(label = ''): SurveyOption {
     return { id: newId(), label };
 }
 
+/** A slot still to fill in: the editor sends only its id, day, start and end. */
+export function newSlot(day = ''): SurveySlot {
+    return {
+        id: newId(),
+        date: null,
+        starts_at: null,
+        ends_at: null,
+        day,
+        start: null,
+        end: null,
+        label: '',
+    };
+}
+
 export function newSection(): SurveySection {
     return { id: newId(), title: null, description: null, next: null, questions: [] };
 }
@@ -74,6 +95,7 @@ export function newQuestion(type: QuestionType): SurveyQuestion {
         stars: null,
         grid: null,
         next_by_option: [],
+        slots: [],
     };
 
     return withSettingsFor(question, type);
@@ -96,6 +118,7 @@ export function changeType(question: SurveyQuestion, type: QuestionType): Survey
             stars: null,
             grid: null,
             next_by_option: canBranch(type) && keepsOptions ? question.next_by_option : [],
+            slots: [],
         },
         type
     );
@@ -181,6 +204,9 @@ function withSettingsFor(question: SurveyQuestion, type: QuestionType): SurveyQu
     }
     if (type === 'grid') {
         return { ...question, grid: { rows: [newOption()], columns: [newOption(), newOption()] } };
+    }
+    if (type === 'availability') {
+        return { ...question, slots: [newSlot(), newSlot()] };
     }
 
     return question;

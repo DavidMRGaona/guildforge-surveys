@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Modules\Surveys\Filament\Support;
 
 use Illuminate\Support\Str;
+use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\OptionJump;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
+use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 
@@ -20,7 +22,8 @@ use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
  * Filament keys list items by random strings, so domain paths (by index) are translated
  * to form paths to show each validation error on its own field. A question's jumps sit on
  * its options ("next") and "Other" ("other_next"), behind a switch ("branches"): with
- * the switch off they are left out of the definition.
+ * the switch off they are left out of the definition. Availability slots are edited as typed
+ * in the site's zone (day, start, end) and stored as AvailabilitySlotFormatter reads them.
  */
 final class DefinitionFormState
 {
@@ -32,6 +35,14 @@ final class DefinitionFormState
         'scale.max_label' => 'scale_max_label',
         'grid.rows' => 'grid_rows',
         'grid.columns' => 'grid_columns',
+    ];
+
+    /** Slot field => its editor field. */
+    private const array SLOT_FIELDS = [
+        'id' => 'day',
+        'date' => 'day',
+        'starts_at' => 'start',
+        'ends_at' => 'end',
     ];
 
     /**
@@ -132,13 +143,18 @@ final class DefinitionFormState
             $path[] = (string) array_shift($tokens);
         }
 
-        // An item of a list inside the block (options, grid rows or columns)
-        $list = $data[end($path)] ?? null;
+        // An item of a list inside the block (options, grid rows or columns, slots)
+        $listField = end($path);
+        $list = $data[$listField] ?? null;
         if (is_array($list) && $tokens !== []) {
             $item = self::itemAt($list, $tokens);
             if ($item !== null) {
                 $path[] = $item['key'];
-                $tokens = $tokens === ['id'] ? ['label'] : $tokens;
+                $tokens = match (true) {
+                    $listField === 'slots' => [self::SLOT_FIELDS[$tokens[0] ?? 'id'] ?? 'day'],
+                    $tokens === ['id'] => ['label'],
+                    default => $tokens,
+                };
             }
         }
 
@@ -181,6 +197,7 @@ final class DefinitionFormState
                             static fn (OptionJump $jump): OptionJump => new OptionJump($jump->optionId, (string) $renamed($jump->next)),
                             $question->nextByOption,
                         ),
+                        slots: $question->slots,
                     ),
                     $section->questions,
                 ),
@@ -212,7 +229,50 @@ final class DefinitionFormState
             'stars' => $question->stars,
             'grid_rows' => self::keyedOptions($question->grid->rows ?? []),
             'grid_columns' => self::keyedOptions($question->grid->columns ?? []),
+            'slots' => self::keyedSlots($question->slots),
         ];
+    }
+
+    /**
+     * @param  list<Slot>  $slots
+     * @return array<string, array{id: string, day: string, start: ?string, end: ?string}>
+     */
+    private static function keyedSlots(array $slots): array
+    {
+        if ($slots === []) {
+            return [];
+        }
+
+        $formatter = app(AvailabilitySlotFormatter::class);
+        $keyed = [];
+        foreach ($slots as $slot) {
+            $keyed[self::itemKey()] = ['id' => $slot->id, 'day' => $formatter->day($slot), 'start' => $formatter->start($slot), 'end' => $formatter->end($slot)];
+        }
+
+        return $keyed;
+    }
+
+    /**
+     * @return list<array{id: string, date: ?string, starts_at: ?string, ends_at: ?string}>
+     */
+    private static function slotList(mixed $items): array
+    {
+        if (self::items($items) === []) {
+            return [];
+        }
+
+        $formatter = app(AvailabilitySlotFormatter::class);
+
+        return array_map(
+            static fn (array $item): array => $formatter->fromWallTime(
+                self::string($item['id'] ?? null),
+                // The date picker may hold a time too ("2030-01-12 00:00:00")
+                substr(self::string($item['day'] ?? null), 0, 10),
+                self::nullableString($item['start'] ?? null),
+                self::nullableString($item['end'] ?? null),
+            )->toArray(),
+            self::items($items),
+        );
     }
 
     /**
@@ -244,6 +304,7 @@ final class DefinitionFormState
                 'columns' => self::optionList($data['grid_columns'] ?? []),
             ] : null,
             'next_by_option' => $type?->canBranch() === true && (bool) ($data['branches'] ?? false) ? array_map(static fn (array $jump): array => ['option_id' => $jump['option_id'], 'next' => $jump['next']], self::jumps($data)) : [],
+            'slots' => $type === QuestionType::Availability ? self::slotList($data['slots'] ?? []) : [],
         ];
     }
 

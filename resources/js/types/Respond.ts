@@ -13,12 +13,34 @@ export type QuestionType =
     | 'date'
     | 'time'
     | 'grid'
-    | 'ranking';
+    | 'ranking'
+    | 'availability';
 
 export interface SurveyOption {
     id: string;
     label: string;
 }
+
+/**
+ * A date an availability question proposes: a whole day (`date`) or a time slot (`starts_at`,
+ * optional `ends_at`, instants in UTC), as stored; then as the site shows it: its day, start and
+ * end (H:i, null for a whole day) and a label. The editor sends back only id, day, start and end.
+ */
+export interface SurveySlot {
+    id: string;
+    date: string | null;
+    starts_at: string | null;
+    ends_at: string | null;
+    day: string;
+    start: string | null;
+    end: string | null;
+    label: string;
+}
+
+/** What each person says about a slot, as AvailabilityAnswer on the server. */
+export type AvailabilityAnswer = 'yes' | 'if_needed' | 'no';
+
+export const AVAILABILITY_ANSWERS: AvailabilityAnswer[] = ['yes', 'if_needed', 'no'];
 
 export interface SurveyQuestion {
     id: string;
@@ -34,6 +56,8 @@ export interface SurveyQuestion {
     grid: { rows: SurveyOption[]; columns: SurveyOption[] } | null;
     /** Where each option leads after the section: a later section's id or SUBMIT. */
     next_by_option: OptionJump[];
+    /** Only on availability questions. */
+    slots: SurveySlot[];
 }
 
 export interface OptionJump {
@@ -54,12 +78,14 @@ export interface SurveyDefinition {
     sections: SurveySection[];
 }
 
+export type SurveyKind = 'form' | 'poll' | 'availability';
+
 export type RespondState =
     'open' | 'answered' | 'closed' | 'paused' | 'not_invited' | 'verify_email';
 
 export interface RespondSurvey {
     id: string;
-    kind: 'form' | 'poll';
+    kind: SurveyKind;
     title: string;
     description: string | null;
     anonymous: boolean;
@@ -150,6 +176,7 @@ export interface AnswerDraft {
     choices: string[];
     other: string;
     number: number | null;
+    /** A grid's column by row id, or an availability answer by slot id. */
     cells: Record<string, string>;
 }
 

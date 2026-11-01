@@ -22,6 +22,7 @@ use Modules\Surveys\Application\Enums\SendOutcome;
 use Modules\Surveys\Application\Enums\UpdateOutcome;
 use Modules\Surveys\Application\Exceptions\OrganizerChangeRejectedException;
 use Modules\Surveys\Application\Exceptions\SubjectCancelledException;
+use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Application\Services\OrganizerSurveyService;
 use Modules\Surveys\Application\Services\SurveyManagerGate;
 use Modules\Surveys\Domain\Entities\Survey;
@@ -38,8 +39,8 @@ use Modules\Surveys\Http\Requests\UpdateOrganizerSurveyRequest;
 
 /**
  * The organizer's editor of a subject's survey on the public site: the same scope as the
- * panel's, checked by the same domain rules. It also writes a new survey or poll of their own
- * ("encuesta" or "sondeo" in the address), saved only when they first save it. Errors come back
+ * panel's, checked by the same domain rules. It also writes a new survey, poll or availability
+ * survey of their own ("encuesta", "sondeo" or "disponibilidad" in the address), saved only when they first save it. Errors come back
  * already translated, each on the field it is about (definition errors under "definition.<path>").
  */
 final class OrganizerSurveyEditorController extends Controller
@@ -51,6 +52,7 @@ final class OrganizerSurveyEditorController extends Controller
         private readonly TimezoneServiceInterface $timezone,
         private readonly SeoMetadataFactoryInterface $seo,
         private readonly SurveySubjectSourceRegistryInterface $sources,
+        private readonly AvailabilitySlotFormatter $slots,
     ) {}
 
     public function create(Request $request, string $type, string $subject, string $kind): Response|RedirectResponse
@@ -88,7 +90,7 @@ final class OrganizerSurveyEditorController extends Controller
                 'sendable' => true,
             ],
             'endSending' => null,
-            'definition' => $this->service->startingDefinition($surveyKind)->toArray(),
+            'definition' => $this->slots->presentDefinition($this->service->startingDefinition($surveyKind)),
             'subject' => ['title' => $found->title],
             'locked' => false,
             'submitUrl' => route('surveys.manage.store', [$type, $subject, $kind]),
@@ -161,7 +163,7 @@ final class OrganizerSurveyEditorController extends Controller
                 'sendOnEnd' => $found->sendsOnEnd(),
                 'sendDelayHours' => $found->sendDelayHours(),
             ] : null,
-            'definition' => $found->definition()->toArray(),
+            'definition' => $this->slots->presentDefinition($found->definition()),
             'subject' => ['title' => $subject->title],
             'locked' => $hasResponses,
             'submitUrl' => route('surveys.manage.update', $found->id()->value),
@@ -202,7 +204,11 @@ final class OrganizerSurveyEditorController extends Controller
 
     private function kind(string $kind): SurveyKind
     {
-        return $kind === 'sondeo' ? SurveyKind::Poll : SurveyKind::Form;
+        return match ($kind) {
+            'sondeo' => SurveyKind::Poll,
+            'disponibilidad' => SurveyKind::Availability,
+            default => SurveyKind::Form,
+        };
     }
 
     private function definitionErrors(InvalidSurveyDefinitionException $exception): ValidationException
@@ -228,7 +234,7 @@ final class OrganizerSurveyEditorController extends Controller
         return new OrganizerSurveyInput(
             title: (string) $request->string('title'),
             description: is_string($description) && trim($description) !== '' ? $description : null,
-            definition: SurveyDefinition::fromArray($definition),
+            definition: SurveyDefinition::fromArray($this->slots->readEditedDefinition($definition)),
             anonymous: $request->boolean('anonymous'),
             durationDays: $request->filled('duration_days') ? $request->integer('duration_days') : null,
             closesAt: is_string($closesAt) && $closesAt !== '' ? $this->timezone->fromDisplayWallTime($closesAt) : null,

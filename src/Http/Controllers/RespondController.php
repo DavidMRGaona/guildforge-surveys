@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Surveys\Application\DTOs\Respondent;
+use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Application\Services\PublicLinkAccessService;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Application\Services\SubmissionService;
@@ -47,6 +48,7 @@ final class RespondController extends Controller
         private readonly ResultsService $results,
         private readonly PublicLinkAccessService $access,
         private readonly SurveySubjectSourceRegistryInterface $sources,
+        private readonly AvailabilitySlotFormatter $slots,
     ) {}
 
     public function show(Request $request, string $survey): Response
@@ -126,7 +128,7 @@ final class RespondController extends Controller
         }
 
         if ($survey instanceof Survey && $state === SubmissionService::STATE_OPEN) {
-            $props['definition'] = $survey->definition()->toArray();
+            $props['definition'] = $this->slots->presentDefinition($survey->definition());
             $props['submitUrl'] = $submitUrl;
             $props['draftScope'] = $this->draftScope($id, $respondent);
         }

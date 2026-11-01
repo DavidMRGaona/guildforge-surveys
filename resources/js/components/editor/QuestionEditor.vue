@@ -16,6 +16,7 @@ import {
 } from '../../utils/definition';
 import JumpsEditor from './JumpsEditor.vue';
 import OptionListEditor from './OptionListEditor.vue';
+import SlotListEditor from './SlotListEditor.vue';
 import { FIELD_CLASS } from '../styles';
 
 const props = defineProps<{
@@ -75,7 +76,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
 <template>
     <div class="space-y-4">
         <div class="grid gap-4 sm:grid-cols-3">
-            <div class="sm:col-span-2">
+            <div :class="props.locks.availability ? 'sm:col-span-3' : 'sm:col-span-2'">
                 <label
                     :for="`${fieldId}-title`"
                     class="block text-sm font-medium text-base-primary"
@@ -93,7 +94,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                 />
                 <p v-if="error('title')" class="mt-1 text-sm text-error">{{ error('title') }}</p>
             </div>
-            <div>
+            <div v-if="!props.locks.availability">
                 <label :for="`${fieldId}-type`" class="block text-sm font-medium text-base-primary">
                     {{ t('surveys.editor.question_type') }}
                 </label>
@@ -128,6 +129,7 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
         </div>
 
         <FormCheckbox
+            v-if="!props.locks.availability"
             :id="`${fieldId}-required`"
             :model-value="question.required"
             :label="t('surveys.editor.required')"
@@ -135,7 +137,16 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             @update:model-value="set('required', $event)"
         />
 
-        <template v-if="hasOptions(question.type)">
+        <SlotListEditor
+            v-if="question.type === 'availability'"
+            :model-value="question.slots"
+            :locked="props.locks.structure"
+            :errors="props.errors"
+            :path="`${props.path}.slots`"
+            @update:model-value="set('slots', $event)"
+        />
+
+        <template v-else-if="hasOptions(question.type)">
             <OptionListEditor
                 :model-value="question.options"
                 :label="t('surveys.editor.options')"

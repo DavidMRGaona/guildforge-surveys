@@ -365,7 +365,9 @@ const secondaryLinkClass =
                 {{
                     survey?.kind === 'poll'
                         ? t('surveys.respond.thanks_poll_title')
-                        : t('surveys.respond.thanks_title')
+                        : survey?.kind === 'availability'
+                          ? t('surveys.respond.thanks_availability_title')
+                          : t('surveys.respond.thanks_title')
                 }}
             </h2>
             <p class="mt-2 text-base-secondary">
@@ -535,7 +537,9 @@ const secondaryLinkClass =
                             ? t('surveys.respond.next')
                             : survey?.kind === 'poll'
                               ? t('surveys.respond.submit_poll')
-                              : t('surveys.respond.submit')
+                              : survey?.kind === 'availability'
+                                ? t('surveys.respond.submit_availability')
+                                : t('surveys.respond.submit')
                     }}
                 </BaseButton>
             </div>

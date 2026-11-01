@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { FormCombobox, FormDatePicker, FormSelect, FormTimePicker } from '@/components/form';
 import QuestionField from '../../resources/js/components/QuestionField.vue';
-import { OTHER, type AnswerDraft, type SurveyQuestion } from '../../resources/js/types/Respond';
+import {
+    OTHER,
+    type AnswerDraft,
+    type SurveyQuestion,
+    type SurveySlot,
+} from '../../resources/js/types/Respond';
 import { emptyDraft } from '../../resources/js/utils/answers';
 
 function question(
@@ -25,6 +30,7 @@ function question(
         stars: null,
         grid: null,
         next_by_option: [],
+        slots: [],
         ...extra,
     };
 }
@@ -52,6 +58,36 @@ function draftOf(wrapper: VueWrapper): AnswerDraft {
 }
 
 describe('QuestionField', () => {
+    it('marks each proposed date yes, if needed or no', async () => {
+        const slot = (id: string, label: string): SurveySlot => ({
+            id,
+            date: null,
+            starts_at: null,
+            ends_at: null,
+            day: '2030-01-12',
+            start: null,
+            end: null,
+            label,
+        });
+        const wrapper = mountField(
+            question('availability', {
+                options: [],
+                slots: [
+                    slot('d-1', 'sábado, 12 de enero de 2030'),
+                    slot('d-2', 'domingo, 13 de enero de 2030'),
+                ],
+            })
+        );
+
+        expect(wrapper.text()).toContain('Las que dejes sin marcar cuentan como «No».');
+        expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(2);
+        await wrapper.find('input[name="question-q-1-d-1"][value="yes"]').setValue(true);
+        await wrapper.find('input[name="question-q-1-d-2"][value="if_needed"]').setValue(true);
+
+        expect(draftOf(wrapper).cells).toEqual({ 'd-1': 'yes', 'd-2': 'if_needed' });
+        expect(wrapper.find('[data-answer="yes"]').classes()).toContain('bg-success-bg');
+    });
+
     it('keeps the order of a ranking in the choices, best first', async () => {
         const wrapper = mountField(question('ranking'));
 

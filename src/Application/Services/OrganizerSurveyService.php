@@ -36,6 +36,7 @@ use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
+use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
@@ -203,7 +204,8 @@ final readonly class OrganizerSurveyService
         $results = ResultsSettings::defaultsFor($kind);
 
         return [
-            'anonymous' => $type->anonymous,
+            // Who can make each date is what an availability survey is for
+            'anonymous' => $kind !== SurveyKind::Availability && $type->anonymous,
             'durationDays' => $type->closeDays,
             'liveResults' => $results->liveResults,
             'visibleToRespondents' => $results->visibleToRespondents,
@@ -213,16 +215,22 @@ final readonly class OrganizerSurveyService
 
     /**
      * The blank content a new survey starts from: a short answer question for a form, a single
-     * choice question with two options for a poll. Titles and labels are left for the organizer.
+     * choice question with two options for a poll, two days to fill in for an availability
+     * survey. Titles, labels and dates are left for the organizer.
      */
     public function startingDefinition(SurveyKind $kind): SurveyDefinition
     {
-        $question = $kind === SurveyKind::Poll
-            ? new Question((string) Str::uuid(), null, QuestionType::SingleChoice, '', null, true, [
+        $question = match ($kind) {
+            SurveyKind::Poll => new Question((string) Str::uuid(), null, QuestionType::SingleChoice, '', null, true, [
                 new Option((string) Str::uuid(), ''),
                 new Option((string) Str::uuid(), ''),
-            ])
-            : new Question((string) Str::uuid(), null, QuestionType::ShortText, '', null, true);
+            ]),
+            SurveyKind::Availability => new Question((string) Str::uuid(), null, QuestionType::Availability, '', null, true, slots: [
+                new Slot((string) Str::uuid(), date: ''),
+                new Slot((string) Str::uuid(), date: ''),
+            ]),
+            SurveyKind::Form => new Question((string) Str::uuid(), null, QuestionType::ShortText, '', null, true),
+        };
 
         return new SurveyDefinition([new Section((string) Str::uuid(), null, null, [$question])]);
     }

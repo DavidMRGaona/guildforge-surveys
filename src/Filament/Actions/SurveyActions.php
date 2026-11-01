@@ -15,6 +15,7 @@ use Modules\Surveys\Application\Exceptions\SubjectCancelledException;
 use Modules\Surveys\Application\Services\SurveyDuplicationService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Application\Services\SurveyReviewService;
+use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
@@ -230,6 +231,8 @@ final class SurveyActions
                     ->rows(2),
             ])
             ->authorize(static fn (): bool => auth()->user()?->can('create', SurveyTemplateModel::class) === true)
+            // An availability survey's dates only make sense once
+            ->visible(static fn (SurveyModel $record): bool => SurveyKind::tryFrom($record->kind)?->allowsTemplates() === true)
             ->action(static function (SurveyModel $record, array $data): void {
                 $name = is_string($data['name'] ?? null) ? $data['name'] : '';
                 $description = is_string($data['description'] ?? null) && trim($data['description']) !== '' ? $data['description'] : null;

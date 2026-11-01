@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Forms;
 
+use App\Filament\Forms\Components\TimePicker;
 use Closure;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -32,6 +34,9 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Section;
  * Jumps: each section says where to go after it, and a single choice or dropdown question
  * may send each option elsewhere ("branches"). The targets offered are the later sections
  * and the end, read from the editor's live state; polls have no jumps.
+ *
+ * An availability survey offers only the availability block, and nothing else offers it: its
+ * slots are typed as a day and, optionally, the times in the site's zone.
  */
 final class DefinitionEditor
 {
@@ -59,11 +64,11 @@ final class DefinitionEditor
                     ->dehydrated(),
                 Builder::make('questions')
                     ->label(__('surveys::filament.definition.questions'))
-                    ->blocks(array_map(
+                    ->blocks(static fn (Builder $component): array => array_map(
                         static fn (QuestionType $type): Block => Block::make($type->value)
                             ->label(__("surveys::filament.question_types.{$type->value}"))
                             ->schema(self::questionFields($type, $withKeys, $contentLocked)),
-                        QuestionType::cases(),
+                        self::typesFor($component),
                     ))
                     ->blockNumbers(false)
                     ->collapsible()
@@ -124,6 +129,10 @@ final class DefinitionEditor
      */
     private static function typeFields(QuestionType $type, Closure|bool $locked): array
     {
+        if ($type === QuestionType::Availability) {
+            return [self::slotList($locked)];
+        }
+
         if ($type === QuestionType::Ranking) {
             return [
                 self::optionList('options', 'surveys::filament.definition.options', 2, $locked)
@@ -210,6 +219,44 @@ final class DefinitionEditor
     }
 
     /**
+     * The proposed dates: a day and, for a time slot, its start and optional end, in the site's zone.
+     */
+    public static function slotList(Closure|bool $locked = false): Repeater
+    {
+        return Repeater::make('slots')
+            ->label(__('surveys::filament.definition.slots'))
+            ->helperText(__('surveys::filament.definition.slots_help'))
+            ->schema([
+                self::id(),
+                Grid::make(3)->schema([
+                    DatePicker::make('day')
+                        ->label(__('surveys::filament.definition.slot_day'))
+                        ->native(false)
+                        ->format('Y-m-d')
+                        ->displayFormat('d/m/Y')
+                        ->required()
+                        ->disabled($locked)
+                        ->dehydrated(),
+                    TimePicker::make('start')
+                        ->label(__('surveys::filament.definition.slot_start'))
+                        ->disabled($locked)
+                        ->dehydrated(),
+                    TimePicker::make('end')
+                        ->label(__('surveys::filament.definition.slot_end'))
+                        ->disabled($locked)
+                        ->dehydrated(),
+                ]),
+            ])
+            ->minItems(SurveyDefinitionValidator::SLOTS_MIN)
+            ->maxItems(SurveyDefinitionValidator::SLOTS_MAX)
+            ->defaultItems(SurveyDefinitionValidator::SLOTS_MIN)
+            ->addActionLabel(__('surveys::filament.definition.add_slot'))
+            ->addable(static fn (Repeater $component): bool => ! $component->evaluate($locked))
+            ->deletable(static fn (Repeater $component): bool => ! $component->evaluate($locked))
+            ->reorderable(static fn (Repeater $component): bool => ! $component->evaluate($locked));
+    }
+
+    /**
      * @param  bool  $withTargets  options of a question that may jump get the select of where each leads
      */
     private static function optionList(string $name, string $labelKey, int $minItems, Closure|bool $locked, bool $withTargets = false): Repeater
@@ -288,15 +335,37 @@ final class DefinitionEditor
     }
 
     /**
-     * A poll's single question never jumps. Templates choose their kind in the form, surveys
-     * keep the one they were created with.
+     * A poll's single question never jumps.
      */
     private static function isPoll(Component $component): bool
     {
-        $record = $component->getRecord();
-        $kind = data_get($component->getLivewire(), 'data.kind') ?? ($record instanceof Model ? $record->getAttribute('kind') : null);
+        return self::kind($component) === SurveyKind::Poll->value;
+    }
 
-        return $kind === SurveyKind::Poll->value;
+    /**
+     * The question types the editor offers: availability alone in an availability survey, and
+     * never anywhere else.
+     *
+     * @return list<QuestionType>
+     */
+    private static function typesFor(Component $component): array
+    {
+        $availability = self::kind($component) === SurveyKind::Availability->value;
+
+        return array_values(array_filter(
+            QuestionType::cases(),
+            static fn (QuestionType $type): bool => ($type === QuestionType::Availability) === $availability,
+        ));
+    }
+
+    /**
+     * Templates choose their kind in the form, surveys keep the one they were created with.
+     */
+    private static function kind(Component $component): mixed
+    {
+        $record = $component->getRecord();
+
+        return data_get($component->getLivewire(), 'data.kind') ?? ($record instanceof Model ? $record->getAttribute('kind') : null);
     }
 
     private static function id(): Hidden

@@ -192,15 +192,23 @@ describe('Subject', () => {
         expect(wrapper.text()).toContain('Aún no hay encuestas');
     });
 
-    it('offers a new survey and a new poll while the subject takes them', () => {
+    it('offers a new survey, a new poll and an availability survey while the subject takes them', () => {
         const wrapper = mount(Subject, {
             props: props({
                 createUrls: {
                     form: '/encuestas/sujeto/example-thing/thing-1/nueva/encuesta',
                     poll: '/encuestas/sujeto/example-thing/thing-1/nueva/sondeo',
+                    availability: '/encuestas/sujeto/example-thing/thing-1/nueva/disponibilidad',
                 },
             }),
         });
+
+        expect(
+            wrapper
+                .findAll('a')
+                .find((link) => link.text() === 'Cuadrar fechas')
+                ?.attributes('href')
+        ).toBe('/encuestas/sujeto/example-thing/thing-1/nueva/disponibilidad');
 
         expect(wrapper.text()).toContain('Pregunta a tu gente');
         const links = Object.fromEntries(
