@@ -32,7 +32,6 @@ use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\Exceptions\SubjectNotFoundException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
-use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
@@ -41,7 +40,6 @@ use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
-use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 
 /**
  * What an organizer does with their subject's survey on the public site. Every action checks,
@@ -58,14 +56,14 @@ final readonly class OrganizerSurveyService
         private ReviewNotifierInterface $reviewNotifier,
         private SurveySubjectSourceRegistryInterface $sources,
         private SurveySettingsInterface $settings,
-        private SurveyTemplateRepositoryInterface $templates,
+        private EndSurveyTemplateResolver $endTemplates,
     ) {}
 
     /**
-     * The subject's end survey, prepared ahead from its type's template: it waits for the end and
-     * then goes out by itself or is offered, as the type says until the organizer changes it. On
-     * a subject that already ended it is ready to send. Preparing again gives the same survey,
-     * taken back if it had been dismissed without opening.
+     * The subject's end survey, prepared ahead from the template chosen for it (else its type's):
+     * it waits for the end and then goes out by itself or is offered, as the type says until the
+     * organizer changes it. On a subject that already ended it is ready to send. Preparing again
+     * gives the same survey, taken back if it had been dismissed without opening.
      *
      * @throws AuthorizationException
      * @throws SubjectNotFoundException
@@ -94,17 +92,31 @@ final readonly class OrganizerSurveyService
             return $existing;
         }
 
-        $type = $this->settings->forSubjectType($sourceType);
-        $template = $type->templateId === null ? null : $this->templates->find(SurveyTemplateId::fromString($type->templateId));
+        $template = $this->endTemplates->templateFor($sourceType, $subjectId);
         if (! $template instanceof SurveyTemplate) {
             throw new SurveyPreparationUnavailableException('no_template');
         }
 
+        return $this->prepareFrom($subject, $template, $userId, $now);
+    }
+
+    /**
+     * The subject's end survey made from this template, sent on the end as its type says. It
+     * does not ask who is preparing it: callers check. When the subject already has one (made
+     * meanwhile by another click or by the end), that one is given back.
+     *
+     * @throws SubjectNotFoundException
+     */
+    public function prepareFrom(SurveySubjectDTO $subject, SurveyTemplate $template, string $userId, DateTimeImmutable $now): Survey
+    {
+        $endKey = "{$subject->sourceType}:{$subject->subjectId}";
+        $type = $this->settings->forSubjectType($subject->sourceType);
+
         try {
-            return DB::transaction(function () use ($sourceType, $subjectId, $template, $type, $endKey, $userId, $subject, $now): Survey {
+            return DB::transaction(function () use ($subject, $template, $type, $endKey, $userId, $now): Survey {
                 $survey = $this->lifecycle->createFromTemplateForSubject(
-                    $sourceType,
-                    $subjectId,
+                    $subject->sourceType,
+                    $subject->subjectId,
                     $template,
                     $type->anonymous,
                     $type->closeDays,
@@ -122,7 +134,7 @@ final readonly class OrganizerSurveyService
             });
         } catch (UniqueConstraintViolationException) {
             // Prepared at the same time by another click, or made by the end meanwhile
-            return $this->takeBack($endKey) ?? throw SubjectNotFoundException::for($sourceType, $subjectId);
+            return $this->takeBack($endKey) ?? throw SubjectNotFoundException::for($subject->sourceType, $subject->subjectId);
         }
     }
 
@@ -229,7 +241,7 @@ final readonly class OrganizerSurveyService
     }
 
     /**
-     * Whether the subject's page offers to prepare its end survey: its type has a template, the
+     * Whether the subject's page offers to prepare its end survey: it has a template to start from, the
      * subject was not cancelled and it has no end survey still in play (a dismissed one that
      * never opened is taken back by preparing).
      */
@@ -239,8 +251,7 @@ final readonly class OrganizerSurveyService
             return false;
         }
 
-        $type = $this->settings->forSubjectType($subject->sourceType);
-        if ($type->templateId === null || ! $this->templates->find(SurveyTemplateId::fromString($type->templateId)) instanceof SurveyTemplate) {
+        if (! $this->endTemplates->templateFor($subject->sourceType, $subject->subjectId) instanceof SurveyTemplate) {
             return false;
         }
 

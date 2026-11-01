@@ -54,7 +54,7 @@ final class Survey
         private ?DateTimeImmutable $reviewedAt = null,
         private ?DateTimeImmutable $scheduledSendAt = null,
         private ?DateTimeImmutable $dismissedAt = null,
-        private readonly ?string $subjectEndKey = null,
+        private ?string $subjectEndKey = null,
         private ?DateTimeImmutable $subjectEndedAt = null,
         private bool $sendOnEnd = false,
         private int $sendDelayHours = 0,
@@ -257,6 +257,42 @@ final class Survey
 
         $this->sendOnEnd = $sendOnEnd;
         $this->sendDelayHours = $sendDelayHours;
+    }
+
+    /**
+     * The subject's end survey steps down to an ordinary draft of the subject, while it still
+     * waits for the end: another survey (or none) goes out on the end instead, and nothing
+     * written in it is lost.
+     */
+    public function releaseEndKey(): void
+    {
+        if (! $this->isAwaitingSubjectEnd()) {
+            throw InvalidSurveyStateException::notAwaitingSubjectEnd($this->id->value);
+        }
+
+        $this->subjectEndKey = null;
+        $this->sendOnEnd = false;
+        $this->sendDelayHours = 0;
+        $this->scheduledSendAt = null;
+    }
+
+    /**
+     * A draft written for the subject becomes what goes out on its end: only a form about that
+     * subject that never opened, was not dismissed and is not already an end survey.
+     */
+    public function becomeEndSurvey(string $endKey): void
+    {
+        if ($this->subjectEndKey !== null
+            || ! $this->subject instanceof SubjectSnapshot
+            || $endKey !== "{$this->subject->sourceType}:{$this->subject->subjectId}"
+            || $this->kind !== SurveyKind::Form
+            || $this->status !== SurveyStatus::Draft
+            || $this->wasOpened()
+            || $this->dismissedAt instanceof DateTimeImmutable) {
+            throw InvalidSurveyStateException::cannotBecomeEndSurvey($this->id->value);
+        }
+
+        $this->subjectEndKey = $endKey;
     }
 
     /**

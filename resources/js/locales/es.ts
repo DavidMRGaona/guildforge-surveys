@@ -127,6 +127,13 @@ export default {
             prepared_auto_hint: 'Se enviará sola {hours} h después de que termine.',
             prepared_auto_now_hint: 'Se enviará sola en cuanto termine.',
             prepared_one_click_hint: 'Cuando termine te avisaremos para que la envíes con un clic.',
+            end_choice_title: 'Encuesta al terminar',
+            end_choice_description:
+                'Elige qué encuesta sale cuando termine: la plantilla de su tipo, otra, una propia o ninguna.',
+            end_choice_label: 'Encuesta al terminar',
+            end_choice_base: 'Partir de',
+            end_choice_save: 'Guardar',
+            end_choice_edit: 'Editar la encuesta',
             prepare_title: 'Prepara la encuesta',
             prepare_description:
                 'Parte de la plantilla de la organización. Puedes cambiarla y elegir si se envía sola al terminar.',

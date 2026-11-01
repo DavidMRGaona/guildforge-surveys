@@ -42,6 +42,17 @@ Desde la web, en la ficha del sujeto o en la pestaña «Encuestas» del perfil, 
 
 Cada acción comprueba en el momento que la persona sigue organizando el sujeto: si deja de hacerlo, o el módulo del sujeto se desactiva, pierde el acceso.
 
+## Encuesta al terminar, elegida para cada sujeto
+
+Por defecto sale la plantilla del tipo de sujeto, pero cada evento, torneo, mesa o campaña puede elegir otra cosa. Se elige en el formulario del panel de cada sujeto (el campo «Encuesta al terminar», que el core pone con el contrato `SubjectEndSurveyChoiceInterface` y que este módulo implementa) y en la página de encuestas del sujeto en la web. Las opciones son:
+
+- **La plantilla del tipo**: la opción por defecto. No se guarda nada, así que sigue al ajuste del tipo si cambia.
+- **Otra plantilla**: cualquiera de las plantillas de formulario. Si después se borra, se usa la del tipo. Sus preguntas conservan las claves, así que alimenta las tendencias de esa plantilla.
+- **Una encuesta propia**: se prepara al guardar a partir de la plantilla que se elija en «Partir de» y se edita con el enlace «Editar la encuesta». Al editar el sujeto también se pueden elegir sus borradores propios, que pasan a ser la encuesta al terminar.
+- **Ninguna**: no sale ninguna encuesta.
+
+Elige quien organiza el sujeto o quien tiene `surveys.manage`. Al crear el sujeto todavía no se puede comprobar si quien lo crea lo organiza: se comprueba al guardar, y si no puede elegir, se avisa y se usa la del tipo. La elección se puede cambiar mientras el sujeto no ha terminado. Una encuesta ya preparada que se sustituye se borra si estaba tal cual la plantilla, y si se había editado se queda como borrador del sujeto, así que no se pierde nada. Cuando el sujeto ha terminado, se ha cancelado o su encuesta ya ha salido, el campo se muestra bloqueado con el motivo.
+
 La ficha del sujeto, en su propio módulo, enlaza con sus encuestas a través del contrato del core `SurveySubjectLinksInterface`, que este módulo implementa: a quien lo organiza, con la página de encuestas del sujeto; a cada participante, con su encuesta mientras puede responderla y con sus resultados cuando la encuesta los comparte con quien responde (con las mismas reglas que la página de respuesta). Sin este módulo, la ficha no muestra nada.
 
 ## Anuncio en los canales

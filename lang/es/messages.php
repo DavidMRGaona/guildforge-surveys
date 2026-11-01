@@ -67,6 +67,8 @@ return [
         'results_title' => 'Resultados de :title',
         'results_saved' => 'Ajustes de los resultados guardados.',
         'prepared' => 'Encuesta preparada. Revísala y elige cómo se envía al terminar.',
+        'end_choice_saved' => 'Guardada la encuesta al terminar.',
+        'end_choice_released' => 'Guardada la encuesta al terminar. La que habías preparado sigue aquí como borrador.',
         'new_form' => 'Nueva encuesta',
         'new_poll' => 'Nuevo sondeo',
         'created' => 'Encuesta guardada como borrador. Envíala cuando quieras.',
@@ -74,7 +76,23 @@ return [
         'closed' => 'Encuesta cerrada: ya no admite respuestas.',
         'not_closable' => 'Esta encuesta no está abierta: no se puede cerrar.',
         'prepare_unavailable' => [
-            'no_template' => 'La organización aún no ha elegido una plantilla para estas encuestas.',
+            'no_template' => 'No hay plantilla para esta encuesta: la organización aún no ha elegido una o se ha elegido que no tenga encuesta al terminar.',
+            'cancelled' => 'Se ha cancelado, así que no tendrá encuesta al terminar.',
+        ],
+    ],
+
+    'end_choice' => [
+        'type_default' => 'Plantilla del tipo: «:name»',
+        'type_default_none' => 'La del tipo (ahora no tiene plantilla, así que no saldrá ninguna)',
+        'templates' => 'Otras plantillas',
+        'own' => 'Una encuesta propia',
+        'survey' => 'La encuesta «:title»',
+        'drafts' => 'Borradores de esto',
+        'draft' => 'Usar el borrador «:title»',
+        'none' => 'Ninguna',
+        'locked' => [
+            'sent' => 'La encuesta ya ha salido, así que no se puede cambiar.',
+            'ended' => 'Ya ha terminado, así que la encuesta al terminar no se puede cambiar.',
             'cancelled' => 'Se ha cancelado, así que no tendrá encuesta al terminar.',
         ],
     ],

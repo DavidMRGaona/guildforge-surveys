@@ -10,6 +10,7 @@ use App\Application\Modules\DTOs\NavigationItemDTO;
 use App\Application\Modules\DTOs\PagePrefixDTO;
 use App\Application\Modules\DTOs\PermissionDTO;
 use App\Application\Modules\DTOs\SlotRegistrationDTO;
+use App\Application\Surveys\Contracts\SubjectEndSurveyChoiceInterface;
 use App\Application\Surveys\Contracts\SurveySubjectLinksInterface;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
 use App\Domain\Surveys\Events\SurveySubjectCancelled;
@@ -40,6 +41,7 @@ use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
 use Modules\Surveys\Console\Commands\SendScheduledSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
+use Modules\Surveys\Domain\Repositories\SubjectEndChoiceRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
@@ -50,6 +52,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateMod
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentOrganizedSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentPendingSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentResponseStore;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSubjectEndChoiceRepository;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRecipientStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyRepository;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentSurveyResultsQuery;
@@ -59,6 +62,7 @@ use Modules\Surveys\Infrastructure\Services\ChannelSurveyAnnouncer;
 use Modules\Surveys\Infrastructure\Services\EloquentAudienceResolver;
 use Modules\Surveys\Infrastructure\Services\OrganizerMailer;
 use Modules\Surveys\Infrastructure\Services\ReviewMailer;
+use Modules\Surveys\Infrastructure\Services\SubjectEndSurveyChoice;
 use Modules\Surveys\Infrastructure\Services\SurveyInvitationSender;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
 use Modules\Surveys\Infrastructure\Services\SurveySubjectLinks;
@@ -94,6 +98,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
 
         $this->app->bind(SurveyRepositoryInterface::class, EloquentSurveyRepository::class);
         $this->app->bind(SurveyTemplateRepositoryInterface::class, EloquentSurveyTemplateRepository::class);
+        $this->app->bind(SubjectEndChoiceRepositoryInterface::class, EloquentSubjectEndChoiceRepository::class);
         $this->app->bind(SurveyRecipientStoreInterface::class, EloquentSurveyRecipientStore::class);
         $this->app->bind(AudienceResolverInterface::class, EloquentAudienceResolver::class);
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
@@ -106,6 +111,8 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(SurveySettingsInterface::class, SurveySettings::class);
         // Replaces the core's default (no links): subject pages of other modules link to their surveys
         $this->app->bind(SurveySubjectLinksInterface::class, SurveySubjectLinks::class);
+        // Replaces the core's default (nothing to choose): subject forms of other modules choose their end survey
+        $this->app->bind(SubjectEndSurveyChoiceInterface::class, SubjectEndSurveyChoice::class);
         $this->app->bind(OrganizerNotifierInterface::class, OrganizerMailer::class);
         $this->app->bind(ReviewNotifierInterface::class, ReviewMailer::class);
     }

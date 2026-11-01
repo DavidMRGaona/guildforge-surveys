@@ -16,8 +16,6 @@ use Modules\Surveys\Application\Factories\SubjectSnapshotFactory;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
-use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
-use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 
 /**
  * What a subject's end does to its survey. A survey its organizers prepared ahead is taken as it
@@ -31,7 +29,7 @@ final readonly class SubjectEndedService
     public function __construct(
         private SurveySubjectSourceRegistryInterface $sources,
         private SurveySettingsInterface $settings,
-        private SurveyTemplateRepositoryInterface $templates,
+        private EndSurveyTemplateResolver $endTemplates,
         private SurveyRepositoryInterface $surveys,
         private SurveyLifecycleService $lifecycle,
         private OrganizerNotifierInterface $organizers,
@@ -55,7 +53,7 @@ final readonly class SubjectEndedService
         }
 
         $type = $this->settings->forSubjectType($sourceType);
-        $template = $type->templateId === null ? null : $this->templates->find(SurveyTemplateId::fromString($type->templateId));
+        $template = $this->endTemplates->templateFor($sourceType, $subjectId);
         if (! $template instanceof SurveyTemplate) {
             return;
         }
