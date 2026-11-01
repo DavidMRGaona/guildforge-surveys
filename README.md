@@ -18,6 +18,7 @@ Requiere el core de GuildForge `^3.29`.
 - **Avisos**: correo al abrir, recordatorio opcional antes del cierre a quien no ha respondido y pestaña «Encuestas» en el perfil con las pendientes.
 - **Resultados** en el panel, con un gráfico por pregunta (tipo de gráfico y preguntas ocultas configurables), la tasa de respuesta y la exportación a CSV y Excel. Si la encuesta lo permite, quien responde también ve los resultados.
 - **Cierre** por fecha o a mano. Las encuestas solo se borran a mano, con doble confirmación.
+- **Tablas del panel**: cada plantilla dice para qué sirve en «Para» (encuestas generales o uno o varios tipos de sujeto de los módulos activos; sin marcar, sirve para cualquiera) y se filtra por uso y por origen, recomendada o propia. Un tipo cuyo módulo ya no está se conserva, marcado «(sin módulo)». Las encuestas se agrupan en pestañas por estado con su recuento, y la columna «De» muestra de qué mesa, torneo o evento es cada una (de la instantánea; «General» si no tiene sujeto), con búsqueda y filtro por tipo de sujeto.
 
 ## Plantillas recomendadas
 
@@ -28,7 +29,7 @@ El módulo trae 12 plantillas pensadas para una asociación de rol y wargames, t
 - **Eventos**: «Evento de la asociación» (jornadas, puertas abiertas).
 - **Junta**: «Satisfacción de los socios», «Interés por actividades y sistemas» y «Disponibilidad de días y franjas». Para elegir entre fechas concretas está el sondeo rápido.
 
-Llegan al instalar el módulo, o con la primera actualización que las trae, también en producción, y solo se crean las que falten (cada una se reconoce por su clave de catálogo): una plantilla que la asociación haya renombrado o cambiado no se toca nunca, y una que haya borrado no vuelve. Las plantillas creadas en esa ejecución pasan a ser las predeterminadas de su tipo de sujeto (mesa, sesión de campaña, campaña, torneo y evento; en torneos, la general) solo donde no había ninguna elegida, con el envío a un clic. Las variantes de cada juego se eligen a mano en «Ajustes de encuestas». Ninguna plantilla guarda el anonimato: lo decide el ajuste de cada tipo de sujeto o la propia encuesta.
+Llegan al instalar el módulo, o con la primera actualización que las trae, también en producción, y solo se crean las que falten (cada una se reconoce por su clave de catálogo): una plantilla que la asociación haya renombrado o cambiado no se toca nunca, y una que haya borrado no vuelve. Las plantillas creadas en esa ejecución pasan a ser las predeterminadas de su tipo de sujeto (mesa, sesión de campaña, campaña, torneo y evento; en torneos, la general) solo donde no había ninguna elegida, con el envío a un clic. Las variantes de cada juego se eligen a mano en «Ajustes de encuestas». Cada recomendada trae relleno «Para»: su tipo de sujeto, torneos en las variantes de cada juego y encuestas generales en las de la junta. Ninguna plantilla guarda el anonimato: lo decide el ajuste de cada tipo de sujeto o la propia encuesta.
 
 Los nombres de los juegos solo sirven para identificarlos; las plantillas no incluyen logos ni textos de sus reglamentos.
 

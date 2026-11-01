@@ -73,6 +73,7 @@ final class RecommendedTemplatesSeeder extends Seeder
             'description' => $template->description,
             'kind' => SurveyKind::Form->value,
             'definition' => $template->definition->toArray(),
+            'uses' => $template->uses->values,
         ])->id;
     }
 
