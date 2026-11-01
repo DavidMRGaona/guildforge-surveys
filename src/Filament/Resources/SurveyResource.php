@@ -99,7 +99,7 @@ final class SurveyResource extends BaseResource
                             ->state(static fn (?SurveyModel $record): ?string => $record instanceof SurveyModel ? self::publicLinkUrl($record) : null)
                             ->fontFamily('mono')
                             ->extraAttributes(['class' => 'break-all'])
-                            ->afterContent(SurveyActions::copyPublicLink())
+                            ->belowContent(SurveyActions::copyPublicLink())
                             ->columnSpanFull(),
                         TextEntry::make('public_link_current_mode')
                             ->label(__('surveys::filament.survey.fields.public_link_mode'))
