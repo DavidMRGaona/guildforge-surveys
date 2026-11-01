@@ -48,7 +48,7 @@ function mountField(
 }
 
 function draftOf(wrapper: VueWrapper): AnswerDraft {
-    return wrapper.props('modelValue') as AnswerDraft;
+    return (wrapper.props() as unknown as { modelValue: AnswerDraft }).modelValue;
 }
 
 describe('QuestionField', () => {
