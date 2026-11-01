@@ -40,7 +40,7 @@ function rowTotal(counts: Record<string, number>): number {
         <article
             v-for="question in results.questions"
             :key="question.id"
-            class="rounded-lg border border-neutral-200 bg-surface p-4 sm:p-6"
+            class="rounded-lg border border-line bg-surface p-4 sm:p-6"
         >
             <h3 class="font-medium text-base-primary">{{ question.title }}</h3>
             <p class="mt-1 text-sm text-base-secondary">

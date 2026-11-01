@@ -79,7 +79,7 @@ function rowLabelId(rowId: string): string {
                     >
                         <span
                             v-if="cells[row.id] === column.id"
-                            class="h-2 w-2 rounded-full bg-white"
+                            class="h-2 w-2 rounded-full bg-current text-white"
                         ></span>
                     </span>
                     <span class="text-sm text-base-primary sm:sr-only">{{ column.label }}</span>
