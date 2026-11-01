@@ -83,6 +83,15 @@ interface SurveyResultsQueryInterface
     public function voters(SurveyId $surveyId, array $questionIds): array;
 
     /**
+     * Who chose each column of each row (a grid, or the answer to each slot of an availability
+     * question), by name, as voters() does for options.
+     *
+     * @param  list<string>  $questionIds
+     * @return array<string, array<string, array<string, list<string>>>> question id => row id => column id => names, sorted
+     */
+    public function cellVoters(SurveyId $surveyId, array $questionIds): array;
+
+    /**
      * Every response with its values for the given questions (none when it left them all
      * unanswered): what SectionNavigator needs to know the sections each response reached.
      *

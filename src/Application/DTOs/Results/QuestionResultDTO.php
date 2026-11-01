@@ -33,5 +33,6 @@ final readonly class QuestionResultDTO
         public bool $belowMinimum = false,
         public ?int $reached = null,
         public ?RankingResultDTO $ranking = null,
+        public ?AvailabilityResultDTO $availability = null,
     ) {}
 }

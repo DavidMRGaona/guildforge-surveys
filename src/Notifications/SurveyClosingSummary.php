@@ -118,6 +118,18 @@ final class SurveyClosingSummary extends Notification implements ShouldQueue
             ]);
         }
 
+        if ($question->availability) {
+            return $question->topOptions === []
+                ? __('surveys::emails.closing_summary.question_no_slot', ['title' => $title])
+                : trans_choice('surveys::emails.closing_summary.question_best_slot', count($question->topOptions), [
+                    'title' => $title,
+                    'options' => $this->optionList($question->topOptions),
+                    'yes' => $question->topCount,
+                    'if_needed' => $question->topIfNeeded,
+                    'answered' => $question->answered,
+                ]);
+        }
+
         return trans_choice('surveys::emails.closing_summary.question_top', count($question->topOptions), [
             'title' => $title,
             'options' => $this->optionList($question->topOptions),

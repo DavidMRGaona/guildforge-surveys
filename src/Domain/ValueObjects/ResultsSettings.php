@@ -26,13 +26,14 @@ final readonly class ResultsSettings
     ) {}
 
     /**
-     * Polls show their results live to whoever votes, as in messaging apps; forms do not.
+     * Polls show their results live to whoever votes, as in messaging apps, and so do
+     * availability surveys, so everyone sees which date is taking shape; forms do not.
      */
     public static function defaultsFor(SurveyKind $kind): self
     {
-        $isPoll = $kind === SurveyKind::Poll;
+        $shared = $kind !== SurveyKind::Form;
 
-        return new self(liveResults: $isPoll, visibleToRespondents: $isPoll);
+        return new self(liveResults: $shared, visibleToRespondents: $shared);
     }
 
     /**

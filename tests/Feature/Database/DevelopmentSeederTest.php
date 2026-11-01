@@ -19,6 +19,7 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Services\SectionNavigator;
 use Modules\Surveys\Domain\Services\SubmissionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
@@ -124,6 +125,21 @@ final class DevelopmentSeederTest extends ModuleTestCase
         $this->assertTrue($surveys->contains(static fn (SurveyModel $survey): bool => $survey->dismissed_at !== null), 'dismissed');
         $this->assertTrue($surveys->contains(static fn (SurveyModel $survey): bool => $survey->subject_end_key !== null && $survey->subject_ended_at === null), 'prepared ahead');
         $this->assertTrue($surveys->contains('kind', SurveyKind::Poll->value), 'poll');
+        $this->assertTrue($surveys->contains('kind', SurveyKind::Availability->value), 'availability');
+    }
+
+    public function test_a_named_availability_survey_has_whole_days_time_slots_and_every_answer(): void
+    {
+        $this->runSeeder();
+
+        $survey = SurveyModel::query()->where('kind', SurveyKind::Availability->value)->where('status', SurveyStatus::Open->value)->firstOrFail();
+        $slots = SurveyDefinition::fromArray($survey->definition)->questions()[0]->slots;
+        $answers = DB::table('surveys_answers')->whereIn('response_id', SurveyResponseModel::query()->where('survey_id', $survey->id)->select('id'))->pluck('option_id');
+
+        $this->assertFalse($survey->anonymous);
+        $this->assertTrue(array_any($slots, static fn (Slot $slot): bool => $slot->isWholeDay()));
+        $this->assertTrue(array_any($slots, static fn (Slot $slot): bool => ! $slot->isWholeDay() && $slot->endsAt !== null));
+        $this->assertEqualsCanonicalizing(['yes', 'if_needed', 'no'], $answers->unique()->values()->all());
     }
 
     public function test_it_covers_every_kind_of_subject_audience_and_public_link_mode(): void

@@ -19,7 +19,9 @@ use Modules\Surveys\Infrastructure\Export\CsvSurveyExport;
 use Modules\Surveys\Infrastructure\Export\ExportTable;
 use Modules\Surveys\Infrastructure\Export\SurveyExportTable;
 use Modules\Surveys\Infrastructure\Export\XlsxSurveyExport;
+use Modules\Surveys\Tests\Feature\Application\AvailabilityResultsTest;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
+use Modules\Surveys\Tests\Support\ExampleThingSource;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use OpenSpout\Reader\XLSX\Reader;
 use Tests\Support\Modules\InteractsWithModulePanel;
@@ -71,6 +73,24 @@ final class SurveyExportTest extends ModuleTestCase
         // A ranking gives each option its place
         $this->assertSame([2, 3, 1], array_slice($first, 13, 3));
         $this->assertStringStartsWith('encuesta-de-ejemplo', $table->fileName);
+    }
+
+    public function test_an_availability_survey_has_a_column_per_slot_with_each_answer(): void
+    {
+        ExampleThingSource::reset();
+        [$id] = $this->openExample(SurveyKind::Availability, SurveyDefinition::fromArray(AvailabilityResultsTest::definition()), false, ResultsSettings::defaultsFor(SurveyKind::Availability));
+        $this->answer($id, 0, ['q-1' => ['d-1' => 'yes', 'd-2' => 'if_needed']]);
+
+        $table = $this->app->make(SurveyExportTable::class)->build($id);
+
+        $this->assertSame([
+            __('surveys::messages.export.date'),
+            __('surveys::messages.export.person'),
+            '¿Qué día os viene bien?: sábado, 5 de diciembre de 2026',
+            '¿Qué día os viene bien?: viernes, 11 de diciembre de 2026, de 17:00 a 21:00',
+            '¿Qué día os viene bien?: sábado, 12 de diciembre de 2026, a las 11:00',
+        ], $table->headers);
+        $this->assertSame(['Sí', 'Si hace falta', 'No'], array_slice($this->rowOf($this->rows($table), 'Persona A'), 2));
     }
 
     public function test_a_question_someone_did_not_reach_says_so(): void

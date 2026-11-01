@@ -102,7 +102,27 @@ final class DefinitionArrayReader
                 columns: $this->options($grid, 'columns', "{$path}.grid.columns"),
             ),
             nextByOption: $this->jumps($data, "{$path}.next_by_option"),
+            slots: $this->slots($data, "{$path}.slots"),
         );
+    }
+
+    /**
+     * @param  array<mixed>  $data
+     * @return list<Slot>
+     */
+    private function slots(array $data, string $path): array
+    {
+        $slots = [];
+        foreach ($this->list($data, 'slots', $path) as $index => $slot) {
+            $slots[] = new Slot(
+                id: $this->string($slot, 'id', "{$path}.{$index}"),
+                date: $this->nullableString($slot, 'date', "{$path}.{$index}"),
+                startsAt: $this->nullableString($slot, 'starts_at', "{$path}.{$index}"),
+                endsAt: $this->nullableString($slot, 'ends_at', "{$path}.{$index}"),
+            );
+        }
+
+        return $slots;
     }
 
     /**

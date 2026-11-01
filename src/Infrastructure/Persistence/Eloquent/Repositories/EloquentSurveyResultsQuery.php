@@ -165,6 +165,34 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
         return $voters;
     }
 
+    public function cellVoters(SurveyId $surveyId, array $questionIds): array
+    {
+        $rows = $this->answers($surveyId, $questionIds)
+            ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            ->whereNotNull('a.option_id')
+            ->whereNotNull('a.row_id')
+            ->select(['a.question_id', 'a.row_id', 'a.option_id', 'u.name as user_name', 'r.guest_name'])
+            ->get();
+
+        $voters = [];
+        foreach ($rows as $row) {
+            $name = $row->user_name ?? $row->guest_name;
+            if (is_string($name) && $name !== '') {
+                $voters[$this->string($row->question_id)][$this->string($row->row_id)][$this->string($row->option_id)][] = $name;
+            }
+        }
+
+        foreach ($voters as &$byRow) {
+            foreach ($byRow as &$byColumn) {
+                foreach ($byColumn as &$names) {
+                    sort($names, SORT_NATURAL | SORT_FLAG_CASE);
+                }
+            }
+        }
+
+        return $voters;
+    }
+
     public function responseValues(SurveyId $surveyId, array $questionIds): array
     {
         $values = [];

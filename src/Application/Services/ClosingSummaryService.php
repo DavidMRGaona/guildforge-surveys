@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Application\Services;
 
 use DateTimeImmutable;
+use Modules\Surveys\Application\DTOs\Results\AvailabilitySlotResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
 use Modules\Surveys\Application\DTOs\Summary\ClosingSummaryDTO;
@@ -15,7 +16,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
  * The summary mailed when a survey closes, read from what its organizers see (the minimum
- * applied, hidden questions left out). Only choices, scales and star ratings are summed up;
+ * applied, hidden questions left out). Only choices, availability, scales and star ratings are summed up;
  * anything else, a kind of question this summary does not know included, is left to the
  * results page. Free text never enters it.
  */
@@ -62,12 +63,26 @@ final readonly class ClosingSummaryService
     private function question(QuestionResultDTO $question): ?SummaryQuestionDTO
     {
         $scale = $question->type === QuestionType::LinearScale || $question->type === QuestionType::StarRating;
-        if (! $question->type->isChoice() && ! $scale) {
+        $availability = $question->type === QuestionType::Availability;
+        if (! $question->type->isChoice() && ! $scale && ! $availability) {
             return null;
         }
 
         if ($question->belowMinimum) {
             return new SummaryQuestionDTO($question->title, belowMinimum: true);
+        }
+
+        if ($availability) {
+            $best = $question->availability?->best() ?? [];
+
+            return new SummaryQuestionDTO(
+                title: $question->title,
+                answered: $question->answered,
+                topOptions: array_map(static fn (AvailabilitySlotResultDTO $slot): string => $slot->label, $best),
+                topCount: $best === [] ? 0 : $best[0]->yes,
+                availability: true,
+                topIfNeeded: $best === [] ? 0 : $best[0]->ifNeeded,
+            );
         }
 
         if ($scale) {

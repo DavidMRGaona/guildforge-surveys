@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Domain\Services;
 
 use DateTimeImmutable;
+use Modules\Surveys\Domain\Enums\AvailabilityAnswer;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
@@ -69,6 +70,7 @@ final class SubmissionValidator
             QuestionType::Time => preg_match(self::TIME_PATTERN, $values[0]->text ?? '') === 1 ? null : 'invalid_time',
             QuestionType::Grid => $this->checkGrid($question, $values),
             QuestionType::Ranking => $this->checkRanking($question, $values),
+            QuestionType::Availability => $this->checkAvailability($question, $values),
         };
     }
 
@@ -160,6 +162,28 @@ final class SubmissionValidator
         }
 
         return count($seen) < count($optionIds) ? 'ranking_incomplete' : null;
+    }
+
+    /**
+     * One known answer per proposed slot. Submission fills in "no" for the slots left out.
+     *
+     * @param  list<AnswerValue>  $values
+     */
+    private function checkAvailability(Question $question, array $values): ?string
+    {
+        $slotIds = array_map(static fn ($slot): string => $slot->id, $question->slots);
+        $answered = [];
+        foreach ($values as $value) {
+            if (! in_array($value->rowId, $slotIds, true) || ! AvailabilityAnswer::tryFrom((string) $value->optionId) instanceof AvailabilityAnswer) {
+                return 'invalid_option';
+            }
+            if (isset($answered[$value->rowId])) {
+                return 'too_many_options';
+            }
+            $answered[$value->rowId] = true;
+        }
+
+        return null;
     }
 
     private function isDate(?string $text): bool

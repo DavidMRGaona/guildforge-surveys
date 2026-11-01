@@ -56,6 +56,8 @@ return [
         'rate' => 'Ha respondido :responses de :audience persona (:rate %).|Han respondido :responses de :audience personas (:rate %).',
         'question_top' => '**:title**: la más votada es :options (:count de :answered).|**:title**: las más votadas son :options (:count de :answered cada una).',
         'question_mean' => '**:title**: media de :mean, de :min a :max (:answered respuesta).|**:title**: media de :mean, de :min a :max (:answered respuestas).',
+        'question_best_slot' => '**:title**: la fecha que más gente puede es :options (:yes sí y :if_needed si hace falta de :answered).|**:title**: las fechas que más gente puede son :options (:yes sí y :if_needed si hace falta de :answered cada una).',
+        'question_no_slot' => '**:title**: nadie puede en ninguna de las fechas.',
         'question_unanswered' => '**:title**: sin respuestas.',
         'question_below_minimum' => '**:title**: tiene pocas respuestas para mostrarla.',
         'other_questions' => 'Hay :count pregunta más en los resultados completos.|Hay :count preguntas más en los resultados completos.',

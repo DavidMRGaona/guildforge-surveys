@@ -67,6 +67,12 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
         $this->assertSame('fun', $template->definition()->question('q-scale')?->key);
     }
 
+    public function test_availability_surveys_are_labelled_but_never_offered_as_a_template_kind(): void
+    {
+        $this->assertSame('Sondeo de disponibilidad', SurveyTemplateResource::kindOptions()[SurveyKind::Availability->value]);
+        $this->assertSame([SurveyKind::Form->value, SurveyKind::Poll->value], array_keys(SurveyTemplateResource::kindOptions(forTemplates: true)));
+    }
+
     public function test_shows_domain_errors_on_their_field(): void
     {
         $this->actingAsPanelAdmin();

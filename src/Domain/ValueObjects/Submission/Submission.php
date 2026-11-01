@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Domain\ValueObjects\Submission;
 
+use Modules\Surveys\Domain\Enums\AvailabilityAnswer;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
@@ -29,7 +30,8 @@ final readonly class Submission
      * Input is keyed by question id: a string for text, date, time and a single option;
      * an int or numeric string for scales and stars; a list of option ids for checkboxes;
      * {option, other} or {options, other} when "Other" is chosen; {rowId: columnId} for grids;
-     * the option ids in order, best first, for a ranking.
+     * the option ids in order, best first, for a ranking; {slotId: answer} for availability,
+     * where every slot left out counts as "no" (sending the form is the answer).
      *
      * @param  array<mixed>  $input
      */
@@ -37,7 +39,9 @@ final readonly class Submission
     {
         $values = [];
         foreach ($definition->questions() as $question) {
-            if (array_key_exists($question->id, $input)) {
+            if ($question->type === QuestionType::Availability) {
+                array_push($values, ...self::availability($question, $input[$question->id] ?? []));
+            } elseif (array_key_exists($question->id, $input)) {
                 array_push($values, ...self::normalise($question, $input[$question->id]));
             }
         }
@@ -124,6 +128,25 @@ final readonly class Submission
         foreach ($raw as $rowId => $columnId) {
             if (is_string($columnId) && $columnId !== '') {
                 $values[] = new AnswerValue($questionId, optionId: $columnId, rowId: (string) $rowId);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * One value per slot, as a grid cell (the slot as row, the answer as column), "no" for
+     * every slot the input leaves out. Unknown slots and answers are kept for SubmissionValidator.
+     *
+     * @return list<AnswerValue>
+     */
+    private static function availability(Question $question, mixed $raw): array
+    {
+        $values = self::gridCells($question->id, $raw);
+        $answered = array_map(static fn (AnswerValue $value): ?string => $value->rowId, $values);
+        foreach ($question->slots as $slot) {
+            if (! in_array($slot->id, $answered, true)) {
+                $values[] = new AnswerValue($question->id, optionId: AvailabilityAnswer::No->value, rowId: $slot->id);
             }
         }
 
