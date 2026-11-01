@@ -12,7 +12,8 @@ export type QuestionType =
     | 'star_rating'
     | 'date'
     | 'time'
-    | 'grid';
+    | 'grid'
+    | 'ranking';
 
 export interface SurveyOption {
     id: string;
@@ -128,6 +129,7 @@ export interface RespondResults {
 export interface AnswerDraft {
     text: string;
     choice: string;
+    /** Ticked checkboxes, or the placed options of a ranking, best first. */
     choices: string[];
     other: string;
     number: number | null;

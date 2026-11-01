@@ -8,6 +8,7 @@ use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Infrastructure\Persistence\Eloquent\Models\PermissionModel;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Database\Eloquent\Collection;
@@ -80,6 +81,22 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
             ->assertHasFormErrors(["sections.{$sectionKey}.questions.{$questionKey}.data.options"]);
 
         $this->assertSame(0, SurveyTemplateModel::query()->count());
+    }
+
+    public function test_a_ranking_takes_up_to_ten_options_and_no_other(): void
+    {
+        $this->actingAsPanelAdmin();
+        $sections = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()));
+        $ratings = array_keys($sections)[1];
+        $ranking = array_keys($sections[$ratings]['questions'])[5];
+        $path = "sections.{$ratings}.questions.{$ranking}.data";
+
+        Livewire::test(CreateSurveyTemplate::class)
+            ->fillForm(['name' => 'Preferencias', 'kind' => 'form'])
+            ->set('data.sections', $sections)
+            ->assertFormFieldExists("{$path}.options", checkFieldUsing: static fn (Repeater $options): bool => $options->getMaxItems() === 10 && $options->getMinItems() === 2)
+            ->assertFormFieldDoesNotExist("{$path}.allow_other")
+            ->assertFormFieldDoesNotExist("{$path}.branches");
     }
 
     public function test_creates_a_template_with_section_jumps(): void

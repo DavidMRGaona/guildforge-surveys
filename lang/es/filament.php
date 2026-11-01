@@ -51,6 +51,7 @@ return [
         'date' => 'Fecha',
         'time' => 'Hora',
         'grid' => 'Cuadrícula de opción única',
+        'ranking' => 'Ordenar',
     ],
 
     'definition' => [
@@ -68,6 +69,7 @@ return [
         'required' => 'Obligatoria',
         'options' => 'Opciones',
         'add_option' => 'Añadir opción',
+        'ranking_options_help' => 'Quien responde las ordena todas, de la que más le gusta a la que menos. Como mucho, :max opciones.',
         'allow_other' => 'Permitir «Otra» con texto libre',
         'scale_min' => 'Desde',
         'scale_max' => 'Hasta',

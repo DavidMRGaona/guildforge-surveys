@@ -84,7 +84,14 @@ export function allAnswers(
 export function missingAnswer(
     question: SurveyQuestion,
     draft: AnswerDraft | undefined
-): 'required' | 'grid_incomplete' | null {
+): 'required' | 'grid_incomplete' | 'ranking_incomplete' | null {
+    if (question.type === 'ranking' && draft !== undefined) {
+        // Half an order says nothing about the rest, so it is refused even when optional
+        const placed = ranked(question, draft).length;
+        if (placed > 0 && placed < question.options.length) {
+            return 'ranking_incomplete';
+        }
+    }
     if (!question.required) {
         return null;
     }
@@ -120,7 +127,21 @@ function answerOf(question: SurveyQuestion, draft: AnswerDraft): AnswerPayload |
             return draft.number ?? undefined;
         case 'grid':
             return Object.keys(draft.cells).length === 0 ? undefined : draft.cells;
+        case 'ranking': {
+            const order = ranked(question, draft);
+
+            return order.length === 0 ? undefined : order;
+        }
         default:
             return draft.text.trim() === '' ? undefined : draft.text;
     }
+}
+
+/** The placed options of a ranking, best first, without ids the question does not have. */
+function ranked(question: SurveyQuestion, draft: AnswerDraft): string[] {
+    const ids = question.options.map((option) => option.id);
+
+    return draft.choices.filter(
+        (choice, index) => ids.includes(choice) && draft.choices.indexOf(choice) === index
+    );
 }

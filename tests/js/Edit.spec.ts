@@ -330,6 +330,22 @@ describe('Edit', () => {
         expect(wrapper.find('#question-q-2-help').attributes('disabled')).toBeDefined();
     });
 
+    it('lets a ranking have up to ten options and never «Otra»', () => {
+        const ten = Array.from({ length: 10 }, (_, index) => ({
+            id: `o-${index + 1}`,
+            label: `Opción ${index + 1}`,
+        }));
+        const wrapper = mount(Edit, {
+            props: props({ definition: jumping({ type: 'ranking', options: ten }) }),
+        });
+        const count = (text: string): number => wrapper.text().split(text).length - 1;
+
+        // Only the checkbox question below it offers «Otra» and one more option
+        expect(count('Permitir «Otra» con texto libre')).toBe(1);
+        expect(count('Añadir opción')).toBe(1);
+        expect(wrapper.text()).toContain('Quien responde las ordena todas');
+    });
+
     it('adds a question of the chosen type', async () => {
         const wrapper = mount(Edit, { props: props() });
 

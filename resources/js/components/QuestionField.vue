@@ -5,6 +5,7 @@ import { FormCombobox, FormDatePicker, FormSelect, FormTimePicker } from '@/comp
 import { OTHER, type AnswerDraft, type SurveyQuestion } from '../types/Respond';
 import GridAnswer from './respond/GridAnswer.vue';
 import OptionCards from './respond/OptionCards.vue';
+import RankingAnswer from './respond/RankingAnswer.vue';
 import ScaleButtons from './respond/ScaleButtons.vue';
 import StarRating from './respond/StarRating.vue';
 
@@ -198,6 +199,15 @@ const textClass =
             :columns="question.grid.columns"
             :cells="draft.cells"
             @choose="chooseCell"
+        />
+
+        <RankingAnswer
+            v-else-if="question.type === 'ranking'"
+            :name="inputId"
+            :label="question.title"
+            :options="question.options"
+            :order="draft.choices"
+            @change="(order: string[]) => update({ choices: order })"
         />
 
         <input

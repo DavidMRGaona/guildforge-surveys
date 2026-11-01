@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { OTHER, SUBMIT } from '../../resources/js/types/Respond';
 import {
+    allowsOther,
     canBranch,
     changeType,
+    hasOptions,
     jumpTargets,
     move,
     newQuestion,
@@ -42,6 +44,25 @@ describe('definition utils', () => {
         expect(scale.options).toEqual([]);
         expect(scale.allow_other).toBe(false);
         expect(scale.scale).not.toBeNull();
+    });
+
+    it('keeps the options when a choice becomes a ranking, without "Other" or jumps', () => {
+        const question = setJump(
+            { ...newQuestion('single_choice'), allow_other: true },
+            'o-x',
+            's-3'
+        );
+
+        const ranking = changeType(question, 'ranking');
+
+        expect(ranking.options).toEqual(question.options);
+        expect(ranking.allow_other).toBe(false);
+        expect(ranking.next_by_option).toEqual([]);
+        expect(hasOptions('ranking')).toBe(true);
+        expect(allowsOther('ranking')).toBe(false);
+        expect(allowsOther('multiple_choice')).toBe(true);
+        expect(canBranch('ranking')).toBe(false);
+        expect(newQuestion('ranking').options).toHaveLength(2);
     });
 
     it('moves an item and ignores moves out of bounds', () => {
