@@ -220,7 +220,7 @@ final class ClosingSummaryMailTest extends ModuleTestCase
             $this->assertStringContainsString('Asociación de ejemplo', $text);
             $this->assertStringContainsString('Han respondido 2 de 3 personas (67 %)', $text);
             $this->assertStringContainsString('«Viernes \(tarde\)» (2 de 2)', $text);
-            $this->assertStringContainsString('media de 4,5', $text);
+            $this->assertStringContainsString('media de 4,5, de 1 a 5 (2 respuestas)', $text);
             $this->assertStringContainsString('1 pregunta más', $text);
             $this->assertStringNotContainsString('Texto que nunca sale', $text);
             $this->assertSame(route('surveys.manage.results', $mail->surveyId), $message->actionUrl);

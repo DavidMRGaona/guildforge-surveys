@@ -109,7 +109,7 @@ final class SurveyClosingSummary extends Notification implements ShouldQueue
         }
 
         if ($question->mean !== null) {
-            return __('surveys::emails.closing_summary.question_mean', [
+            return trans_choice('surveys::emails.closing_summary.question_mean', $question->answered, [
                 'title' => $title,
                 'mean' => number_format($question->mean, 1, ',', '.'),
                 'min' => (int) $question->scaleMin,

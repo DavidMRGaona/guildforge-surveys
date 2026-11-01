@@ -55,7 +55,7 @@ return [
         'responses' => 'Ha recibido :count respuesta.|Ha recibido :count respuestas.',
         'rate' => 'Ha respondido :responses de :audience persona (:rate %).|Han respondido :responses de :audience personas (:rate %).',
         'question_top' => '**:title**: la más votada es :options (:count de :answered).|**:title**: las más votadas son :options (:count de :answered cada una).',
-        'question_mean' => '**:title**: media de :mean, de :min a :max (:answered respuestas).',
+        'question_mean' => '**:title**: media de :mean, de :min a :max (:answered respuesta).|**:title**: media de :mean, de :min a :max (:answered respuestas).',
         'question_unanswered' => '**:title**: sin respuestas.',
         'question_below_minimum' => '**:title**: tiene pocas respuestas para mostrarla.',
         'other_questions' => 'Hay :count pregunta más en los resultados completos.|Hay :count preguntas más en los resultados completos.',
