@@ -296,7 +296,7 @@ final class SurveyResource extends BaseResource
     }
 
     /**
-     * Starting from a template copies its questions with new ids and the same keys.
+     * Starting from a template copies its questions with new ids and the same keys and options.
      */
     private static function copyTemplate(?string $state, Set $set): void
     {
@@ -309,6 +309,6 @@ final class SurveyResource extends BaseResource
             return;
         }
 
-        $set('sections', DefinitionFormState::fromDefinition(DefinitionFormState::withFreshIds($template->definition())));
+        $set('sections', DefinitionFormState::fromDefinition(DefinitionFormState::withFreshQuestionIds($template->definition())));
     }
 }

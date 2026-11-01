@@ -45,7 +45,7 @@ La garantía es frente a quien usa la aplicación, panel incluido; quien tenga a
 
 ## Tendencias
 
-Cómo evoluciona cada pregunta de una plantilla en las encuestas hechas con ella. Las preguntas se siguen por su clave estable, aunque cambie su texto. Las preguntas añadidas a mano, sin clave, y las encuestas propias del organizador, sin plantilla, no entran.
+Cómo evoluciona cada pregunta de una plantilla en las encuestas hechas con ella. Las preguntas se siguen por su clave estable, aunque cambie su texto. Las opciones, las filas y las columnas de la cuadrícula se siguen por su identificador, que se conserva al copiar la plantilla: las opciones y columnas que una encuesta añade o vuelve a crear cuentan en «Opciones anteriores», y sus filas nuevas no cuentan. Las preguntas añadidas a mano, sin clave, y las encuestas propias del organizador, sin plantilla, no entran.
 
 - **Qué se dibuja**: la media por periodo en escalas y estrellas; el reparto por opción en opción única, desplegable y casillas (en casillas, el porcentaje de quienes respondieron); un gráfico por fila en la cuadrícula. El texto libre, la fecha y la hora no tienen tendencia.
 - **Filtros**: tipo de sujeto, organizador, sistema de juego (el atributo `game_system` de la instantánea) y fechas. Se agrupa por mes, trimestre o año, según la fecha del sujeto (su inicio; en las encuestas generales, la apertura), en la zona horaria del sitio. Se puede comparar por organizador, sistema de juego o tipo de sujeto, con 8 series como mucho: el resto se junta en «Resto».

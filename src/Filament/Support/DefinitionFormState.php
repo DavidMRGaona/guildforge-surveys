@@ -7,7 +7,6 @@ namespace Modules\Surveys\Filament\Support;
 use Illuminate\Support\Str;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
-use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
@@ -138,10 +137,11 @@ final class DefinitionFormState
     }
 
     /**
-     * A copy with new ids for sections, questions and options but the same keys, so a
-     * survey made from a template stays comparable with the others made from it.
+     * A copy with new ids for sections and questions but the same keys, options, grid rows and
+     * columns: trends match questions by key and options and rows by id with the template's,
+     * so a survey made from a template stays comparable with the others made from it.
      */
-    public static function withFreshIds(SurveyDefinition $definition): SurveyDefinition
+    public static function withFreshQuestionIds(SurveyDefinition $definition): SurveyDefinition
     {
         return new SurveyDefinition(array_map(
             static fn (Section $section): Section => new Section(
@@ -156,26 +156,17 @@ final class DefinitionFormState
                         title: $question->title,
                         help: $question->help,
                         required: $question->required,
-                        options: self::freshOptions($question->options),
+                        options: $question->options,
                         allowOther: $question->allowOther,
                         scale: $question->scale,
                         stars: $question->stars,
-                        grid: $question->grid instanceof GridSettings ? new GridSettings(self::freshOptions($question->grid->rows), self::freshOptions($question->grid->columns)) : null,
+                        grid: $question->grid,
                     ),
                     $section->questions,
                 ),
             ),
             $definition->sections,
         ));
-    }
-
-    /**
-     * @param  list<Option>  $options
-     * @return list<Option>
-     */
-    private static function freshOptions(array $options): array
-    {
-        return array_map(static fn (Option $option): Option => new Option((string) Str::uuid(), $option->label), $options);
     }
 
     /**
