@@ -23,4 +23,12 @@ interface SurveyTemplateRepositoryInterface
      * @return array<string, string> template id => name
      */
     public function formNames(): array;
+
+    /**
+     * formNames() split in two, each by name: the templates meant for $use (a kind of subject or
+     * general) and the others, those meant for anything included.
+     *
+     * @return array{matching: array<string, string>, others: array<string, string>} template id => name
+     */
+    public function formNamesFor(string $use): array;
 }

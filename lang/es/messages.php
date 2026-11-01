@@ -92,6 +92,7 @@ return [
         'game_system_default' => 'Plantilla de su sistema de juego: «:name»',
         'by_game_system' => 'La de su sistema de juego o, si no tiene, la del tipo: «:name»',
         'by_game_system_none' => 'La de su sistema de juego (sin plantilla para el suyo, no saldrá ninguna)',
+        'templates_for_type' => 'Plantillas para esto',
         'templates' => 'Otras plantillas',
         'own' => 'Una encuesta propia',
         'survey' => 'La encuesta «:title»',

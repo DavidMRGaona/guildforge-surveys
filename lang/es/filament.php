@@ -22,6 +22,12 @@ return [
         'closed' => 'Cerrada',
     ],
 
+    'template_options' => [
+        'for_type' => 'Para este tipo',
+        'for_general' => 'Para encuestas generales',
+        'others' => 'Otras',
+    ],
+
     'subject_types' => [
         'general' => 'General',
         'retired' => ':type (sin módulo)',

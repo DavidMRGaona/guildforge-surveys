@@ -29,8 +29,7 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
-use Modules\Surveys\Domain\Enums\SurveyKind;
-use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
+use Modules\Surveys\Filament\Support\TemplateOptions;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
 
 /**
@@ -221,11 +220,11 @@ final class SurveySettingsPage extends Page implements HasForms
             return [Text::make(__('surveys::messages.settings.no_subject_types'))];
         }
 
-        $templates = SurveyTemplateModel::query()->where('kind', SurveyKind::Form->value)->orderBy('name')->pluck('name', 'id')->all();
         $settings = app(SurveySettingsInterface::class);
 
-        return array_map(static function (SurveySubjectSourceInterface $source) use ($templates, $settings): Section {
+        return array_map(static function (SurveySubjectSourceInterface $source) use ($settings): Section {
             $path = 'subject_types.'.$source->sourceType();
+            $templates = TemplateOptions::for($source->sourceType());
             $gameSystems = self::gameSystemOptions($source, array_keys($settings->forSubjectType($source->sourceType())->gameSystemTemplates));
 
             return Section::make($source->sourceLabel())

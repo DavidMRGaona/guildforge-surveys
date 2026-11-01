@@ -31,6 +31,7 @@ use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SubjectEndChoiceModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
@@ -119,6 +120,33 @@ final class SubjectEndSurveyChoiceTest extends ModuleTestCase
         $this->assertSame('own', $choice->ownValue);
         $this->assertSame([
             'template:'.$this->typeTemplate->id()->value => 'Valoración de ejemplo',
+            'template:'.$this->otherTemplate->id()->value => 'Torneo de ejemplo',
+        ], $this->labels($choice->baseTemplates));
+    }
+
+    public function test_templates_for_this_kind_of_subject_come_before_the_others(): void
+    {
+        $forThing = $this->template('Valoración de cosas', [ExampleThingSource::TYPE]);
+        $general = $this->template('Encuesta general', [TemplateUses::GENERAL]);
+
+        $choice = $this->forForm();
+
+        $this->assertSame([
+            'type-default' => 'Plantilla del tipo: «Valoración de ejemplo»',
+            'template:'.$forThing->id()->value => 'Valoración de cosas',
+            'template:'.$general->id()->value => 'Encuesta general',
+            'template:'.$this->otherTemplate->id()->value => 'Torneo de ejemplo',
+            'own' => 'Una encuesta propia',
+            'none' => 'Ninguna',
+        ], $this->labels($choice->options));
+        $this->assertSame(
+            [null, 'Plantillas para esto', 'Otras plantillas', 'Otras plantillas', null, null],
+            array_map(static fn (EndSurveyOptionDTO $option): ?string => $option->group, $choice->options),
+        );
+        $this->assertSame([
+            'template:'.$this->typeTemplate->id()->value => 'Valoración de ejemplo',
+            'template:'.$forThing->id()->value => 'Valoración de cosas',
+            'template:'.$general->id()->value => 'Encuesta general',
             'template:'.$this->otherTemplate->id()->value => 'Torneo de ejemplo',
         ], $this->labels($choice->baseTemplates));
     }
@@ -407,7 +435,10 @@ final class SubjectEndSurveyChoiceTest extends ModuleTestCase
         return $labels;
     }
 
-    private function template(string $name): SurveyTemplate
+    /**
+     * @param  list<string>  $uses
+     */
+    private function template(string $name, array $uses = []): SurveyTemplate
     {
         $template = new SurveyTemplate(
             SurveyTemplateId::generate(),
@@ -415,6 +446,7 @@ final class SubjectEndSurveyChoiceTest extends ModuleTestCase
             null,
             SurveyKind::Form,
             SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()),
+            uses: new TemplateUses($uses),
         );
         $this->app->make(SurveyTemplateRepositoryInterface::class)->save($template);
 
