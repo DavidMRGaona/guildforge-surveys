@@ -59,6 +59,7 @@ final class ResultsPayload
             'type' => $question->type->value,
             'answered' => $question->answered,
             'belowMinimum' => $question->belowMinimum,
+            'reached' => $question->reached,
             'buckets' => array_map(static fn (ResultBucketDTO $bucket): array => [
                 'key' => $bucket->key,
                 'label' => $bucket->label,

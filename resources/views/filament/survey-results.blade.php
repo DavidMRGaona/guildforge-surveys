@@ -31,6 +31,9 @@
             <x-slot name="heading">{{ $question->title }}</x-slot>
             <x-slot name="description">
                 {{ trans_choice('surveys::filament.results.answered', $question->answered, ['count' => $question->answered]) }}
+                @if ($question->reached !== null)
+                    · {{ __('surveys::filament.results.reached', ['reached' => $question->reached, 'responses' => $results->responses]) }}
+                @endif
                 @if ($question->mean !== null && ! $question->belowMinimum)
                     · {{ __('surveys::filament.results.mean_median', [
                         'mean' => \Illuminate\Support\Number::format($question->mean, maxPrecision: 2, locale: app()->getLocale()),

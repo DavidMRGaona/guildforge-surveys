@@ -76,6 +76,24 @@ final readonly class SurveyDefinition
         return array_any($this->sections, static fn (Section $section): bool => $section->next !== null || $section->branchingQuestion() instanceof Question);
     }
 
+    /**
+     * The questions whose answer decides the next section, in order.
+     *
+     * @return list<string>
+     */
+    public function branchingQuestionIds(): array
+    {
+        $ids = [];
+        foreach ($this->sections as $section) {
+            $question = $section->branchingQuestion();
+            if ($question instanceof Question) {
+                $ids[] = $question->id;
+            }
+        }
+
+        return $ids;
+    }
+
     public function question(string $id): ?Question
     {
         foreach ($this->questions() as $question) {

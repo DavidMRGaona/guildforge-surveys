@@ -196,6 +196,7 @@ return [
             'below_minimum' => 'Aún no hay respuestas suficientes para mostrar resultados.',
         ],
         'answered' => '{0} Nadie ha respondido a esta pregunta|{1} :count persona ha respondido a esta pregunta|[2,*] :count personas han respondido a esta pregunta',
+        'reached' => 'La vieron :reached de :responses',
         'question_below_minimum' => 'Aún no hay respuestas suficientes a esta pregunta para mostrarlas.',
         'mean_median' => 'Media: :mean · Mediana: :median',
         'no_texts' => 'Nadie ha escrito nada todavía.',

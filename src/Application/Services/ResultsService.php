@@ -15,6 +15,7 @@ use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Services\SectionNavigator;
 use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
@@ -51,7 +52,7 @@ final readonly class ResultsService
             static fn (Question $question): bool => $questionIds === null || in_array($question->id, $questionIds, true),
         ));
 
-        return $this->build($survey, $responses, $reason, $questions, forRespondents: false);
+        return $this->build($survey, $responses, $reason, $questions, forRespondents: false, withHidden: true);
     }
 
     /**
@@ -118,7 +119,7 @@ final readonly class ResultsService
     /**
      * @param  list<Question>  $questions
      */
-    private function build(Survey $survey, int $responses, ?string $reason, array $questions, bool $forRespondents): SurveyResultsDTO
+    private function build(Survey $survey, int $responses, ?string $reason, array $questions, bool $forRespondents, bool $withHidden = false): SurveyResultsDTO
     {
         $audience = $survey->audienceSize();
         $rate = $audience > 0 ? round($responses / $audience, 4) : null;
@@ -142,6 +143,15 @@ final readonly class ResultsService
         // applies to each question of an anonymous survey too, counting verified answers only
         $minimum = $survey->isAnonymous() ? $this->settings->minResponses() : 0;
         $verified = $minimum > 0 ? $this->query->verifiedAnsweredCounts($id, $ids) : [];
+        $reachedCounts = $this->jumpsShown($survey, $withHidden, $minimum) ? $this->reachedCounts($survey) : null;
+        $reached = static function (string $questionId) use ($reachedCounts, $responses, $minimum): ?int {
+            $counts = $reachedCounts[$questionId] ?? null;
+            if ($counts === null || $counts['all'] >= $responses || $counts['verified'] < $minimum) {
+                return null;
+            }
+
+            return $counts['all'];
+        };
 
         $results = [];
         foreach ($questions as $question) {
@@ -154,6 +164,7 @@ final readonly class ResultsService
                     hidden: $survey->results()->isHidden($question->id),
                     answered: $answered[$question->id] ?? 0,
                     belowMinimum: true,
+                    reached: $reached($question->id),
                 );
 
                 continue;
@@ -169,6 +180,7 @@ final readonly class ResultsService
                 $dates[$question->id] ?? [],
                 $texts[$question->id] ?? [],
                 $voters[$question->id] ?? [],
+                $reached($question->id),
             );
         }
 
@@ -183,7 +195,7 @@ final readonly class ResultsService
      * @param  list<string>  $texts
      * @param  array<string, list<string>>  $voters
      */
-    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $numbers, array $dates, array $texts, array $voters): QuestionResultDTO
+    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $numbers, array $dates, array $texts, array $voters, ?int $reached): QuestionResultDTO
     {
         $buckets = [];
         $grid = null;
@@ -235,7 +247,56 @@ final readonly class ResultsService
             mean: $mean,
             median: $median,
             texts: $texts,
+            reached: $reached,
         );
+    }
+
+    /**
+     * Whether this view shows every question that decides a jump: how many reached a question
+     * tells how many chose the options leading there, so it is only given where those answers
+     * are on show anyway (never hidden from the view, never below the minimum).
+     */
+    private function jumpsShown(Survey $survey, bool $withHidden, int $minimum): bool
+    {
+        $jumping = $survey->definition()->branchingQuestionIds();
+        if (! $withHidden && array_any($jumping, static fn (string $id): bool => $survey->results()->isHidden($id))) {
+            return false;
+        }
+        if ($minimum === 0 || $jumping === []) {
+            return true;
+        }
+
+        $verified = $this->query->verifiedAnsweredCounts($survey->id(), $jumping);
+
+        return array_all($jumping, static fn (string $id): bool => ($verified[$id] ?? 0) >= $minimum);
+    }
+
+    /**
+     * How many responses (and verified ones) reached each question, walking each response's
+     * answers to the jumping questions; null when the survey has no jumps and every response
+     * reached everything. The definition never changes once there are responses, so the walk
+     * today is the one each person took.
+     *
+     * @return array<string, array{all: int, verified: int}>|null
+     */
+    private function reachedCounts(Survey $survey): ?array
+    {
+        $definition = $survey->definition();
+        if (! $definition->hasBranching()) {
+            return null;
+        }
+
+        $navigator = new SectionNavigator;
+        $counts = [];
+        foreach ($this->query->responseValues($survey->id(), $definition->branchingQuestionIds()) as $response) {
+            foreach ($navigator->reachedQuestionIds($definition, new Submission($response['values'])) as $questionId) {
+                $counts[$questionId] ??= ['all' => 0, 'verified' => 0];
+                $counts[$questionId]['all']++;
+                $counts[$questionId]['verified'] += $response['verified'] ? 1 : 0;
+            }
+        }
+
+        return $counts;
     }
 
     /**

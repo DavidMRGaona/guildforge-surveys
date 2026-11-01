@@ -16,9 +16,13 @@ use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Exceptions\ResultsNotAvailableException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Services\SectionNavigator;
 use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
+use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
@@ -84,6 +88,9 @@ final readonly class SurveyExportTable
     {
         $named = ! $survey->isAnonymous();
         $withheld = $this->withheldQuestions($survey);
+        // "Not reached" would give away, row by row, a withheld answer that decided the way
+        $marksReach = $survey->definition()->hasBranching()
+            && array_intersect($survey->definition()->branchingQuestionIds(), $withheld) === [];
 
         $responses = DB::table('surveys_responses as r')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
@@ -97,13 +104,13 @@ final readonly class SurveyExportTable
             $batch[] = $response;
 
             if (count($batch) === self::BATCH) {
-                yield from $this->batch($batch, $columns, $named, $withheld);
+                yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null);
                 $batch = [];
             }
         }
 
         if ($batch !== []) {
-            yield from $this->batch($batch, $columns, $named, $withheld);
+            yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null);
         }
     }
 
@@ -111,10 +118,13 @@ final readonly class SurveyExportTable
      * @param  list<object>  $responses
      * @param  list<array{Question, ?Option}>  $columns
      * @param  list<string>  $withheld
+     * @param  ?SurveyDefinition  $definition  set when cells of questions a response did not reach say so
      * @return Generator<int, list<string|int|null>>
      */
-    private function batch(array $responses, array $columns, bool $named, array $withheld): Generator
+    private function batch(array $responses, array $columns, bool $named, array $withheld, ?SurveyDefinition $definition): Generator
     {
+        $notReached = __('surveys::messages.export.not_reached');
+        $notReached = is_string($notReached) ? $notReached : '';
         $ids = array_map(static fn (object $response): string => self::string($response->id ?? null), $responses);
         $answers = [];
         foreach (DB::table('surveys_answers')->whereIn('response_id', $ids)->orderBy('id')->get() as $answer) {
@@ -124,6 +134,8 @@ final readonly class SurveyExportTable
         foreach ($responses as $response) {
             $responseId = self::string($response->id ?? null);
             $row = [];
+            // With jumps, a blank cell is a question left unanswered, never one the way skipped
+            $reached = $definition instanceof SurveyDefinition ? $this->reached($definition, $answers[$responseId] ?? []) : null;
 
             if ($named) {
                 $name = $response->user_name ?? $response->guest_name ?? null;
@@ -132,9 +144,11 @@ final readonly class SurveyExportTable
             }
 
             foreach ($columns as [$question, $gridRow]) {
-                $row[] = in_array($question->id, $withheld, true)
-                    ? null
-                    : $this->value($question, $gridRow, $answers[$responseId][$question->id] ?? []);
+                $row[] = match (true) {
+                    in_array($question->id, $withheld, true) => null,
+                    $reached !== null && ! in_array($question->id, $reached, true) => $notReached,
+                    default => $this->value($question, $gridRow, $answers[$responseId][$question->id] ?? []),
+                };
             }
 
             yield $row;
@@ -189,6 +203,30 @@ final readonly class SurveyExportTable
         $text = $answers[0]->text_value ?? null;
 
         return is_string($text) ? $text : null;
+    }
+
+    /**
+     * The questions a response reached, from its stored answers.
+     *
+     * @param  array<string, list<object>>  $answers  question id => answer rows
+     * @return list<string>
+     */
+    private function reached(SurveyDefinition $definition, array $answers): array
+    {
+        $values = [];
+        foreach ($answers as $questionId => $rows) {
+            foreach ($rows as $answer) {
+                $values[] = new AnswerValue(
+                    (string) $questionId,
+                    is_string($answer->option_id ?? null) ? $answer->option_id : null,
+                    is_string($answer->row_id ?? null) ? $answer->row_id : null,
+                    is_string($answer->text_value ?? null) ? $answer->text_value : null,
+                    is_numeric($answer->number_value ?? null) ? (int) $answer->number_value : null,
+                );
+            }
+        }
+
+        return (new SectionNavigator)->reachedQuestionIds($definition, new Submission($values));
     }
 
     /**

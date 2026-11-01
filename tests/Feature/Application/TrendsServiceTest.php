@@ -14,6 +14,7 @@ use Modules\Surveys\Application\DTOs\Trends\TrendPointDTO;
 use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
+use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Tests\Support\BuildsTrendSurveys;
 use Modules\Surveys\Tests\Support\ExampleThingSource;
@@ -321,6 +322,36 @@ final class TrendsServiceTest extends ModuleTestCase
         // Checkboxes: the share of the people who answered, so they add up to more than one
         $liked = $this->question($trends, 'liked');
         $this->assertEqualsWithDelta(['o-1' => 2 / 3, 'o-2' => 2 / 3], $this->point($liked, 0, '2027-Q1')->shares, 0.0001);
+    }
+
+    public function test_section_jumps_leave_shares_and_the_minimum_to_the_people_who_answered(): void
+    {
+        // "Combate" ends the survey before the satisfaction section
+        $definition = $this->definition();
+        $questions = $definition['sections'][0]['questions'];
+        $definition['sections'] = [
+            ['id' => 's-1', 'title' => null, 'description' => null, 'questions' => [[...$questions[2], 'next_by_option' => [['option_id' => 'o-2', 'next' => Section::SUBMIT]]]]],
+            ['id' => 's-2', 'title' => null, 'description' => null, 'questions' => [$questions[0]]],
+        ];
+        $this->answerMany($this->survey(['starts' => '2027-01-10', 'definition' => $definition]), [
+            ['best' => 'o-1', 'sat' => 5], ['best' => 'o-1', 'sat' => 5], ['best' => 'o-2'], ['best' => 'o-2'],
+        ]);
+        $this->answerMany($this->survey(['starts' => '2027-04-10', 'definition' => $definition]), [
+            ['best' => 'o-1', 'sat' => 4], ['best' => 'o-1', 'sat' => 4], ['best' => 'o-1', 'sat' => 4], ['best' => 'o-2'],
+        ]);
+
+        $trends = $this->panel();
+
+        $best = $this->question($trends, 'best_part');
+        $this->assertEqualsWithDelta(['o-1' => 0.5, 'o-2' => 0.5, Submission::OTHER => 0.0], $this->point($best, 0, '2027-Q1')->shares, 0.0001);
+        $satisfaction = $this->question($trends, 'satisfaction');
+        // Only two people reached it in the first quarter: below the survey's minimum of three
+        // for the question, so the survey leaves it out and the point shows nothing
+        $hidden = $this->point($satisfaction, 0, '2027-Q1');
+        $this->assertSame(0, $hidden->answered);
+        $this->assertNull($hidden->mean);
+        $this->assertSame(4.0, $this->point($satisfaction, 0, '2027-Q2')->mean);
+        $this->assertSame(3, $this->point($satisfaction, 0, '2027-Q2')->answered);
     }
 
     public function test_grid_rows_trend_as_their_own_charts(): void

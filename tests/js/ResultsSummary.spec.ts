@@ -24,6 +24,7 @@ function question(overrides: Partial<QuestionResult> = {}): QuestionResult {
         grid: null,
         mean: null,
         median: null,
+        reached: null,
         ...overrides,
     };
 }
@@ -43,6 +44,18 @@ describe('ResultsSummary', () => {
         expect(wrapper.text()).toContain('Otra');
         expect(wrapper.text()).toContain('Han votado: Persona A, Persona B, Persona C');
         expect(wrapper.text()).toContain('4 respuestas');
+    });
+
+    it('says how many reached a question some sections skipped', () => {
+        const wrapper = mount(ResultsSummary, {
+            props: {
+                results: results([question(), question({ id: 'q-2', answered: 2, reached: 3 })]),
+            },
+        });
+
+        const [all, skipped] = wrapper.findAll('article');
+        expect(all?.text()).not.toContain('La vieron');
+        expect(skipped?.text()).toContain('La vieron 3 de 4');
     });
 
     it('shows the mean and median of a scale and hides a question below the minimum', () => {

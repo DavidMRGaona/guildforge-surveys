@@ -92,6 +92,8 @@ export interface QuestionResult {
     type: QuestionType;
     answered: number;
     belowMinimum: boolean;
+    /** Responses that reached it when sections were skipped, else null (see ResultsService). */
+    reached: number | null;
     buckets: ResultBucket[];
     grid: {
         rows: SurveyOption[];

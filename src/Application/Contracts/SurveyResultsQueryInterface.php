@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Application\Contracts;
 
+use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
 /**
@@ -72,4 +73,13 @@ interface SurveyResultsQueryInterface
      * @return array<string, array<string, list<string>>> question id => option id => names, sorted
      */
     public function voters(SurveyId $surveyId, array $questionIds): array;
+
+    /**
+     * Every response with its values for the given questions (none when it left them all
+     * unanswered): what SectionNavigator needs to know the sections each response reached.
+     *
+     * @param  list<string>  $questionIds
+     * @return list<array{verified: bool, values: list<AnswerValue>}>
+     */
+    public function responseValues(SurveyId $surveyId, array $questionIds): array;
 }

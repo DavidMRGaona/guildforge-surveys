@@ -14,6 +14,9 @@ final readonly class QuestionResultDTO
      * @param  bool  $belowMinimum  an anonymous question too few people answered: nothing else is filled in
      * @param  list<ResultBucketDTO>  $buckets
      * @param  list<string>  $texts  free text, or the text of "Other"
+     * @param  ?int  $reached  responses whose way through the sections reached this question, only
+     *                         when that is fewer than all of them and, on an anonymous survey, at
+     *                         least the minimum
      */
     public function __construct(
         public string $questionId,
@@ -28,5 +31,6 @@ final readonly class QuestionResultDTO
         public ?float $median = null,
         public array $texts = [],
         public bool $belowMinimum = false,
+        public ?int $reached = null,
     ) {}
 }

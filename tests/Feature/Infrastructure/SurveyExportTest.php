@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Modules\Surveys\Tests\Feature\Infrastructure;
 
 use Livewire\Livewire;
+use Modules\Surveys\Application\DTOs\Respondent;
+use Modules\Surveys\Application\Services\SubmissionService;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
+use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\ResultsNotAvailableException;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ViewSurveyResults;
@@ -15,6 +20,7 @@ use Modules\Surveys\Infrastructure\Export\ExportTable;
 use Modules\Surveys\Infrastructure\Export\SurveyExportTable;
 use Modules\Surveys\Infrastructure\Export\XlsxSurveyExport;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
+use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use OpenSpout\Reader\XLSX\Reader;
 use Tests\Support\Modules\InteractsWithModulePanel;
 use Tests\Support\Modules\ModuleTestCase;
@@ -62,6 +68,43 @@ final class SurveyExportTest extends ModuleTestCase
         $this->assertSame('Bien', $first[11]);
         $this->assertSame('Mal', $first[12]);
         $this->assertStringStartsWith('encuesta-de-ejemplo', $table->fileName);
+    }
+
+    public function test_a_question_someone_did_not_reach_says_so(): void
+    {
+        $definition = SurveyDefinitionTest::branchingDefinition();
+        $definition['sections'][1]['questions'][0]['required'] = false;
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray($definition), false, ResultsSettings::defaultsFor(SurveyKind::Form));
+        $submissions = $this->app->make(SubmissionService::class);
+        $submissions->submit($id, Respondent::account($this->people[0]->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
+        $submissions->submit($id, Respondent::account($this->people[1]->id), ['q-played' => 'o-yes', 'q-comments' => 'Bien']);
+
+        $rows = $this->rows($this->app->make(SurveyExportTable::class)->build($id));
+
+        // The finale is the fourth column, after date, person and the first question
+        $this->assertSame(__('surveys::messages.export.not_reached'), $this->rowOf($rows, 'Persona A')[3]);
+        $this->assertNull($this->rowOf($rows, 'Persona B')[3]);
+    }
+
+    public function test_a_withheld_jumping_question_leaves_no_trace_of_the_way_taken(): void
+    {
+        config(['modules.settings.surveys.min_responses' => 2]);
+        $definition = SurveyDefinitionTest::branchingDefinition();
+        $definition['sections'][0]['questions'][0]['required'] = false;
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray($definition), true, new ResultsSettings(liveResults: true));
+        $submissions = $this->app->make(SubmissionService::class);
+        $submissions->submit($id, Respondent::account($this->people[0]->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
+        foreach ([1, 2] as $person) {
+            $submissions->submit($id, Respondent::account($this->people[$person]->id), ['q-finale' => 'Épico', 'q-comments' => 'Bien']);
+        }
+
+        $rows = $this->rows($this->app->make(SurveyExportTable::class)->build($id));
+
+        // "Not reached" would tell, row by row, the answer the minimum withholds
+        $this->assertCount(3, $rows);
+        foreach ($rows as $row) {
+            $this->assertNotContains(__('surveys::messages.export.not_reached'), $row);
+        }
     }
 
     public function test_an_anonymous_survey_needs_its_results_to_be_visible_and_has_no_person_or_date(): void
