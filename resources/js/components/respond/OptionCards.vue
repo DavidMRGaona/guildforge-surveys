@@ -70,7 +70,10 @@ function isChosen(optionId: string): boolean {
                     class="h-3.5 w-3.5 text-white"
                     :stroke-width="3"
                 />
-                <span v-else-if="isChosen(option.id)" class="h-2 w-2 rounded-full bg-current text-white"></span>
+                <span
+                    v-else-if="isChosen(option.id)"
+                    class="h-2 w-2 rounded-full bg-current text-white"
+                ></span>
             </span>
             <span class="text-base-primary">{{ option.label }}</span>
         </label>
