@@ -151,6 +151,18 @@ final class SurveyTrendsPageTest extends ModuleTestCase
         $this->assertSame(['min' => 1, 'max' => 5, 'ticks' => ['precision' => 0]], data_get($this->chartOptions($chart), 'scales.y'));
     }
 
+    public function test_the_chart_of_a_ranked_option_puts_the_first_place_on_top(): void
+    {
+        $this->actingAsPanelAdmin();
+        $this->answerMany($this->survey(['starts' => '2027-01-10']), [['rank' => ['k-1', 'k-2', 'k-3']], ['rank' => ['k-1', 'k-3', 'k-2']], ['rank' => ['k-2', 'k-1', 'k-3']]]);
+
+        $chart = $this->chart('games.k-1');
+
+        $this->assertSame('line', (new ReflectionMethod(QuestionTrendChart::class, 'getType'))->invoke($chart));
+        $this->assertSame([1.33], data_get($this->chartData($chart), 'datasets.0.data'));
+        $this->assertSame(['min' => 1, 'max' => 3, 'ticks' => ['precision' => 0], 'reverse' => true], data_get($this->chartOptions($chart), 'scales.y'));
+    }
+
     public function test_the_chart_stacks_shares(): void
     {
         $this->actingAsPanelAdmin();

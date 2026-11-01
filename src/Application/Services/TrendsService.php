@@ -36,7 +36,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
  * minimum too), so no combination of filters gives away a survey that is hidden by itself.
  * On top of that, every cut (a series in a period) needs the minimum of answers.
  *
- * @phpstan-type Item array{key: string, questionKey: string, title: string, question: Question, rowId: ?string, measure: string, min: ?int, max: ?int, options: list<array{id: string, label: string}>}
+ * @phpstan-type Item array{key: string, questionKey: string, title: string, question: Question, rowId: ?string, optionId: ?string, measure: string, min: ?int, max: ?int, options: list<array{id: string, label: string}>}
  * @phpstan-type Cell array{answered: int, verified: int, sum: int, values: int, denominator: int, counts: array<string, int>}
  */
 final readonly class TrendsService
@@ -185,7 +185,8 @@ final readonly class TrendsService
 
         $ids = array_keys($surveys);
         $answered = $this->query->answeredCounts($ids, $questionIds(static fn (array $item): bool => true));
-        $numbers = $this->query->numberCounts($ids, $questionIds(static fn (array $item): bool => $item['measure'] === QuestionTrendDTO::MEAN));
+        $numbers = $this->query->numberCounts($ids, $questionIds(static fn (array $item): bool => $item['measure'] === QuestionTrendDTO::MEAN && $item['optionId'] === null));
+        $places = $this->query->positionCounts($ids, $questionIds(static fn (array $item): bool => $item['optionId'] !== null));
         $options = $this->query->optionCounts($ids, $questionIds(static fn (array $item): bool => $item['measure'] === QuestionTrendDTO::SHARES && $item['rowId'] === null));
         $cells = $this->query->cellCounts($ids, $questionIds(static fn (array $item): bool => $item['rowId'] !== null));
 
@@ -214,7 +215,8 @@ final readonly class TrendsService
                         $grid[$series][$period] ?? ['answered' => 0, 'verified' => 0, 'sum' => 0, 'values' => 0, 'denominator' => 0, 'counts' => []],
                         $item,
                         $counts,
-                        $numbers[$surveyId][$questionId] ?? [],
+                        // A ranked option trends its mean place like a scale its mean value
+                        $item['optionId'] === null ? ($numbers[$surveyId][$questionId] ?? []) : ($places[$surveyId][$questionId][$item['optionId']] ?? []),
                         $options[$surveyId][$questionId] ?? [],
                         $item['rowId'] === null ? [] : ($cells[$surveyId][$questionId][$item['rowId']] ?? []),
                     );
@@ -387,7 +389,7 @@ final readonly class TrendsService
                 continue;
             }
 
-            $base = ['key' => $question->key, 'questionKey' => $question->key, 'title' => $question->title, 'question' => $question, 'rowId' => null, 'min' => null, 'max' => null, 'options' => []];
+            $base = ['key' => $question->key, 'questionKey' => $question->key, 'title' => $question->title, 'question' => $question, 'rowId' => null, 'optionId' => null, 'min' => null, 'max' => null, 'options' => []];
 
             $found = match ($question->type) {
                 QuestionType::LinearScale => [[...$base, 'measure' => QuestionTrendDTO::MEAN, 'min' => $question->scale->min ?? 1, 'max' => $question->scale->max ?? 5]],
@@ -401,6 +403,16 @@ final readonly class TrendsService
                     'measure' => QuestionTrendDTO::SHARES,
                     'options' => array_map(static fn ($column): array => ['id' => $column->id, 'label' => $column->label], $question->grid->columns ?? []),
                 ], $question->grid->rows ?? []),
+                // One chart per option with its mean place, 1 the best
+                QuestionType::Ranking => array_map(static fn ($option): array => [
+                    ...$base,
+                    'key' => "{$question->key}.{$option->id}",
+                    'title' => (string) __('surveys::messages.trends.row_title', ['question' => $question->title, 'row' => $option->label]),
+                    'optionId' => $option->id,
+                    'measure' => QuestionTrendDTO::MEAN,
+                    'min' => 1,
+                    'max' => count($question->options),
+                ], $question->options),
                 default => [[...$base, 'measure' => QuestionTrendDTO::NONE]],
             };
 
@@ -430,7 +442,8 @@ final readonly class TrendsService
 
     /**
      * The question each survey asked for each item: same key and type as the template's, the
-     * same scale, and the grid row still there. Organizers lose what a survey hides from them.
+     * same scale, the grid row still there, a ranking with as many options and that one among
+     * them. Organizers lose what a survey hides from them.
      *
      * @param  list<Item>  $items
      * @param  array<string, Survey>  $surveys
@@ -475,6 +488,8 @@ final readonly class TrendsService
             QuestionType::LinearScale => [$asked->scale->min ?? 1, $asked->scale->max ?? 5] === [$item['min'], $item['max']],
             QuestionType::StarRating => ($asked->stars ?? 5) === $item['max'],
             QuestionType::Grid => $asked->grid instanceof GridSettings && in_array($item['rowId'], array_map(static fn ($row): string => $row->id, $asked->grid->rows), true),
+            // The same number of places, so a mean place means the same, and the option still there
+            QuestionType::Ranking => count($asked->options) === $item['max'] && in_array($item['optionId'], array_map(static fn ($option): string => $option->id, $asked->options), true),
             default => true,
         };
     }

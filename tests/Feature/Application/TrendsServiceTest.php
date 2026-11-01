@@ -13,6 +13,7 @@ use Modules\Surveys\Application\DTOs\Trends\TrendFilters;
 use Modules\Surveys\Application\DTOs\Trends\TrendPointDTO;
 use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
@@ -372,13 +373,43 @@ final class TrendsServiceTest extends ModuleTestCase
         $this->assertEqualsWithDelta(['c-1' => 0.0, 'c-2' => 1.0], $this->point($this->question($trends, 'aspects.r-2'), 0, '2027-Q1')->shares, 0.0001);
     }
 
+    public function test_each_option_of_a_ranking_trends_its_mean_place(): void
+    {
+        $this->answerMany($this->survey(['starts' => '2027-01-10']), [['rank' => ['k-1', 'k-2', 'k-3']], ['rank' => ['k-1', 'k-3', 'k-2']], ['rank' => ['k-2', 'k-1', 'k-3']]]);
+        $this->answerMany($this->survey(['starts' => '2027-05-01']), [['rank' => ['k-3', 'k-2', 'k-1']], ['rank' => ['k-3', 'k-1', 'k-2']], ['rank' => ['k-3', 'k-2', 'k-1']]]);
+
+        $trends = $this->panel();
+
+        $role = $this->question($trends, 'games.k-1');
+        $this->assertSame('Ordena los juegos · Rol', $role->title);
+        $this->assertSame(QuestionType::Ranking, $role->type);
+        $this->assertSame(QuestionTrendDTO::MEAN, $role->measure);
+        $this->assertSame([1, 3], [$role->min, $role->max]);
+        $this->assertSame(3, $this->point($role, 0, '2027-Q1')->answered);
+        $this->assertSame(1.33, $this->point($role, 0, '2027-Q1')->mean);
+        $this->assertSame(2.67, $this->point($role, 0, '2027-Q2')->mean);
+        $this->assertSame(2.67, $this->point($this->question($trends, 'games.k-3'), 0, '2027-Q1')->mean);
+        $this->assertSame(1.0, $this->point($this->question($trends, 'games.k-3'), 0, '2027-Q2')->mean);
+    }
+
+    public function test_a_ranking_with_another_number_of_options_is_left_out_of_the_trend(): void
+    {
+        // Four places to fill: a third place there is not a third place out of three
+        $old = $this->definition();
+        $old['sections'][0]['questions'][5]['options'][] = ['id' => 'k-4', 'label' => 'Cartas'];
+        $this->answerMany($this->survey(['starts' => '2027-01-10', 'definition' => $old]), [['rank' => ['k-4', 'k-3', 'k-2', 'k-1']], ['rank' => ['k-4', 'k-3', 'k-2', 'k-1']], ['rank' => ['k-4', 'k-3', 'k-2', 'k-1']]]);
+        $this->answerMany($this->survey(['starts' => '2027-01-12']), [['rank' => ['k-1', 'k-2', 'k-3']], ['rank' => ['k-1', 'k-2', 'k-3']], ['rank' => ['k-1', 'k-2', 'k-3']]]);
+
+        $this->assertSame(1.0, $this->point($this->question($this->panel(), 'games.k-1'), 0, '2027-Q1')->mean);
+    }
+
     public function test_questions_without_key_or_trend_type(): void
     {
         $this->answerMany($this->survey(['starts' => '2027-01-10']), [['sat' => 3], ['sat' => 3], ['sat' => 3]]);
 
         $trends = $this->panel();
 
-        $this->assertSame(['satisfaction', 'stars', 'best_part', 'liked', 'aspects.r-1', 'aspects.r-2', 'comment', 'day'], array_map(static fn (QuestionTrendDTO $question): string => $question->key, $trends->questions));
+        $this->assertSame(['satisfaction', 'stars', 'best_part', 'liked', 'aspects.r-1', 'aspects.r-2', 'games.k-1', 'games.k-2', 'games.k-3', 'comment', 'day'], array_map(static fn (QuestionTrendDTO $question): string => $question->key, $trends->questions));
         $this->assertSame(QuestionTrendDTO::NONE, $this->question($trends, 'comment')->measure);
         $this->assertSame([], $this->question($trends, 'comment')->series);
         $this->assertSame(QuestionTrendDTO::NONE, $this->question($trends, 'day')->measure);

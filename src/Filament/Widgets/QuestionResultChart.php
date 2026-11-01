@@ -9,6 +9,8 @@ use Filament\Widgets\ChartWidget;
 use Livewire\Attributes\Locked;
 use Modules\Surveys\Application\DTOs\Results\GridResultDTO;
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
+use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Domain\Enums\ChartType;
@@ -58,6 +60,10 @@ final class QuestionResultChart extends ChartWidget
 
         if (! $result instanceof QuestionResultDTO || $result->belowMinimum) {
             return ['datasets' => [], 'labels' => []];
+        }
+
+        if ($result->ranking instanceof RankingResultDTO) {
+            return $this->rankingData($result->chartType, $result->ranking);
         }
 
         if ($result->grid instanceof GridResultDTO) {
@@ -110,6 +116,40 @@ final class QuestionResultChart extends ChartWidget
             $result->type->hasOptions() => ['indexAxis' => 'y', 'plugins' => ['legend' => ['display' => false]], 'scales' => ['x' => $wholeNumbers]],
             default => ['plugins' => ['legend' => ['display' => false]], 'scales' => ['y' => $wholeNumbers]],
         };
+    }
+
+    /**
+     * Each option's Borda points, best first; as stacked bars, how often it got each place.
+     *
+     * @return array<string, mixed>
+     */
+    private function rankingData(ChartType $chartType, RankingResultDTO $ranking): array
+    {
+        $labels = array_map(static fn (RankedOptionDTO $option): string => $option->label, $ranking->options);
+
+        if ($chartType !== ChartType::StackedBar) {
+            return [
+                'datasets' => [[
+                    'label' => __('surveys::filament.results.points'),
+                    'data' => array_map(static fn (RankedOptionDTO $option): int => $option->points, $ranking->options),
+                    'backgroundColor' => $this->color(0),
+                    'borderColor' => $this->color(0),
+                ]],
+                'labels' => $labels,
+            ];
+        }
+
+        $datasets = [];
+        foreach (range(1, $ranking->positions) as $index => $place) {
+            $datasets[] = [
+                'label' => __('surveys::filament.results.place', ['place' => $place]),
+                'data' => array_map(static fn (RankedOptionDTO $option): int => $option->positions[$place] ?? 0, $ranking->options),
+                'backgroundColor' => $this->color($index),
+                'borderColor' => $this->color($index),
+            ];
+        }
+
+        return ['datasets' => $datasets, 'labels' => $labels];
     }
 
     private function result(): ?QuestionResultDTO

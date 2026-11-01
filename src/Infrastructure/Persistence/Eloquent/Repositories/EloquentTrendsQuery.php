@@ -90,6 +90,20 @@ final readonly class EloquentTrendsQuery implements TrendsQueryInterface
         return $counts;
     }
 
+    public function positionCounts(array $surveyIds, array $questionIds): array
+    {
+        $counts = [];
+        $this->each($surveyIds, $questionIds, static fn (Builder $query): Builder => $query
+            ->whereNotNull('a.option_id')
+            ->whereNotNull('a.number_value')
+            ->selectRaw('r.survey_id, a.question_id, a.option_id, a.number_value, count(*) as total')
+            ->groupBy('r.survey_id', 'a.question_id', 'a.option_id', 'a.number_value'), function (stdClass $row) use (&$counts): void {
+                $counts[$this->string($row->survey_id)][$this->string($row->question_id)][$this->string($row->option_id)][$this->int($row->number_value)] = $this->int($row->total);
+            });
+
+        return $counts;
+    }
+
     public function userNames(array $userIds): array
     {
         $names = [];

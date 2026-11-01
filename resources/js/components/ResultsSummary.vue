@@ -69,6 +69,49 @@ function rowTotal(counts: Record<string, number>): number {
                 {{ t('surveys.results.below_minimum') }}
             </p>
 
+            <ol v-else-if="question.ranking" class="mt-3 space-y-3">
+                <li
+                    v-for="(option, index) in question.ranking.options"
+                    :key="option.id"
+                    :data-ranked-option="option.id"
+                >
+                    <div
+                        class="flex items-baseline justify-between gap-3 text-sm text-base-primary"
+                    >
+                        <span>{{ index + 1 }}. {{ option.label }}</span>
+                        <span class="shrink-0 text-right tabular-nums text-base-secondary">
+                            {{
+                                t('surveys.results.ranking_summary', {
+                                    points: option.points,
+                                    mean:
+                                        option.meanPosition === null
+                                            ? '—'
+                                            : number(option.meanPosition),
+                                })
+                            }}
+                        </span>
+                    </div>
+                    <!-- Against the most an option can get: the first place in every answer -->
+                    <div
+                        class="mt-1 h-2 overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        :aria-label="option.label"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        :aria-valuenow="
+                            percent(option.points, question.ranking.positions * question.answered)
+                        "
+                    >
+                        <div
+                            class="h-full rounded-full bg-primary-600"
+                            :style="{
+                                width: `${percent(option.points, question.ranking.positions * question.answered)}%`,
+                            }"
+                        ></div>
+                    </div>
+                </li>
+            </ol>
+
             <table v-else-if="question.grid" class="mt-3 min-w-full text-sm">
                 <thead>
                     <tr>

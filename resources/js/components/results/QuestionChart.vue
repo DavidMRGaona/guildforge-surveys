@@ -61,7 +61,10 @@ const height = computed(() => {
     if (props.chartType === 'pie') {
         return 260;
     }
-    const bars = props.question.grid?.rows.length ?? props.question.buckets.length;
+    const bars =
+        props.question.grid?.rows.length ??
+        props.question.ranking?.options.length ??
+        props.question.buckets.length;
 
     return horizontal.value ? Math.max(120, bars * 36 + 48) : 240;
 });
@@ -72,6 +75,10 @@ const summary = computed(() =>
         answered: props.question.answered,
     })
 );
+
+function number(value: number): string {
+    return new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }).format(value);
+}
 
 function rowTotal(counts: Record<string, number>): number {
     return Object.values(counts).reduce((sum, count) => sum + count, 0);
@@ -85,6 +92,54 @@ function configuration(theme: ChartTheme): ChartConfiguration {
         grid: { color: theme.grid },
         border: { color: theme.grid },
     };
+
+    const ranking = props.question.ranking;
+    if (ranking !== null) {
+        const options = ranking.options.map((option) => option.label);
+        // Stacked: how often each option got each place; otherwise its points
+        const datasets =
+            props.chartType === 'stacked_bar'
+                ? Array.from({ length: ranking.positions }, (_, index) => ({
+                      label: t('surveys.results.place', { place: index + 1 }),
+                      data: ranking.options.map((option) => option.places[index] ?? 0),
+                      backgroundColor: seriesColor(theme, index),
+                      borderColor: theme.surface,
+                      borderWidth: { right: 2 },
+                  }))
+                : [
+                      {
+                          label: t('surveys.results.points'),
+                          data: ranking.options.map((option) => option.points),
+                          backgroundColor: seriesColor(theme, 0),
+                          borderRadius: 4,
+                          borderSkipped: 'start' as const,
+                          maxBarThickness: 28,
+                      },
+                  ];
+        const stacked = props.chartType === 'stacked_bar';
+
+        return {
+            type: 'bar',
+            data: { labels: options, datasets },
+            options: {
+                indexAxis: 'y',
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    x: { ...axes, stacked },
+                    y: { ...axes, stacked, grid: { display: false } },
+                },
+                plugins: {
+                    legend: {
+                        display: stacked,
+                        position: 'bottom',
+                        labels: { color: theme.text },
+                    },
+                    tooltip,
+                },
+            },
+        };
+    }
 
     if (grid !== null) {
         return {
@@ -230,7 +285,85 @@ onBeforeUnmount(() => {
 
             <!-- The numbers behind the chart, always in view: some colours are faint on the light surface -->
             <div class="overflow-x-auto">
-                <table v-if="question.grid" class="min-w-full text-sm" data-testid="data-table">
+                <template v-if="question.ranking">
+                    <p class="mb-2 text-sm text-base-secondary">
+                        {{
+                            t('surveys.results.ranking_help', {
+                                positions: question.ranking.positions,
+                            })
+                        }}
+                    </p>
+                    <table class="min-w-full text-sm" data-testid="data-table">
+                        <caption class="sr-only">
+                            {{
+                                question.title
+                            }}
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th
+                                    scope="col"
+                                    class="py-1 pr-3 text-left font-medium text-base-secondary"
+                                >
+                                    {{ t('surveys.results.option') }}
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="px-2 py-1 text-right font-medium text-base-secondary"
+                                >
+                                    {{ t('surveys.results.points') }}
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="py-1 pl-2 text-right font-medium text-base-secondary"
+                                >
+                                    {{ t('surveys.results.mean_place') }}
+                                </th>
+                                <th
+                                    v-for="place in question.ranking.positions"
+                                    :key="place"
+                                    scope="col"
+                                    class="py-1 pl-3 text-right font-medium whitespace-nowrap text-base-secondary"
+                                >
+                                    {{ t('surveys.results.place', { place }) }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="option in question.ranking.options" :key="option.id">
+                                <th
+                                    scope="row"
+                                    class="py-1 pr-3 text-left font-normal text-base-primary"
+                                >
+                                    {{ option.label }}
+                                </th>
+                                <td class="px-2 py-1 text-right tabular-nums text-base-primary">
+                                    {{ option.points }}
+                                </td>
+                                <td class="py-1 pl-2 text-right tabular-nums text-base-primary">
+                                    {{
+                                        option.meanPosition === null
+                                            ? '—'
+                                            : number(option.meanPosition)
+                                    }}
+                                </td>
+                                <td
+                                    v-for="(count, index) in option.places"
+                                    :key="index"
+                                    class="py-1 pl-3 text-right tabular-nums text-base-secondary"
+                                >
+                                    {{ count }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </template>
+
+                <table
+                    v-else-if="question.grid"
+                    class="min-w-full text-sm"
+                    data-testid="data-table"
+                >
                     <caption class="sr-only">
                         {{
                             question.title

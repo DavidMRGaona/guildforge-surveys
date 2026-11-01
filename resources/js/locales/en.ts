@@ -320,6 +320,13 @@ export default {
             reached: 'La vieron {reached} de {responses}',
             below_minimum: 'Aún no hay respuestas suficientes a esta pregunta para mostrarlas.',
             mean_median: 'Media: {mean} · Mediana: {median}',
+            points: 'Puntos',
+            place: '{place}.º puesto',
+            option: 'Opción',
+            mean_place: 'Posición media',
+            ranking_help:
+                'Cada primer puesto suma {positions} puntos, cada segundo uno menos, y así hasta el último, que suma 1. En la posición media, 1 es la mejor.',
+            ranking_summary: '{points} puntos · posición media {mean}',
             percent: '{percent} %',
             voters: 'Han votado: {names}',
             other: 'Otra',

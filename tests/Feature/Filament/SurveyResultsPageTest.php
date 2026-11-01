@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Tests\Feature\Filament;
 
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Illuminate\Support\Number;
 use Livewire\Component;
 use Livewire\Livewire;
 use Modules\Surveys\Application\DTOs\Respondent;
@@ -101,6 +102,52 @@ final class SurveyResultsPageTest extends ModuleTestCase
 
         $this->assertSame(['Uno', 'Dos', __('surveys::filament.results.other')], data_get($data, 'labels'));
         $this->assertSame([1, 0, 1], data_get($data, 'datasets.0.data'));
+    }
+
+    public function test_a_ranking_draws_the_points_of_each_option_best_first_with_its_mean_place(): void
+    {
+        $this->actingAsPanelAdmin();
+        [$id] = $this->openForm(anonymous: false);
+        $this->answer($id, 0, ['q-rank' => ['k-1', 'k-2', 'k-3']]);
+        $this->answer($id, 1, ['q-rank' => ['k-2', 'k-1', 'k-3']]);
+        $this->answer($id, 2, ['q-rank' => ['k-2', 'k-3', 'k-1']]);
+
+        $data = $this->chartData(Livewire::test(QuestionResultChart::class, ['surveyId' => $id->value, 'questionId' => 'q-rank'])->instance());
+
+        $this->assertSame(['Wargames', 'Rol', 'Tablero'], data_get($data, 'labels'));
+        $this->assertSame([8, 6, 4], data_get($data, 'datasets.0.data'));
+        $this->assertSame(__('surveys::filament.results.points'), data_get($data, 'datasets.0.label'));
+
+        Livewire::test(ViewSurveyResults::class, ['record' => $id->value])
+            ->assertSeeInOrder([
+                (string) __('surveys::filament.results.ranking.option'),
+                (string) __('surveys::filament.results.ranking.points'),
+                (string) __('surveys::filament.results.ranking.mean_place'),
+                'Wargames', '8', (string) Number::format(1.33, maxPrecision: 2, locale: 'es'),
+                'Rol', '6', '2',
+                'Tablero', '4', (string) Number::format(2.67, maxPrecision: 2, locale: 'es'),
+            ]);
+    }
+
+    public function test_a_ranking_as_stacked_bars_shows_how_often_each_option_got_each_place(): void
+    {
+        $this->actingAsPanelAdmin();
+        [$id] = $this->openForm(anonymous: false);
+        $this->answer($id, 0, ['q-rank' => ['k-1', 'k-2', 'k-3']]);
+        $this->answer($id, 1, ['q-rank' => ['k-2', 'k-1', 'k-3']]);
+        $this->answer($id, 2, ['q-rank' => ['k-2', 'k-3', 'k-1']]);
+        Livewire::test(ViewSurveyResults::class, ['record' => $id->value])
+            ->callAction('configure_results', data: ['chart_types' => ['q-rank' => 'stacked_bar'], 'hidden_question_ids' => []])
+            ->assertHasNoActionErrors();
+
+        $chart = Livewire::test(QuestionResultChart::class, ['surveyId' => $id->value, 'questionId' => 'q-rank'])->instance();
+        $data = $this->chartData($chart);
+
+        $this->assertSame(['Wargames', 'Rol', 'Tablero'], data_get($data, 'labels'));
+        $this->assertSame([__('surveys::filament.results.place', ['place' => 1]), __('surveys::filament.results.place', ['place' => 2]), __('surveys::filament.results.place', ['place' => 3])], array_column(data_get($data, 'datasets'), 'label'));
+        $this->assertSame([2, 1, 0], data_get($data, 'datasets.0.data'));
+        $this->assertSame([0, 1, 2], data_get($data, 'datasets.2.data'));
+        $this->assertSame('y', data_get($this->chartOptions($chart), 'indexAxis'));
     }
 
     public function test_the_chart_draws_nothing_while_the_results_are_hidden(): void

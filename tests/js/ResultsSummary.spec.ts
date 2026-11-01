@@ -24,6 +24,7 @@ function question(overrides: Partial<QuestionResult> = {}): QuestionResult {
         grid: null,
         mean: null,
         median: null,
+        ranking: null,
         reached: null,
         ...overrides,
     };
@@ -32,6 +33,15 @@ function question(overrides: Partial<QuestionResult> = {}): QuestionResult {
 function results(questions: QuestionResult[]): RespondResults {
     return { responses: 4, questions };
 }
+
+const ranked = {
+    positions: 3,
+    options: [
+        { id: 'k-2', label: 'Wargames', points: 8, meanPosition: 1.33, places: [2, 1, 0] },
+        { id: 'k-1', label: 'Rol', points: 6, meanPosition: 2, places: [1, 1, 1] },
+        { id: 'k-3', label: 'Tablero', points: 4, meanPosition: 2.67, places: [0, 1, 2] },
+    ],
+};
 
 describe('ResultsSummary', () => {
     it('draws a bar per option with its share and who voted', () => {
@@ -44,6 +54,27 @@ describe('ResultsSummary', () => {
         expect(wrapper.text()).toContain('Otra');
         expect(wrapper.text()).toContain('Han votado: Persona A, Persona B, Persona C');
         expect(wrapper.text()).toContain('4 respuestas');
+    });
+
+    it('lists the options of a ranking best first with their points and mean place', () => {
+        const wrapper = mount(ResultsSummary, {
+            props: {
+                results: results([
+                    question({ type: 'ranking', answered: 3, buckets: [], ranking: ranked }),
+                ]),
+            },
+        });
+
+        const options = wrapper.findAll('[data-ranked-option]');
+        expect(options.map((option) => option.attributes('data-ranked-option'))).toEqual([
+            'k-2',
+            'k-1',
+            'k-3',
+        ]);
+        expect(options[0]?.text()).toContain('Wargames');
+        expect(options[0]?.text()).toContain('8 puntos · posición media 1,33');
+        // Bars against the most points an option could get: first place in every answer
+        expect(wrapper.findAll('[role="progressbar"]')[0]?.attributes('aria-valuenow')).toBe('89');
     });
 
     it('says how many reached a question some sections skipped', () => {

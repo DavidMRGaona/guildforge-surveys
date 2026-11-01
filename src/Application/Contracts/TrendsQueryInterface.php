@@ -56,6 +56,15 @@ interface TrendsQueryInterface
     public function cellCounts(array $surveyIds, array $questionIds): array;
 
     /**
+     * How often each place of a ranking went to each option.
+     *
+     * @param  list<string>  $surveyIds
+     * @param  list<string>  $questionIds
+     * @return array<string, array<string, array<string, array<int, int>>>> survey id => question id => option id => place => answers
+     */
+    public function positionCounts(array $surveyIds, array $questionIds): array;
+
+    /**
      * Current names of these accounts (anonymized ones included); unknown ids are left out.
      *
      * @param  list<string>  $userIds
