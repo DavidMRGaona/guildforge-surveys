@@ -82,6 +82,8 @@ final class SurveyTrendsPageTest extends ModuleTestCase
             ->assertSee(trans_choice('surveys::filament.trends.responses', 3, ['count' => 3]))
             ->assertSee('¿Te gustó?')
             ->assertSee('¿Qué tal fue? · Ambiente')
+            ->assertSee('Ordena los juegos · Rol')
+            ->assertSee(__('surveys::filament.trends.measures.ranking'))
             ->assertSee(__('surveys::filament.trends.no_trend'))
             ->assertSeeHtml('question-trend-chart')
             ->assertDontSee('Extra');
