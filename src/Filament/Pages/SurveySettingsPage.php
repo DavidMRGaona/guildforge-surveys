@@ -195,6 +195,17 @@ final class SurveySettingsPage extends Page implements HasForms
                         ->helperText(__('surveys::messages.settings.announce_in_channels_by_default_help'))
                         ->default(false),
                 ]),
+            Section::make(__('surveys::messages.settings.closing_summary'))
+                ->schema([
+                    Toggle::make('closing_summary_by_default')
+                        ->label(__('surveys::messages.settings.closing_summary_by_default'))
+                        ->helperText(__('surveys::messages.settings.closing_summary_by_default_help'))
+                        ->default(true),
+                    Toggle::make('closing_summary_to_results_viewers')
+                        ->label(__('surveys::messages.settings.closing_summary_to_results_viewers'))
+                        ->helperText(__('surveys::messages.settings.closing_summary_to_results_viewers_help'))
+                        ->default(false),
+                ]),
             Section::make(__('surveys::messages.settings.review'))
                 ->schema([
                     Toggle::make('review_required')

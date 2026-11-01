@@ -60,6 +60,7 @@ final class Survey
         private int $sendDelayHours = 0,
         private PublicLinkMode $publicLinkMode = PublicLinkMode::VerifiedEmail,
         private bool $announceInChannels = false,
+        private bool $closingSummary = false,
     ) {}
 
     /**
@@ -310,6 +311,25 @@ final class Survey
         }
 
         $this->announceInChannels = $announce;
+    }
+
+    /**
+     * Whether closing mails a summary of the results. It may change until the survey closes:
+     * by then the summary went out, or never will.
+     *
+     * @throws InvalidSurveyStateException
+     */
+    public function chooseClosingSummary(bool $send): void
+    {
+        if ($send === $this->closingSummary) {
+            return;
+        }
+
+        if ($this->status === SurveyStatus::Closed) {
+            throw InvalidSurveyStateException::closingSummaryFixed($this->id->value);
+        }
+
+        $this->closingSummary = $send;
     }
 
     /**
@@ -736,5 +756,10 @@ final class Survey
     public function announceInChannels(): bool
     {
         return $this->announceInChannels;
+    }
+
+    public function sendsClosingSummary(): bool
+    {
+        return $this->closingSummary;
     }
 }

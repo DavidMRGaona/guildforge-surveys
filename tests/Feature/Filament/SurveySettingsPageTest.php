@@ -131,6 +131,21 @@ final class SurveySettingsPageTest extends ModuleTestCase
         $this->assertTrue(app(SurveySettingsInterface::class)->announceInChannelsByDefault());
     }
 
+    public function test_it_saves_the_closing_summary_settings(): void
+    {
+        $this->actingAs($this->userWith([self::MANAGE]));
+
+        Livewire::test(SurveySettingsPage::class)
+            ->assertFormSet(['closing_summary_by_default' => true, 'closing_summary_to_results_viewers' => false])
+            ->fillForm(['closing_summary_by_default' => false, 'closing_summary_to_results_viewers' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SurveySettingsInterface::class);
+        $this->assertFalse($settings->closingSummaryByDefault());
+        $this->assertTrue($settings->closingSummaryToResultsViewers());
+    }
+
     public function test_saving_keeps_the_settings_of_a_disabled_module(): void
     {
         app(SettingsServiceInterface::class)->set(

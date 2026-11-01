@@ -46,6 +46,24 @@ return [
         'kept' => 'La encuesta se conserva sin enviar por si la necesitas más adelante.',
     ],
 
+    'closing_summary' => [
+        'subject' => 'Resultados de la encuesta «:title»',
+        'intro' => 'La encuesta «:title» de :site se ha cerrado. Este es el resumen de sus resultados.',
+        'intro_subject' => 'La encuesta «:title» de :site, sobre «:subject», se ha cerrado. Este es el resumen de sus resultados.',
+        'below_minimum' => 'Es anónima y no ha llegado al mínimo de respuestas, así que no se muestra ningún dato: con tan pocas, se podría saber qué respondió cada persona.',
+        'no_responses' => 'Nadie ha respondido.',
+        'responses' => 'Ha recibido :count respuesta.|Ha recibido :count respuestas.',
+        'rate' => 'Ha respondido :responses de :audience persona (:rate %).|Han respondido :responses de :audience personas (:rate %).',
+        'question_top' => '**:title**: la más votada es :options (:count de :answered).|**:title**: las más votadas son :options (:count de :answered cada una).',
+        'question_mean' => '**:title**: media de :mean, de :min a :max (:answered respuestas).',
+        'question_unanswered' => '**:title**: sin respuestas.',
+        'question_below_minimum' => '**:title**: tiene pocas respuestas para mostrarla.',
+        'other_questions' => 'Hay :count pregunta más en los resultados completos.|Hay :count preguntas más en los resultados completos.',
+        'other' => 'Otra',
+        'and' => 'y',
+        'action' => 'Ver los resultados',
+    ],
+
     'submitted_for_review' => [
         'subject' => 'Encuesta pendiente de revisión: :title',
         'intro' => 'La encuesta «:title» de :site ha cambiado fuera del panel y espera tu revisión antes de enviarse.',

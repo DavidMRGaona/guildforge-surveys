@@ -52,6 +52,24 @@ final class SettingsTest extends ModuleTestCase
         $this->assertTrue((new SurveySettings)->announceInChannelsByDefault());
     }
 
+    public function test_closing_summaries_are_on_by_default(): void
+    {
+        $this->assertTrue((new SurveySettings)->closingSummaryByDefault());
+
+        config()->set('modules.settings.surveys.closing_summary_by_default', false);
+
+        $this->assertFalse((new SurveySettings)->closingSummaryByDefault());
+    }
+
+    public function test_closing_summaries_do_not_go_to_results_viewers_by_default(): void
+    {
+        $this->assertFalse((new SurveySettings)->closingSummaryToResultsViewers());
+
+        config()->set('modules.settings.surveys.closing_summary_to_results_viewers', true);
+
+        $this->assertTrue((new SurveySettings)->closingSummaryToResultsViewers());
+    }
+
     public function test_review_is_off_by_default(): void
     {
         $this->assertFalse((new SurveySettings)->reviewRequired());
