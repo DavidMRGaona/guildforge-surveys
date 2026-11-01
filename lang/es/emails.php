@@ -48,8 +48,8 @@ return [
 
     'closing_summary' => [
         'subject' => 'Resultados de la encuesta «:title»',
-        'intro' => 'La encuesta «:title» de :site se ha cerrado. Este es el resumen de sus resultados.',
-        'intro_subject' => 'La encuesta «:title» de :site, sobre «:subject», se ha cerrado. Este es el resumen de sus resultados.',
+        'intro' => 'La encuesta «:title» de :site se ha cerrado.',
+        'intro_subject' => 'La encuesta «:title» de :site, sobre «:subject», se ha cerrado.',
         'below_minimum' => 'Es anónima y no ha llegado al mínimo de respuestas, así que no se muestra ningún dato: con tan pocas, se podría saber qué respondió cada persona.',
         'no_responses' => 'Nadie ha respondido.',
         'responses' => 'Ha recibido :count respuesta.|Ha recibido :count respuestas.',
