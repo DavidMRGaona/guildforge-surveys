@@ -160,6 +160,7 @@ return [
         'invalid_time' => 'Escribe una hora válida.',
         'grid_incomplete' => 'Responde todas las filas.',
         'too_long' => 'La respuesta es demasiado larga.',
+        'not_reached' => 'Esta pregunta no corresponde a las respuestas que has dado: vuelve a cargar la encuesta.',
     ],
 
     'export' => [

@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import Respond from '../../resources/js/pages/Surveys/Respond.vue';
 import type { RespondProps } from '../../resources/js/types/Respond';
 import { OTHER } from '../../resources/js/types/Respond';
-import { everyType } from './support/definition';
+import { branching, everyType } from './support/definition';
 
 function mountPage(props: Partial<RespondProps> = {}): VueWrapper {
     return mount(Respond, {
@@ -148,5 +148,84 @@ describe('Respond', () => {
 
         expect(wrapper.find('input[type="email"]').exists()).toBe(false);
         expect(wrapper.text()).toContain('Si la dirección es válida');
+    });
+
+    describe('with several sections', () => {
+        function submitButton(wrapper: VueWrapper): string {
+            return wrapper.find('button[type="submit"]').text();
+        }
+
+        it('shows one section at a time and asks for its required answers first', async () => {
+            vi.mocked(router.post).mockClear();
+            const wrapper = mountPage({ definition: branching });
+
+            expect(wrapper.findAll('fieldset')).toHaveLength(1);
+            expect(wrapper.text()).toContain('Sección 1');
+            expect(submitButton(wrapper)).toBe('Siguiente');
+
+            await wrapper.find('form').trigger('submit');
+
+            expect(wrapper.findAll('fieldset')[0]?.text()).toContain(
+                'Esta pregunta es obligatoria.'
+            );
+            expect(wrapper.text()).not.toContain('El final');
+            expect(router.post).not.toHaveBeenCalled();
+        });
+
+        it('follows the jump of the chosen option and comes back the same way', async () => {
+            const wrapper = mountPage({ definition: branching });
+
+            await wrapper.find('input[type="radio"][value="o-part"]').setValue(true);
+            await wrapper.find('form').trigger('submit');
+
+            expect(wrapper.text()).toContain('Por qué lo dejaste');
+            expect(wrapper.text()).toContain('Sección 2');
+
+            await wrapper.find('form').trigger('submit');
+
+            expect(wrapper.text()).toContain('Pregunta q-comments');
+            expect(wrapper.text()).toContain('Sección 3');
+            expect(submitButton(wrapper)).toBe('Enviar respuestas');
+
+            await wrapper.find('button[type="button"]').trigger('click');
+
+            expect(wrapper.text()).toContain('Por qué lo dejaste');
+        });
+
+        it('sends only the answers of the way taken', async () => {
+            vi.mocked(router.post).mockClear();
+            const wrapper = mountPage({ definition: branching });
+
+            await wrapper.find('input[type="radio"][value="o-all"]').setValue(true);
+            await wrapper.find('form').trigger('submit');
+            await wrapper.find('textarea').setValue('Épico');
+            await wrapper.find('button[type="button"]').trigger('click');
+            await wrapper.find('input[type="radio"][value="o-none"]').setValue(true);
+
+            expect(submitButton(wrapper)).toBe('Enviar respuestas');
+
+            await wrapper.find('form').trigger('submit');
+
+            expect(router.post).toHaveBeenCalledWith(
+                '/encuestas/survey-1',
+                { answers: { 'q-played': 'o-none' } },
+                expect.objectContaining({ preserveScroll: true })
+            );
+        });
+
+        it('goes back to the section of an answer the server refused', async () => {
+            vi.mocked(router.post).mockImplementationOnce((_url, _data, options) => {
+                options?.onError?.({ 'answers.q-played': 'Elige una de las opciones.' });
+            });
+            const wrapper = mountPage({ definition: branching });
+
+            await wrapper.find('input[type="radio"][value="o-part"]').setValue(true);
+            await wrapper.find('form').trigger('submit');
+            await wrapper.find('form').trigger('submit');
+            await wrapper.find('form').trigger('submit');
+
+            expect(wrapper.text()).toContain('Sección 1');
+            expect(wrapper.findAll('fieldset')[0]?.text()).toContain('Elige una de las opciones.');
+        });
     });
 });

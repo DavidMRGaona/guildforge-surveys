@@ -193,6 +193,13 @@ export default {
             stars: '{count} de {total} estrellas',
             submit: 'Enviar respuestas',
             submit_poll: 'Votar',
+            next: 'Siguiente',
+            back: 'Atrás',
+            section_number: 'Sección {number}',
+            missing: {
+                required: 'Esta pregunta es obligatoria.',
+                grid_incomplete: 'Responde todas las filas.',
+            },
             thanks_title: '¡Gracias por responder!',
             thanks_description: 'Tus respuestas se han guardado.',
             verify_email: {

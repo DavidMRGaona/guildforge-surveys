@@ -33,6 +33,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyAnswerModel
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyParticipationModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
 use Modules\Surveys\Tests\Support\ExampleThingSource;
+use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\ModuleTestCase;
 
 final class SubmissionServiceTest extends ModuleTestCase
@@ -157,6 +158,25 @@ final class SubmissionServiceTest extends ModuleTestCase
         $this->assertSame(0, SurveyParticipationModel::query()->count());
     }
 
+    public function test_answers_off_the_path_are_refused_and_skipped_required_questions_are_not_asked(): void
+    {
+        $first = UserModel::factory()->create();
+        $second = UserModel::factory()->create();
+        [$id] = $this->openPoll(anonymous: false, users: [$first->id, $second->id], form: SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition()));
+
+        try {
+            $this->submissions->submit($id, Respondent::account($first->id), ['q-played' => 'o-no', 'q-finale' => 'Épico', 'q-comments' => 'Bien']);
+            $this->fail('An answer to a skipped section must be refused.');
+        } catch (InvalidSubmissionException $exception) {
+            $this->assertSame(['q-finale' => 'not_reached'], $exception->errors);
+        }
+        $this->assertSame(0, SurveyResponseModel::query()->count());
+
+        // The required question of the skipped section is not asked
+        $this->submissions->submit($id, Respondent::account($second->id), ['q-played' => 'o-no', 'q-comments' => 'Bien']);
+        $this->assertEqualsCanonicalizing(['q-played', 'q-comments'], SurveyAnswerModel::query()->pluck('question_id')->all());
+    }
+
     public function test_the_public_link_accepts_anyone_with_its_token_without_participation(): void
     {
         [$id, $opened] = $this->openPoll(anonymous: true, users: [], publicLink: true);
@@ -188,20 +208,20 @@ final class SubmissionServiceTest extends ModuleTestCase
      * @param  list<SurveyGuestDTO>  $guests
      * @return array{SurveyId, OpenedSurveyDTO}
      */
-    private function openPoll(bool $anonymous, array $users = [], array $guests = [], ?DateTimeImmutable $closesAt = null, bool $publicLink = false, PublicLinkMode $publicLinkMode = PublicLinkMode::Open): array
+    private function openPoll(bool $anonymous, array $users = [], array $guests = [], ?DateTimeImmutable $closesAt = null, bool $publicLink = false, PublicLinkMode $publicLinkMode = PublicLinkMode::Open, ?SurveyDefinition $form = null): array
     {
         ExampleThingSource::$audience = new SurveyAudienceDTO($users, $guests);
         $survey = new Survey(
             id: SurveyId::generate(),
-            kind: SurveyKind::Poll,
+            kind: $form instanceof SurveyDefinition ? SurveyKind::Form : SurveyKind::Poll,
             title: 'Sondeo de ejemplo',
             description: null,
-            definition: SurveyDefinition::fromArray(['sections' => [['id' => 's-1', 'questions' => [[
+            definition: $form ?? SurveyDefinition::fromArray(['sections' => [['id' => 's-1', 'questions' => [[
                 'id' => 'q-1', 'type' => 'single_choice', 'title' => '¿Qué día?', 'required' => true,
                 'options' => [['id' => 'o-1', 'label' => 'Viernes'], ['id' => 'o-2', 'label' => 'Sábado']],
             ]]]]]),
             anonymous: $anonymous,
-            results: ResultsSettings::defaultsFor(SurveyKind::Poll),
+            results: ResultsSettings::defaultsFor($form instanceof SurveyDefinition ? SurveyKind::Form : SurveyKind::Poll),
             audienceType: AudienceType::Subject,
             publicLinkEnabled: $publicLink,
             subject: SubjectSnapshotFactory::fromDto((new ExampleThingSource)->find('thing-1') ?? throw new LogicException('The example thing exists.')),

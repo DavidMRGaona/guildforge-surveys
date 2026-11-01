@@ -31,12 +31,21 @@ export interface SurveyQuestion {
     scale: { min: number; max: number; min_label: string | null; max_label: string | null } | null;
     stars: number | null;
     grid: { rows: SurveyOption[]; columns: SurveyOption[] } | null;
+    /** Where each option leads after the section: a later section's id or SUBMIT. */
+    next_by_option: OptionJump[];
+}
+
+export interface OptionJump {
+    option_id: string;
+    next: string;
 }
 
 export interface SurveySection {
     id: string;
     title: string | null;
     description: string | null;
+    /** Where to go after the section: null for the following one, a later section's id or SUBMIT. */
+    next: string | null;
     questions: SurveyQuestion[];
 }
 
@@ -110,6 +119,9 @@ export interface AnswerDraft {
 
 /** Option id that stands for "Other", as Submission::OTHER on the server. */
 export const OTHER = '__other__';
+
+/** Jump target that ends the survey, as Section::SUBMIT on the server. */
+export const SUBMIT = '__submit__';
 
 /** A survey still to answer, as the profile's pending surveys tab gets it. */
 export interface PendingSurvey {

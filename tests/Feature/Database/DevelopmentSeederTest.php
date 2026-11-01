@@ -17,6 +17,11 @@ use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\PublicLinkMode;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
+use Modules\Surveys\Domain\Services\SectionNavigator;
+use Modules\Surveys\Domain\Services\SubmissionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
+use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyOrganizerModel;
@@ -160,6 +165,26 @@ final class DevelopmentSeederTest extends ModuleTestCase
         $this->assertTrue($answers->contains(static fn (object $answer): bool => $answer->option_id === null && $answer->number_value === null && $answer->text_value !== null), 'text or other');
         $this->assertTrue($answers->contains(static fn (object $answer): bool => is_string($answer->text_value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $answer->text_value) === 1), 'date');
         $this->assertTrue($answers->contains(static fn (object $answer): bool => is_string($answer->text_value) && preg_match('/^\d{2}:\d{2}$/', $answer->text_value) === 1), 'time');
+    }
+
+    public function test_a_survey_with_section_jumps_is_answered_along_each_way(): void
+    {
+        $this->runSeeder();
+
+        $survey = SurveyModel::query()->get()->first(static fn (SurveyModel $survey): bool => SurveyDefinition::fromArray($survey->definition)->hasBranching());
+        $this->assertInstanceOf(SurveyModel::class, $survey);
+        $definition = SurveyDefinition::fromArray($survey->definition);
+
+        $ways = [];
+        $answers = DB::table('surveys_answers')->whereIn('response_id', SurveyResponseModel::query()->where('survey_id', $survey->id)->select('id'))->get()->groupBy('response_id');
+        foreach ($answers as $rows) {
+            $submission = new Submission(array_values($rows->map(static fn (object $row): AnswerValue => new AnswerValue($row->question_id, $row->option_id, $row->row_id, $row->text_value, $row->number_value))->all()));
+            // Exactly what the server would have accepted
+            $this->assertSame([], (new SubmissionValidator)->validate($definition, $submission));
+            $ways[implode(',', (new SectionNavigator)->reachedSectionIds($definition, $submission))] = true;
+        }
+
+        $this->assertCount(3, $ways);
     }
 
     public function test_trends_have_a_year_of_history_with_a_cut_hidden_by_the_minimum(): void

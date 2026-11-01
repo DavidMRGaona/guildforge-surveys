@@ -4,6 +4,7 @@ import {
     type SurveyDefinition,
     type SurveyQuestion,
 } from '../types/Respond';
+import { reachedSectionIds } from './navigation';
 
 /** One answer as the server reads it (see Submission::fromInput()). */
 export type AnswerPayload =
@@ -32,17 +33,22 @@ export function draftsFor(definition: SurveyDefinition): Record<string, AnswerDr
 
 /**
  * The answers in the shape Submission::fromInput() reads on the server. Unanswered
- * questions are left out, so the server decides whether they were required.
+ * questions are left out, so the server decides whether they were required, and so are
+ * the sections the answers no longer lead to: the server refuses answers to those.
  */
 export function toPayload(
     definition: SurveyDefinition,
     drafts: Record<string, AnswerDraft>
 ): Record<string, AnswerPayload> {
+    const answered = allAnswers(definition, drafts);
+    const reached = new Set(reachedSectionIds(definition, answered));
     const payload: Record<string, AnswerPayload> = {};
     for (const section of definition.sections) {
+        if (!reached.has(section.id)) {
+            continue;
+        }
         for (const question of section.questions) {
-            const draft = drafts[question.id];
-            const value = draft === undefined ? undefined : answerOf(question, draft);
+            const value = answered[question.id];
             if (value !== undefined) {
                 payload[question.id] = value;
             }
@@ -50,6 +56,48 @@ export function toPayload(
     }
 
     return payload;
+}
+
+/** Every answer given, whichever section it is in: what the navigation reads. */
+export function allAnswers(
+    definition: SurveyDefinition,
+    drafts: Record<string, AnswerDraft>
+): Record<string, AnswerPayload> {
+    const answers: Record<string, AnswerPayload> = {};
+    for (const section of definition.sections) {
+        for (const question of section.questions) {
+            const draft = drafts[question.id];
+            const value = draft === undefined ? undefined : answerOf(question, draft);
+            if (value !== undefined) {
+                answers[question.id] = value;
+            }
+        }
+    }
+
+    return answers;
+}
+
+/**
+ * The server's message key when a required question is left unanswered (see
+ * SubmissionValidator), or null. The page checks this before moving to the next section.
+ */
+export function missingAnswer(
+    question: SurveyQuestion,
+    draft: AnswerDraft | undefined
+): 'required' | 'grid_incomplete' | null {
+    if (!question.required) {
+        return null;
+    }
+    if (draft === undefined || answerOf(question, draft) === undefined) {
+        return 'required';
+    }
+    if (question.type === 'grid') {
+        const rows = question.grid?.rows ?? [];
+
+        return rows.every((row) => draft.cells[row.id] !== undefined) ? null : 'grid_incomplete';
+    }
+
+    return null;
 }
 
 function answerOf(question: SurveyQuestion, draft: AnswerDraft): AnswerPayload | undefined {

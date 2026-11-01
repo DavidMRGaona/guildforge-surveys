@@ -25,6 +25,7 @@ use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
+use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
@@ -648,6 +649,25 @@ final class DevelopmentSeeder extends Seeder
         $this->respond($everyType, null, $this->everyTypeAnswers(9), $this->at(-1, '12:00'));
         $this->respond($everyType, null, $this->everyTypeAnswers(10), $this->at(0, '09:00'));
 
+        // Section jumps: whoever played only part of the campaign skips its finale, and whoever
+        // did not play ends the survey on the first page. Named, so its results show while open
+        $jumps = $this->store($this->survey('general.jumps.open', 'Prueba de lógica condicional', SurveyStatus::Open, definition: $this->jumpsDefinition(), anonymous: false, opensAt: $this->at(-2, '10:00'), openDays: 10, audienceSize: count($everyone), createdBy: $admin));
+        $this->addRecipients($jumps, $everyone);
+        $ways = [
+            'john' => ['played' => 'whole', 'finale' => 5, 'finale_comment' => self::COMMENTS[0], 'again' => 'yes'],
+            'jane' => ['played' => 'whole', 'finale' => 4, 'again' => 'yes'],
+            'richard' => ['played' => 'whole', 'finale' => 3, 'again' => 'no'],
+            'p01' => ['played' => 'whole', 'finale' => 5, 'again' => 'yes'],
+            'p02' => ['played' => 'part', 'leaving' => 'time', 'again' => 'yes'],
+            'p03' => ['played' => 'part', 'leaving' => 'schedule', 'again' => 'yes'],
+            'p04' => ['played' => 'part', 'leaving' => ['other' => 'Me mudé'], 'again' => 'no'],
+            'p05' => ['played' => 'none'],
+            'p06' => ['played' => 'none'],
+        ];
+        foreach ($ways as $person => $answers) {
+            $this->respond($jumps, $person, $answers, $this->at(-1, '12:00'));
+        }
+
         $interest = $this->store($this->survey('general.interest.closed', 'Interés por actividades y sistemas', SurveyStatus::Closed, 'activity_interest', opensAt: $this->monthsAgo(1, 3, '10:00'), openDays: 14, audienceSize: 20, createdBy: $admin));
         $this->answerAll($interest, $this->respondents(14), 0.6);
 
@@ -792,6 +812,38 @@ final class DevelopmentSeeder extends Seeder
             ['id' => 'rating', 'key' => null, 'type' => 'star_rating', 'title' => '¿Qué tal fue?', 'help' => null, 'required' => true, 'stars' => 5],
             ['id' => 'question', 'key' => null, 'type' => 'paragraph', 'title' => $question, 'help' => null, 'required' => false],
         ]]]]);
+    }
+
+    /**
+     * Four sections: «Solo una parte» jumps to «Por qué lo dejaste», «No llegué a jugar» ends
+     * the survey, and «El final de la campaña» goes straight to «Para terminar».
+     */
+    private function jumpsDefinition(): SurveyDefinition
+    {
+        $options = static fn (array $labels): array => array_map(static fn (string $id, string $label): array => ['id' => $id, 'label' => $label], array_keys($labels), array_values($labels));
+        $question = static fn (string $id, string $type, string $title, bool $required, array $extra = []): array => ['id' => $id, 'key' => null, 'type' => $type, 'title' => $title, 'help' => null, 'required' => $required, ...$extra];
+
+        return SurveyDefinition::fromArray(['sections' => [
+            ['id' => 'played', 'title' => 'Sobre la campaña', 'description' => null, 'next' => null, 'questions' => [
+                $question('played', 'single_choice', '¿Jugaste la campaña entera?', true, [
+                    'options' => $options(['whole' => 'Entera', 'part' => 'Solo una parte', 'none' => 'No llegué a jugar']),
+                    'next_by_option' => [['option_id' => 'part', 'next' => 'leaving'], ['option_id' => 'none', 'next' => Section::SUBMIT]],
+                ]),
+            ]],
+            ['id' => 'finale', 'title' => 'El final de la campaña', 'description' => null, 'next' => 'closing', 'questions' => [
+                $question('finale', 'star_rating', '¿Qué te pareció el final?', true, ['stars' => 5]),
+                $question('finale_comment', 'paragraph', '¿Algo que destacar del final?', false),
+            ]],
+            ['id' => 'leaving', 'title' => 'Por qué lo dejaste', 'description' => null, 'next' => null, 'questions' => [
+                $question('leaving', 'dropdown', '¿Qué te hizo dejarla?', true, [
+                    'options' => $options(['time' => 'Falta de tiempo', 'schedule' => 'El horario', 'story' => 'La historia no me enganchó']),
+                    'allow_other' => true,
+                ]),
+            ]],
+            ['id' => 'closing', 'title' => 'Para terminar', 'description' => null, 'next' => null, 'questions' => [
+                $question('again', 'single_choice', '¿Repetirías con esta mesa?', true, ['options' => $options(['yes' => 'Sí', 'no' => 'No'])]),
+            ]],
+        ]]);
     }
 
     /**
