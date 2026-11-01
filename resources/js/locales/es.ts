@@ -190,7 +190,9 @@ export default {
         },
         respond: {
             required: 'Obligatoria',
+            named_title: 'Encuesta con nombre',
             named_notice: 'Esta encuesta no es anónima: tus respuestas se guardan con tu nombre.',
+            anonymous_title: 'Encuesta anónima',
             anonymous_notice:
                 'Esta encuesta es anónima: tus respuestas no se guardan con tu nombre.',
             closes_at: 'Abierta hasta el {date}',
@@ -203,13 +205,18 @@ export default {
             submit_poll: 'Votar',
             next: 'Siguiente',
             back: 'Atrás',
-            section_number: 'Sección {number}',
+            step_of: 'Paso {current} de {total}',
+            review_errors: 'Revisa las preguntas marcadas.',
             missing: {
                 required: 'Esta pregunta es obligatoria.',
                 grid_incomplete: 'Responde todas las filas.',
             },
             thanks_title: '¡Gracias por responder!',
+            thanks_poll_title: '¡Gracias por votar!',
             thanks_description: 'Tus respuestas se han guardado.',
+            thanks_anonymous: 'Tus respuestas se han guardado sin tu nombre.',
+            back_to_subject: 'Volver a {title}',
+            pending_surveys: 'Ver mis encuestas pendientes',
             verify_email: {
                 intro: 'Para responder, escribe tu correo y te enviaremos un enlace personal de un solo uso. Así cada persona responde una vez.',
                 label: 'Correo electrónico',

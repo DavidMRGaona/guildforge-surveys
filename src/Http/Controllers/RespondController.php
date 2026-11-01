@@ -6,6 +6,7 @@ namespace Modules\Surveys\Http\Controllers;
 
 use App\Application\Seo\DTOs\SeoPageDTO;
 use App\Application\Seo\Services\SeoMetadataFactoryInterface;
+use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
 use Modules\Surveys\Domain\Exceptions\NotInvitedException;
 use Modules\Surveys\Domain\Exceptions\SurveyNotAcceptingResponsesException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Http\Requests\RequestPublicLinkRequest;
 use Modules\Surveys\Http\Support\ResultsPayload;
@@ -44,6 +46,7 @@ final class RespondController extends Controller
         private readonly SeoMetadataFactoryInterface $seo,
         private readonly ResultsService $results,
         private readonly PublicLinkAccessService $access,
+        private readonly SurveySubjectSourceRegistryInterface $sources,
     ) {}
 
     public function show(Request $request, string $survey): Response
@@ -112,6 +115,14 @@ final class RespondController extends Controller
                 'anonymous' => $survey->isAnonymous(),
                 'closesAt' => $survey->closesAt()?->format(DATE_ATOM),
             ];
+            $subject = $survey->subject();
+            if ($subject instanceof SubjectSnapshot) {
+                $props['subject'] = $this->subjectProps($subject);
+            }
+            // Whoever answers with an account can go back to what is still pending for them
+            if ($respondent->kind === Respondent::ACCOUNT) {
+                $props['profileUrl'] = route('profile.show', ['tab' => 'surveys']);
+            }
         }
 
         if ($survey instanceof Survey && $state === SubmissionService::STATE_OPEN) {
@@ -139,6 +150,22 @@ final class RespondController extends Controller
         }
 
         return Inertia::render('Surveys/Respond', $props);
+    }
+
+    /**
+     * What the survey is about, as it was when it opened. The kind of subject is named by its
+     * source, or left out once the module that offered it is gone.
+     *
+     * @return array{typeLabel: ?string, title: string, startsAt: ?string, url: ?string}
+     */
+    private function subjectProps(SubjectSnapshot $subject): array
+    {
+        return [
+            'typeLabel' => $this->sources->source($subject->sourceType)?->sourceLabel(),
+            'title' => $subject->title,
+            'startsAt' => $subject->startsAt?->format(DATE_ATOM),
+            'url' => $subject->url,
+        ];
     }
 
     private function submit(Request $request, string $surveyId, Respondent $respondent, string $pageUrl): RedirectResponse
