@@ -313,6 +313,57 @@ describe('Edit', () => {
         expect(wrapper.text()).toContain('debilita el anonimato');
     });
 
+    it('writes the anonymity warning in the theme text over the warning colour', async () => {
+        const wrapper = mount(Edit, { props: props() });
+
+        await wrapper.find('#survey-live').setValue(true);
+
+        const warning = wrapper.get('[data-testid="live-results-warning"]');
+        expect(warning.text()).toContain('debilita el anonimato');
+        expect(warning.classes()).toContain('bg-warning-light');
+        expect(warning.classes()).toContain('text-base-primary');
+    });
+
+    it('writes the review and rejection notices in the theme text', () => {
+        const wrapper = mount(Edit, {
+            props: props({}, { pendingReview: true, rejectionReason: 'Falta el sistema' }),
+        });
+
+        const notices = wrapper.findAll('[role="status"]');
+        expect(notices.length).toBeGreaterThanOrEqual(2);
+        for (const notice of notices) {
+            expect(notice.classes()).toContain('text-base-primary');
+        }
+    });
+
+    it('leads with the way back to the subject surveys and the page title', () => {
+        const wrapper = mount(Edit, { props: props() });
+
+        const header = wrapper.get('header');
+        expect(header.find('a').attributes('href')).toBe('/encuestas/sujeto/example-thing/thing-1');
+        expect(header.text()).toContain('Partida de ejemplo');
+        expect(header.get('h1').text()).toBe('Editar la encuesta');
+    });
+
+    it('keeps the save buttons within reach at the bottom of a phone screen', () => {
+        const wrapper = mount(Edit, { props: props() });
+
+        const actions = wrapper.get('[data-testid="editor-actions"]');
+        expect(actions.classes()).toContain('sticky');
+        expect(actions.classes()).toContain('sm:static');
+        expect(actions.text()).toContain('Guardar y enviar');
+    });
+
+    it('puts each section title next to its move and remove buttons, big enough to tap', () => {
+        const wrapper = mount(Edit, { props: props({ definition: jumping() }) });
+
+        const heading = wrapper.findAll('h3').find((h) => h.text() === 'Sección 2');
+        const row = heading?.element.parentElement;
+        const remove = row?.querySelector('button[aria-label="Quitar la sección"]');
+        expect(remove).not.toBeNull();
+        expect(remove?.classList.contains('h-11')).toBe(true);
+    });
+
     it('creates a new poll whose title is its question', async () => {
         vi.mocked(router.post).mockClear();
         const poll: SurveyDefinition = {

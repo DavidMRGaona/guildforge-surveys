@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import { FormCheckbox, FormNumberInput, FormToggle } from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import DefinitionEditor from '../../../components/editor/DefinitionEditor.vue';
-import { INPUT_CLASS } from '../../../components/editor/styles';
+import PageHeader from '../../../components/PageHeader.vue';
+import { CARD_CLASS, FIELD_CLASS, NOTICE_CLASS } from '../../../components/styles';
 import type { EditorLocks, EditSurveyProps } from '../../../types/Editor';
 import type { SurveyDefinition } from '../../../types/Respond';
 import { cloneDefinition } from '../../../utils/definition';
@@ -96,38 +97,28 @@ function submit(send: boolean): void {
 </script>
 
 <template>
-    <div class="mx-auto max-w-3xl space-y-8 px-4 py-12">
-        <header class="space-y-2">
-            <Link
-                :href="props.backUrl"
-                class="text-sm text-primary underline-offset-2 hover:underline"
-            >
-                {{ t('surveys.editor.back', { title: props.subject.title }) }}
-            </Link>
-            <h1 class="text-2xl font-semibold break-words text-base-primary">
-                {{ heading }}
-            </h1>
-        </header>
+    <div class="mx-auto max-w-3xl space-y-6 px-4 pt-8 pb-4 sm:space-y-8 sm:py-12">
+        <PageHeader
+            :title="heading"
+            :back-url="props.backUrl"
+            :back-label="t('surveys.editor.back', { title: props.subject.title })"
+        />
 
         <p
             v-if="props.survey.pendingReview"
-            class="rounded-md bg-warning-light p-4 text-sm text-warning"
+            :class="[NOTICE_CLASS, 'bg-warning-light']"
             role="status"
         >
             {{ t('surveys.editor.pending_review_notice') }}
         </p>
         <p
             v-if="props.survey.rejectionReason"
-            class="rounded-md bg-error-light p-4 text-sm break-words text-error"
+            :class="[NOTICE_CLASS, 'bg-error-light']"
             role="status"
         >
             {{ t('surveys.manage.rejection_reason', { reason: props.survey.rejectionReason }) }}
         </p>
-        <p
-            v-if="props.locked"
-            class="rounded-md bg-muted p-4 text-sm text-base-secondary"
-            role="status"
-        >
+        <p v-if="props.locked" :class="[NOTICE_CLASS, 'bg-muted']" role="status">
             {{ t('surveys.editor.locked_notice') }}
         </p>
         <p v-if="errors.survey" class="text-sm text-error" role="alert">{{ errors.survey }}</p>
@@ -135,8 +126,8 @@ function submit(send: boolean): void {
             {{ errors.title }}
         </p>
 
-        <form class="space-y-8" @submit.prevent="submit(false)">
-            <section v-if="!titleFollowsQuestion" class="space-y-4">
+        <form class="space-y-6 sm:space-y-8" @submit.prevent="submit(false)">
+            <section v-if="!titleFollowsQuestion" :class="[CARD_CLASS, 'space-y-4 p-4 sm:p-6']">
                 <div>
                     <label for="survey-title" class="block text-sm font-medium text-base-primary">
                         {{ t('surveys.editor.title') }}
@@ -146,7 +137,7 @@ function submit(send: boolean): void {
                         v-model="title"
                         type="text"
                         required
-                        :class="['mt-1', INPUT_CLASS]"
+                        :class="['mt-1', FIELD_CLASS]"
                         :disabled="detailsLocked"
                         :aria-invalid="errors.title ? 'true' : undefined"
                     />
@@ -163,7 +154,7 @@ function submit(send: boolean): void {
                         id="survey-description"
                         v-model="description"
                         rows="3"
-                        :class="['mt-1', INPUT_CLASS]"
+                        :class="['mt-1', FIELD_CLASS]"
                         :disabled="detailsLocked"
                     ></textarea>
                     <p v-if="errors.description" class="mt-1 text-sm text-error">
@@ -172,7 +163,11 @@ function submit(send: boolean): void {
                 </div>
             </section>
 
-            <section v-if="props.endSending" class="space-y-4" aria-labelledby="survey-end-sending">
+            <section
+                v-if="props.endSending"
+                :class="[CARD_CLASS, 'space-y-4 p-4 sm:p-6']"
+                aria-labelledby="survey-end-sending"
+            >
                 <h2 id="survey-end-sending" class="text-lg font-semibold text-base-primary">
                     {{ t('surveys.editor.end_sending') }}
                 </h2>
@@ -209,7 +204,10 @@ function submit(send: boolean): void {
                 </div>
             </section>
 
-            <section class="space-y-4" :aria-label="t('surveys.editor.settings')">
+            <section
+                :class="[CARD_CLASS, 'space-y-5 p-4 sm:p-6']"
+                :aria-label="t('surveys.editor.settings')"
+            >
                 <h2 class="text-lg font-semibold text-base-primary">
                     {{ t('surveys.editor.settings') }}
                 </h2>
@@ -242,7 +240,7 @@ function submit(send: boolean): void {
                         id="survey-closes-at"
                         v-model="closesAt"
                         type="datetime-local"
-                        :class="['mt-1', INPUT_CLASS]"
+                        :class="['mt-1', FIELD_CLASS]"
                         :aria-invalid="errors.closes_at ? 'true' : undefined"
                     />
                     <p v-if="errors.closes_at" class="mt-1 text-sm text-error">
@@ -292,7 +290,12 @@ function submit(send: boolean): void {
                         v-model="liveResults"
                         :label="t('surveys.editor.live_results')"
                     />
-                    <p v-if="liveResults && anonymous" class="mt-1 text-sm text-warning">
+                    <p
+                        v-if="liveResults && anonymous"
+                        :class="[NOTICE_CLASS, 'mt-2 bg-warning-light p-3']"
+                        role="status"
+                        data-testid="live-results-warning"
+                    >
                         {{ t('surveys.editor.live_results_warning') }}
                     </p>
                 </div>
@@ -305,7 +308,10 @@ function submit(send: boolean): void {
                 <DefinitionEditor v-model="definition" :locks="locks" :errors="errors" />
             </section>
 
-            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <div
+                class="sticky bottom-0 z-10 -mx-4 flex flex-col gap-2 border-t border-default bg-surface px-4 py-3 sm:static sm:mx-0 sm:flex-row sm:justify-end sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0"
+                data-testid="editor-actions"
+            >
                 <BaseButton
                     type="submit"
                     variant="secondary"

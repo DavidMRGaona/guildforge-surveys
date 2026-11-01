@@ -11,14 +11,13 @@ import {
 } from '../../types/Respond';
 import { jumpTargets, move, newQuestion, QUESTION_TYPES } from '../../utils/definition';
 import QuestionEditor from './QuestionEditor.vue';
-import { INPUT_CLASS, ITEM_BUTTON_CLASS } from './styles';
+import { ADD_BUTTON_CLASS, FIELD_CLASS, ICON_BUTTON_CLASS } from '../styles';
+import PlusIcon from '../icons/PlusIcon.vue';
 
 const props = defineProps<{
     locks: EditorLocks;
     errors: Record<string, string>;
     path: string;
-    /** Shown as "Sección 2"; sections have no title of their own until one is written. */
-    number: number;
     /** Every section of the survey, to offer the later ones as jump targets. */
     sections: SurveySection[];
 }>();
@@ -67,9 +66,6 @@ function setNewType(value: string | number | null): void {
 <template>
     <div class="space-y-4">
         <div v-if="!props.locks.poll" class="space-y-3">
-            <h3 class="text-base font-semibold text-base-primary">
-                {{ t('surveys.editor.section', { number: props.number }) }}
-            </h3>
             <div>
                 <label
                     :for="`section-${section.id}-title`"
@@ -81,7 +77,7 @@ function setNewType(value: string | number | null): void {
                     :id="`section-${section.id}-title`"
                     :value="section.title ?? ''"
                     type="text"
-                    :class="['mt-1', INPUT_CLASS]"
+                    :class="['mt-1', FIELD_CLASS]"
                     :disabled="props.locks.structure"
                     @input="set('title', ($event.target as HTMLInputElement).value || null)"
                 />
@@ -97,7 +93,7 @@ function setNewType(value: string | number | null): void {
                     :id="`section-${section.id}-description`"
                     :value="section.description ?? ''"
                     rows="2"
-                    :class="['mt-1', INPUT_CLASS]"
+                    :class="['mt-1', FIELD_CLASS]"
                     :disabled="props.locks.structure"
                     @input="
                         set('description', ($event.target as HTMLTextAreaElement).value || null)
@@ -110,7 +106,7 @@ function setNewType(value: string | number | null): void {
             <li
                 v-for="(question, index) in section.questions"
                 :key="question.id"
-                class="rounded-lg border border-neutral-200 bg-surface p-4"
+                class="rounded-lg border border-default bg-surface p-4"
             >
                 <div class="mb-3 flex items-center justify-between gap-2">
                     <span class="text-sm font-medium text-base-secondary">
@@ -119,7 +115,7 @@ function setNewType(value: string | number | null): void {
                     <div v-if="!props.locks.structure && !props.locks.poll" class="flex gap-1">
                         <button
                             type="button"
-                            :class="ITEM_BUTTON_CLASS"
+                            :class="ICON_BUTTON_CLASS"
                             :disabled="index === 0"
                             :aria-label="t('surveys.editor.move_up')"
                             @click="set('questions', move(section.questions, index, -1))"
@@ -128,7 +124,7 @@ function setNewType(value: string | number | null): void {
                         </button>
                         <button
                             type="button"
-                            :class="ITEM_BUTTON_CLASS"
+                            :class="ICON_BUTTON_CLASS"
                             :disabled="index === section.questions.length - 1"
                             :aria-label="t('surveys.editor.move_down')"
                             @click="set('questions', move(section.questions, index, 1))"
@@ -137,7 +133,7 @@ function setNewType(value: string | number | null): void {
                         </button>
                         <button
                             type="button"
-                            :class="ITEM_BUTTON_CLASS"
+                            :class="ICON_BUTTON_CLASS"
                             :aria-label="t('surveys.editor.remove_question')"
                             @click="
                                 set(
@@ -163,9 +159,9 @@ function setNewType(value: string | number | null): void {
 
         <div
             v-if="!props.locks.structure && !props.locks.poll"
-            class="flex flex-wrap items-end gap-2"
+            class="flex flex-col gap-2 sm:flex-row sm:items-end"
         >
-            <div class="min-w-48">
+            <div class="sm:min-w-56">
                 <label
                     :for="`section-${section.id}-new-type`"
                     class="block text-sm font-medium text-base-primary"
@@ -185,11 +181,8 @@ function setNewType(value: string | number | null): void {
                     @update:model-value="setNewType"
                 />
             </div>
-            <button
-                type="button"
-                class="text-sm font-medium text-primary hover:underline"
-                @click="addQuestion"
-            >
+            <button type="button" :class="ADD_BUTTON_CLASS" @click="addQuestion">
+                <PlusIcon />
                 {{ t('surveys.editor.add_question') }}
             </button>
         </div>
