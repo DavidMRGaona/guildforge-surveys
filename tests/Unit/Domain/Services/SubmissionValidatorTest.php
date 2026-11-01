@@ -40,6 +40,27 @@ final class SubmissionValidatorTest extends TestCase
         }
     }
 
+    public function test_only_asks_the_questions_of_the_sections_reached(): void
+    {
+        $definition = SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition());
+        $validator = new SubmissionValidator;
+
+        // "No" skips the campaign section, whose question is required too
+        $this->assertSame(['q-comments' => 'required'], $validator->validate($definition, Submission::fromInput($definition, ['q-played' => 'o-no'])));
+        $this->assertSame([], $validator->validate($definition, Submission::fromInput($definition, ['q-played' => 'o-no', 'q-comments' => 'Bien'])));
+        // "Other" ends the survey
+        $this->assertSame([], $validator->validate($definition, Submission::fromInput($definition, ['q-played' => ['option' => Submission::OTHER, 'other' => 'Un poco']])));
+    }
+
+    public function test_rejects_answers_to_questions_that_were_not_reached(): void
+    {
+        $definition = SurveyDefinition::fromArray(SurveyDefinitionTest::branchingDefinition());
+
+        $errors = (new SubmissionValidator)->validate($definition, Submission::fromInput($definition, ['q-played' => 'o-no', 'q-finale' => 'Épico', 'q-comments' => 'Bien']));
+
+        $this->assertSame(['q-finale' => 'not_reached'], $errors);
+    }
+
     /**
      * @param  array<string, mixed>  $change
      */

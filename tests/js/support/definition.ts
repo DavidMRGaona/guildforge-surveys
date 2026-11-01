@@ -1,4 +1,8 @@
-import type { SurveyDefinition, SurveyQuestion } from '../../../resources/js/types/Respond';
+import {
+    SUBMIT,
+    type SurveyDefinition,
+    type SurveyQuestion,
+} from '../../../resources/js/types/Respond';
 
 function question(
     id: string,
@@ -17,6 +21,7 @@ function question(
         scale: null,
         stars: null,
         grid: null,
+        next_by_option: [],
         ...extra,
     };
 }
@@ -33,6 +38,7 @@ export const everyType: SurveyDefinition = {
             id: 's-1',
             title: 'Sobre la partida',
             description: null,
+            next: null,
             questions: [
                 question('q-short', 'short_text', {
                     required: true,
@@ -61,6 +67,56 @@ export const everyType: SurveyDefinition = {
                     },
                 }),
             ],
+        },
+    ],
+};
+
+/**
+ * Four sections with jumps: "Part" goes to s-part, "None" ends the survey and s-full goes
+ * straight to s-end, skipping s-part. The first two questions are required.
+ */
+export const branching: SurveyDefinition = {
+    sections: [
+        {
+            id: 's-intro',
+            title: null,
+            description: null,
+            next: null,
+            questions: [
+                question('q-played', 'single_choice', {
+                    required: true,
+                    options: [
+                        { id: 'o-all', label: 'Entera' },
+                        { id: 'o-part', label: 'Una parte' },
+                        { id: 'o-none', label: 'Nada' },
+                    ],
+                    next_by_option: [
+                        { option_id: 'o-part', next: 's-part' },
+                        { option_id: 'o-none', next: SUBMIT },
+                    ],
+                }),
+            ],
+        },
+        {
+            id: 's-full',
+            title: 'El final',
+            description: null,
+            next: 's-end',
+            questions: [question('q-finale', 'paragraph', { required: true })],
+        },
+        {
+            id: 's-part',
+            title: 'Por qué lo dejaste',
+            description: null,
+            next: null,
+            questions: [question('q-why', 'short_text')],
+        },
+        {
+            id: 's-end',
+            title: null,
+            description: null,
+            next: null,
+            questions: [question('q-comments', 'paragraph')],
         },
     ],
 };

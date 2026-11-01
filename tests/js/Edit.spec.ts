@@ -12,6 +12,7 @@ function definition(): SurveyDefinition {
                 id: 's-1',
                 title: null,
                 description: null,
+                next: null,
                 questions: [
                     {
                         id: 'q-1',
@@ -25,6 +26,7 @@ function definition(): SurveyDefinition {
                         scale: { min: 1, max: 5, min_label: null, max_label: null },
                         stars: null,
                         grid: null,
+                        next_by_option: [],
                     },
                     {
                         id: 'q-2',
@@ -38,6 +40,7 @@ function definition(): SurveyDefinition {
                         scale: null,
                         stars: null,
                         grid: null,
+                        next_by_option: [],
                     },
                 ],
             },
@@ -240,6 +243,7 @@ describe('Edit', () => {
                     id: 's-1',
                     title: null,
                     description: null,
+                    next: null,
                     questions: [
                         {
                             id: 'q-1',
@@ -256,6 +260,7 @@ describe('Edit', () => {
                             scale: null,
                             stars: null,
                             grid: null,
+                            next_by_option: [],
                         },
                     ],
                 },

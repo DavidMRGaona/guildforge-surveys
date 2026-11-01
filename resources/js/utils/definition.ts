@@ -41,7 +41,7 @@ export function newOption(label = ''): SurveyOption {
 }
 
 export function newSection(): SurveySection {
-    return { id: newId(), title: null, description: null, questions: [] };
+    return { id: newId(), title: null, description: null, next: null, questions: [] };
 }
 
 export function newQuestion(type: QuestionType): SurveyQuestion {
@@ -57,6 +57,7 @@ export function newQuestion(type: QuestionType): SurveyQuestion {
         scale: null,
         stars: null,
         grid: null,
+        next_by_option: [],
     };
 
     return withSettingsFor(question, type);

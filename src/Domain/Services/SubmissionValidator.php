@@ -14,7 +14,9 @@ use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 
 /**
  * Checks a submission against its survey's definition. Returns the first problem of each
- * question (question id => translatable message key); no answer text ever leaves it.
+ * question (question id => translatable message key); no answer text ever leaves it. Only
+ * the questions of the sections the answers lead to (SectionNavigator) are asked: those
+ * of skipped sections are never required, and any answer to them is "not_reached".
  */
 final class SubmissionValidator
 {
@@ -31,9 +33,14 @@ final class SubmissionValidator
      */
     public function validate(SurveyDefinition $definition, Submission $submission): array
     {
+        $reached = (new SectionNavigator)->reachedQuestionIds($definition, $submission);
+
         $errors = [];
         foreach ($definition->questions() as $question) {
-            $error = $this->check($question, $submission->valuesFor($question->id));
+            $values = $submission->valuesFor($question->id);
+            $error = in_array($question->id, $reached, true)
+                ? $this->check($question, $values)
+                : ($values === [] ? null : 'not_reached');
             if ($error !== null) {
                 $errors[$question->id] = $error;
             }
