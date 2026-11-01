@@ -68,7 +68,10 @@ function errorsOf(index: number): string[] {
             class="space-y-1 border-t border-line pt-3"
         >
             <div class="flex flex-wrap items-end gap-2">
-                <div class="w-full sm:w-44">
+                <!-- On a phone the day shares its row with the buttons and the times take half
+                     each below. Phone-only rules go under max-sm: the core's own w-full or flex-1
+                     sit in a higher layer and would beat any sm: override written here -->
+                <div class="min-w-0 max-sm:flex-1 sm:w-44">
                     <span class="block text-xs font-medium text-base-secondary">
                         {{ t('surveys.editor.slot_day') }}
                     </span>
@@ -81,7 +84,7 @@ function errorsOf(index: number): string[] {
                         @update:model-value="(day: string) => update(index, { day })"
                     />
                 </div>
-                <div class="min-w-0 flex-1 sm:w-32 sm:flex-none">
+                <div class="min-w-0 max-sm:order-2 max-sm:basis-[calc(50%-0.25rem)] sm:w-32">
                     <span class="block text-xs font-medium text-base-secondary">
                         {{ t('surveys.editor.slot_start') }}
                     </span>
@@ -97,7 +100,7 @@ function errorsOf(index: number): string[] {
                         "
                     />
                 </div>
-                <div class="min-w-0 flex-1 sm:w-32 sm:flex-none">
+                <div class="min-w-0 max-sm:order-2 max-sm:basis-[calc(50%-0.25rem)] sm:w-32">
                     <span class="block text-xs font-medium text-base-secondary">
                         {{ t('surveys.editor.slot_end') }}
                     </span>
@@ -113,7 +116,7 @@ function errorsOf(index: number): string[] {
                         "
                     />
                 </div>
-                <div v-if="!props.locked" class="flex gap-1">
+                <div v-if="!props.locked" class="flex gap-1 max-sm:order-1">
                     <button
                         type="button"
                         :class="ICON_BUTTON_CLASS"

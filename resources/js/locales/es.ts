@@ -225,6 +225,7 @@ export default {
             choose_date_description:
                 'Elige la fecha entre las propuestas. Avisaremos por correo a quienes recibieron la encuesta o la respondieron con su cuenta.',
             choose_date_slot: 'Fecha',
+            choose_date_placeholder: 'Elige una fecha',
             choose_date_confirm:
                 'Entiendo que se avisará a todos y que la fecha ya no se podrá cambiar.',
             choose_date_submit: 'Fijar y avisar',

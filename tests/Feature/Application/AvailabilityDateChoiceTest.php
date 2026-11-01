@@ -66,7 +66,7 @@ final class AvailabilityDateChoiceTest extends ModuleTestCase
             $this->assertSame('Fecha elegida: «Encuesta de ejemplo»', $message->subject);
             $this->assertStringContainsString('Partida de ejemplo', $text);
             $this->assertStringContainsString('Asociación de ejemplo', $text);
-            $this->assertStringContainsString('viernes, 11 de diciembre de 2026, de 17:00 a 21:00', $text);
+            $this->assertStringContainsString('**Viernes, 11 de diciembre de 2026, de 17:00 a 21:00**', $text);
 
             return true;
         });

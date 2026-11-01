@@ -80,8 +80,9 @@ const textClass =
             <p :id="titleId" class="text-lg font-semibold text-base-primary" aria-hidden="true">
                 {{ question.title }}
             </p>
+            <!-- Unmarked dates count as "no": an availability question is always answered -->
             <span
-                v-if="question.required"
+                v-if="question.required && question.type !== 'availability'"
                 class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-base-secondary"
                 >{{ t('surveys.respond.required') }}</span
             >

@@ -103,7 +103,8 @@ final class SurveyActions
                     ->native(false),
                 Checkbox::make('confirmed')
                     ->label(__('surveys::filament.actions.choose_date_confirm'))
-                    ->accepted(),
+                    ->accepted()
+                    ->validationMessages(['accepted' => __('surveys::messages.manage.date_confirm_required')]),
             ])
             ->action(static function (SurveyModel $record, array $data): void {
                 $slotId = is_string($data['slot_id'] ?? null) ? $data['slot_id'] : '';

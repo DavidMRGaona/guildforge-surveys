@@ -42,7 +42,7 @@ final class AvailabilityDateChosen extends Notification implements ShouldQueue
             ->line($this->subjectTitle === null
                 ? __('surveys::emails.date_chosen.intro', ['title' => $title, 'site' => $site])
                 : __('surveys::emails.date_chosen.intro_subject', ['title' => $title, 'site' => $site, 'subject' => EscapesMarkdown::escape($this->subjectTitle)]))
-            ->line(__('surveys::emails.date_chosen.date', ['date' => EscapesMarkdown::escape($this->date)]));
+            ->line(__('surveys::emails.date_chosen.date', ['date' => EscapesMarkdown::escape(mb_ucfirst($this->date))]));
 
         return $this->subjectUrl === null
             ? $mail

@@ -71,6 +71,7 @@ describe('QuestionField', () => {
         });
         const wrapper = mountField(
             question('availability', {
+                required: true,
                 options: [],
                 slots: [
                     slot('d-1', 'sábado, 12 de enero de 2030'),
@@ -80,6 +81,8 @@ describe('QuestionField', () => {
         );
 
         expect(wrapper.text()).toContain('Las que dejes sin marcar cuentan como «No».');
+        // Always answered, so never marked as required
+        expect(wrapper.text()).not.toContain('Obligatoria');
         expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(2);
         await wrapper.find('input[name="question-q-1-d-1"][value="yes"]').setValue(true);
         await wrapper.find('input[name="question-q-1-d-2"][value="if_needed"]').setValue(true);

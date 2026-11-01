@@ -158,7 +158,7 @@ final class OrganizerAvailabilitySurveyTest extends ModuleTestCase
             ->assertInertia(fn (Assert $page) => $page->where('chooseDateUrl', route('surveys.manage.choose-date', $id)));
 
         $this->actingAs($this->organizer)->post(route('surveys.manage.choose-date', $id), ['slot_id' => 'slot-2'])
-            ->assertSessionHasErrors('confirmed');
+            ->assertSessionHasErrors(['confirmed' => __('surveys::messages.manage.date_confirm_required')]);
         $this->actingAs($this->organizer)->post(route('surveys.manage.choose-date', $id), ['slot_id' => 'slot-2', 'confirmed' => true])
             ->assertSessionHas('success', __('surveys::messages.manage.date_chosen'));
 

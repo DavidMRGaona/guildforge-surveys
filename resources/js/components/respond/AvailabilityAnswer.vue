@@ -48,7 +48,7 @@ function slotLabelId(slotId: string): string {
         >
             <p
                 :id="slotLabelId(slot.id)"
-                class="mb-2 font-medium text-base-primary first-letter:uppercase sm:mb-0 sm:flex-1"
+                class="font-medium text-base-primary first-letter:uppercase max-sm:mb-2 sm:flex-1"
             >
                 {{ slot.label }}
             </p>

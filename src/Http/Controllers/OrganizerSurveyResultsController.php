@@ -80,7 +80,10 @@ final class OrganizerSurveyResultsController extends Controller
         abort_unless($found instanceof Survey && $found->subject() instanceof SubjectSnapshot, 404);
         abort_unless($this->gate->canManage((string) $request->user()?->getAuthIdentifier(), $found), 403);
 
-        $request->validate(['slot_id' => ['required', 'string'], 'confirmed' => ['accepted']]);
+        $request->validate(
+            ['slot_id' => ['required', 'string'], 'confirmed' => ['accepted']],
+            ['confirmed.accepted' => __('surveys::messages.manage.date_confirm_required'), 'slot_id.required' => __('surveys::messages.manage.date_slot_required')],
+        );
 
         try {
             $this->dates->choose($found->id(), (string) $request->string('slot_id'));

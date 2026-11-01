@@ -177,6 +177,7 @@ function save(): void {
                     v-model="chosenSlot"
                     class="mt-1"
                     :options="slotOptions"
+                    :placeholder="t('surveys.manage.choose_date_placeholder')"
                     :error="dateErrors.slot_id ?? ''"
                 />
             </div>
