@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, type VueWrapper } from '@vue/test-utils';
 import { router } from '@inertiajs/vue3';
 import Respond from '../../resources/js/pages/Surveys/Respond.vue';
 import type { RespondProps } from '../../resources/js/types/Respond';
 import { OTHER } from '../../resources/js/types/Respond';
 import { everyType } from './support/definition';
 
-function mountPage(props: Partial<RespondProps> = {}) {
+function mountPage(props: Partial<RespondProps> = {}): VueWrapper {
     return mount(Respond, {
         props: {
             state: 'open',
