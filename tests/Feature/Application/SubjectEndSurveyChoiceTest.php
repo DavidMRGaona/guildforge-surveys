@@ -20,6 +20,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 use Modules\Surveys\Application\DTOs\OrganizerSurveyInput;
+use Modules\Surveys\Application\Services\EndSurveyTemplateResolver;
 use Modules\Surveys\Application\Services\OrganizerSurveyService;
 use Modules\Surveys\Application\Services\SubjectCancelledService;
 use Modules\Surveys\Application\Services\SubjectEndedService;
@@ -324,6 +325,54 @@ final class SubjectEndSurveyChoiceTest extends ModuleTestCase
         $prepared = $this->app->make(OrganizerSurveyService::class)->prepare(ExampleThingSource::TYPE, 'thing-1', $this->organizer->id);
 
         $this->assertSame('Torneo de ejemplo', $prepared->title());
+    }
+
+    public function test_a_subject_not_offered_yet_can_keep_a_template_or_none(): void
+    {
+        $manager = $this->userWith('surveys:surveys.manage');
+
+        $choice = $this->choice->forForm(ExampleThingSource::TYPE, 'thing-2', $manager->id, SurveySurface::Panel);
+
+        $this->assertInstanceOf(EndSurveyChoiceDTO::class, $choice);
+        $this->assertSame(['type-default', 'template:'.$this->otherTemplate->id()->value, 'none'], array_keys($this->labels($choice->options)));
+        $this->assertNull($choice->ownValue);
+        $this->assertFalse($choice->locked);
+
+        $this->assertSame(EndSurveyChoiceOutcome::Saved, $this->choice->choose(ExampleThingSource::TYPE, 'thing-2', new EndSurveySelection('none'), $manager->id));
+        $this->assertSame('none', $this->choice->forForm(ExampleThingSource::TYPE, 'thing-2', $manager->id, SurveySurface::Panel)?->selected);
+        $this->assertNull($this->app->make(EndSurveyTemplateResolver::class)->templateFor(ExampleThingSource::TYPE, 'thing-2'));
+    }
+
+    public function test_an_own_survey_for_a_subject_not_offered_yet_keeps_its_template_to_start_from(): void
+    {
+        $manager = $this->userWith('surveys:surveys.manage');
+
+        $outcome = $this->choice->choose(ExampleThingSource::TYPE, 'thing-2', new EndSurveySelection('own', 'template:'.$this->otherTemplate->id()->value), $manager->id);
+
+        $this->assertSame(EndSurveyChoiceOutcome::Deferred, $outcome);
+        $this->assertSame(0, SurveyModel::query()->count());
+        $this->assertSame('Torneo de ejemplo', $this->app->make(EndSurveyTemplateResolver::class)->templateFor(ExampleThingSource::TYPE, 'thing-2')?->name());
+    }
+
+    public function test_an_own_survey_from_the_types_template_for_a_subject_not_offered_yet_stores_nothing(): void
+    {
+        $manager = $this->userWith('surveys:surveys.manage');
+
+        $outcome = $this->choice->choose(ExampleThingSource::TYPE, 'thing-2', new EndSurveySelection('own', 'template:'.$this->typeTemplate->id()->value), $manager->id);
+
+        $this->assertSame(EndSurveyChoiceOutcome::Deferred, $outcome);
+        $this->assertSame(0, SubjectEndChoiceModel::query()->count());
+    }
+
+    public function test_only_whoever_manages_the_surveys_chooses_for_a_subject_not_offered_yet(): void
+    {
+        ExampleThingSource::$managers = [$this->organizer->id];
+
+        $this->assertNull($this->choice->forForm(ExampleThingSource::TYPE, 'thing-2', $this->organizer->id, SurveySurface::Panel));
+
+        $this->expectException(AuthorizationException::class);
+
+        $this->choice->choose(ExampleThingSource::TYPE, 'thing-2', new EndSurveySelection('none'), $this->organizer->id);
     }
 
     private function forForm(SurveySurface $surface = SurveySurface::Panel, ?UserModel $user = null): EndSurveyChoiceDTO

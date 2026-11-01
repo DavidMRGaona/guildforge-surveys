@@ -44,7 +44,8 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  * dropped when untouched and kept as a draft of the subject when edited, so nothing is lost.
  *
  * Option values: type-default, template:<id>, own (with a base template:<id>), survey:<id> (the
- * end survey in force), draft:<id>, none.
+ * end survey in force), draft:<id>, none. A subject its module does not offer yet (an unpublished
+ * event, say) keeps a template or none only: an own survey keeps its template to start from.
  */
 final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInterface
 {
@@ -79,21 +80,25 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
         $names = $this->templates->formNames();
         if ($subjectId === null) {
             // Nothing to ask canManage() about yet: saving checks it with the new id
-            return $names === [] ? null : $this->offer($sourceType, $names, null, [], self::TYPE_DEFAULT);
+            return $names === [] ? null : $this->offer($sourceType, $names, null, [], self::TYPE_DEFAULT, withOwn: true);
         }
 
-        $subject = $source->find($subjectId);
-        if (! $subject instanceof SurveySubjectDTO || ! $this->may($userId, $source, $subjectId)) {
+        if (! $this->may($userId, $source, $subjectId)) {
             return null;
         }
 
-        $endSurvey = $this->surveys->findBySubjectEnd($this->endKey($subject));
+        // Null while its module does not offer it yet (an unpublished event, say): it can still
+        // keep a template or none, but there is nothing to prepare a survey of its own about
+        $subject = $source->find($subjectId);
+        $endSurvey = $this->surveys->findBySubjectEnd($this->endKey($sourceType, $subjectId));
         if ($names === [] && ! $endSurvey instanceof Survey) {
             return null;
         }
 
-        $current = $this->selected($subject, $endSurvey, $this->choices->find($sourceType, $subjectId), $names);
-        $offer = $this->offer($sourceType, $names, $this->inForce($endSurvey), $this->drafts($subject), $current);
+        $current = $this->selected($sourceType, $endSurvey, $this->choices->find($sourceType, $subjectId), $names);
+        $offer = $subject instanceof SurveySubjectDTO
+            ? $this->offer($sourceType, $names, $this->inForce($endSurvey), $this->drafts($subject), $current, withOwn: true)
+            : $this->offer($sourceType, $names, $this->inForce($endSurvey), [], $current, withOwn: false);
         $lockedReason = $this->lockedReason($subject, $endSurvey);
 
         return new EndSurveyChoiceDTO(
@@ -103,15 +108,14 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             baseTemplates: $offer->baseTemplates,
             locked: $lockedReason !== null,
             lockedReason: $lockedReason,
-            editUrl: $this->editUrl($userId, $source, $subject, $this->inForce($endSurvey), $surface),
+            editUrl: $this->editUrl($userId, $source, $subjectId, $this->inForce($endSurvey), $surface),
         );
     }
 
     public function choose(string $sourceType, string $subjectId, EndSurveySelection $selection, string $userId): EndSurveyChoiceOutcome
     {
         $source = $this->sources->source($sourceType);
-        $subject = $source?->find($subjectId);
-        if (! $source instanceof SurveySubjectSourceInterface || ! $subject instanceof SurveySubjectDTO) {
+        if (! $source instanceof SurveySubjectSourceInterface) {
             return EndSurveyChoiceOutcome::Unchanged;
         }
 
@@ -119,42 +123,45 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             throw new AuthorizationException;
         }
 
+        // Null while its module does not offer it yet: the choice is kept for when it does
+        $subject = $source->find($subjectId);
+
         return DB::transaction(function () use ($subject, $sourceType, $subjectId, $selection, $userId): EndSurveyChoiceOutcome {
             // Held until commit, so the end (or another save) waits for this choice
             $stored = $this->choices->findForUpdate($sourceType, $subjectId);
-            $endSurvey = $this->surveys->findBySubjectEndForUpdate($this->endKey($subject));
+            $endSurvey = $this->surveys->findBySubjectEndForUpdate($this->endKey($sourceType, $subjectId));
             if ($this->lockedReason($subject, $endSurvey) !== null) {
                 return EndSurveyChoiceOutcome::Locked;
             }
 
             $names = $this->templates->formNames();
-            if ($selection->value !== self::OWN && $selection->value === $this->selected($subject, $endSurvey, $stored, $names)) {
+            if ($selection->value !== self::OWN && $selection->value === $this->selected($sourceType, $endSurvey, $stored, $names)) {
                 return EndSurveyChoiceOutcome::Unchanged;
             }
 
-            return $this->apply($subject, $selection, $endSurvey, $names, $userId);
+            return $this->apply($sourceType, $subjectId, $subject, $selection, $endSurvey, $names, $userId);
         });
     }
 
     /**
      * @param  array<string, string>  $names
      */
-    private function apply(SurveySubjectDTO $subject, EndSurveySelection $selection, ?Survey $endSurvey, array $names, string $userId): EndSurveyChoiceOutcome
+    private function apply(string $sourceType, string $subjectId, ?SurveySubjectDTO $subject, EndSurveySelection $selection, ?Survey $endSurvey, array $names, string $userId): EndSurveyChoiceOutcome
     {
         $value = $selection->value;
 
         if ($value === self::TYPE_DEFAULT || $value === self::NONE || str_starts_with($value, 'template:')) {
             $template = str_starts_with($value, 'template:') ? $this->knownTemplateId($value, $names) : null;
             $released = $this->stepDown($endSurvey);
-            $typeTemplate = $this->endTemplates->typeTemplate($subject->sourceType);
+            $typeTemplate = $this->endTemplates->typeTemplate($sourceType);
 
             if ($value === self::NONE) {
-                $this->choices->save(SubjectEndChoice::none($subject->sourceType, $subject->subjectId), $userId);
+                $this->choices->save(SubjectEndChoice::none($sourceType, $subjectId), $userId);
             } elseif ($template instanceof SurveyTemplateId && $template->value !== $typeTemplate?->id()->value) {
-                $this->choices->save(SubjectEndChoice::template($subject->sourceType, $subject->subjectId, $template), $userId);
+                $this->choices->save(SubjectEndChoice::template($sourceType, $subjectId, $template), $userId);
             } else {
                 // The type's template needs no row, and follows the type if its setting changes
-                $this->choices->forget($subject->sourceType, $subject->subjectId);
+                $this->choices->forget($sourceType, $subjectId);
             }
 
             return $released ? EndSurveyChoiceOutcome::ReleasedAsDraft : EndSurveyChoiceOutcome::Saved;
@@ -167,26 +174,38 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             }
 
             $released = $this->stepDown($endSurvey);
-            $this->choices->forget($subject->sourceType, $subject->subjectId);
+            if (! $subject instanceof SurveySubjectDTO) {
+                // Nothing to prepare a survey about yet: its template goes out on the end instead
+                if ($base->id()->value === $this->endTemplates->typeTemplate($sourceType)?->id()->value) {
+                    $this->choices->forget($sourceType, $subjectId);
+                } else {
+                    $this->choices->save(SubjectEndChoice::template($sourceType, $subjectId, $base->id()), $userId);
+                }
+
+                return EndSurveyChoiceOutcome::Deferred;
+            }
+
+            $this->choices->forget($sourceType, $subjectId);
             $this->organizerSurveys->prepareFrom($subject, $base, $userId, now()->toDateTimeImmutable());
 
             return $released ? EndSurveyChoiceOutcome::ReleasedAsDraft : EndSurveyChoiceOutcome::Saved;
         }
 
-        if (str_starts_with($value, 'draft:')) {
+        if (str_starts_with($value, 'draft:') && $subject instanceof SurveySubjectDTO) {
             $draft = $this->draft($subject, substr($value, strlen('draft:')));
             $released = $this->stepDown($endSurvey);
-            $this->choices->forget($subject->sourceType, $subject->subjectId);
+            $this->choices->forget($sourceType, $subjectId);
 
-            $type = $this->settings->forSubjectType($subject->sourceType);
-            $draft->becomeEndSurvey($this->endKey($subject));
+            $type = $this->settings->forSubjectType($sourceType);
+            $draft->becomeEndSurvey($this->endKey($sourceType, $subjectId));
             $draft->chooseEndSending($type->autoSend, $type->sendDelayHours);
             $this->surveys->save($draft);
 
             return $released ? EndSurveyChoiceOutcome::ReleasedAsDraft : EndSurveyChoiceOutcome::Saved;
         }
 
-        // survey:<id> is only ever the one in force, which was handled as unchanged
+        // survey:<id> is only ever the one in force, which was handled as unchanged; drafts are
+        // only offered for a subject its module offers
         throw new InvalidArgumentException("Unknown end survey choice '{$value}'.");
     }
 
@@ -222,7 +241,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
      * @param  array<string, string>  $names
      * @param  list<Survey>  $drafts
      */
-    private function offer(string $sourceType, array $names, ?Survey $inForce, array $drafts, string $selected): EndSurveyChoiceDTO
+    private function offer(string $sourceType, array $names, ?Survey $inForce, array $drafts, string $selected, bool $withOwn): EndSurveyChoiceDTO
     {
         $typeTemplate = $this->endTemplates->typeTemplate($sourceType);
         $typeTemplateId = $typeTemplate?->id()->value;
@@ -246,7 +265,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             $id === $typeTemplateId ? array_unshift($baseTemplates, $base) : $baseTemplates[] = $base;
         }
 
-        if ($names !== []) {
+        if ($withOwn && $names !== []) {
             $options[] = new EndSurveyOptionDTO(self::OWN, (string) __('surveys::messages.end_choice.own'));
         }
 
@@ -259,8 +278,8 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
         return new EndSurveyChoiceDTO(
             options: $options,
             selected: $selected,
-            ownValue: $names === [] ? null : self::OWN,
-            baseTemplates: $baseTemplates,
+            ownValue: $withOwn && $names !== [] ? self::OWN : null,
+            baseTemplates: $withOwn ? $baseTemplates : [],
         );
     }
 
@@ -270,7 +289,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
      *
      * @param  array<string, string>  $names
      */
-    private function selected(SurveySubjectDTO $subject, ?Survey $endSurvey, ?SubjectEndChoice $stored, array $names): string
+    private function selected(string $sourceType, ?Survey $endSurvey, ?SubjectEndChoice $stored, array $names): string
     {
         if ($endSurvey instanceof Survey) {
             return $this->inForce($endSurvey) instanceof Survey ? 'survey:'.$endSurvey->id()->value : self::NONE;
@@ -281,7 +300,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
         }
 
         $chosen = $stored?->templateId?->value;
-        $typeTemplateId = $this->endTemplates->typeTemplate($subject->sourceType)?->id()->value;
+        $typeTemplateId = $this->endTemplates->typeTemplate($sourceType)?->id()->value;
 
         return $chosen !== null && $chosen !== $typeTemplateId && array_key_exists($chosen, $names)
             ? 'template:'.$chosen
@@ -298,12 +317,12 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             : null;
     }
 
-    private function lockedReason(SurveySubjectDTO $subject, ?Survey $endSurvey): ?string
+    private function lockedReason(?SurveySubjectDTO $subject, ?Survey $endSurvey): ?string
     {
         return match (true) {
-            $subject->status === SurveySubjectStatus::Cancelled => (string) __('surveys::messages.end_choice.locked.cancelled'),
+            $subject?->status === SurveySubjectStatus::Cancelled => (string) __('surveys::messages.end_choice.locked.cancelled'),
             $endSurvey instanceof Survey && $endSurvey->wasOpened() => (string) __('surveys::messages.end_choice.locked.sent'),
-            $subject->status === SurveySubjectStatus::Ended,
+            $subject?->status === SurveySubjectStatus::Ended,
             $endSurvey instanceof Survey && ! $endSurvey->isAwaitingSubjectEnd() => (string) __('surveys::messages.end_choice.locked.ended'),
             default => null,
         };
@@ -354,7 +373,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
      * The panel edits the survey for whoever manages surveys (or shows it once it went its way);
      * the organizer's editor serves everyone else who manages the subject while it still waits.
      */
-    private function editUrl(string $userId, SurveySubjectSourceInterface $source, SurveySubjectDTO $subject, ?Survey $endSurvey, SurveySurface $surface): ?string
+    private function editUrl(string $userId, SurveySubjectSourceInterface $source, string $subjectId, ?Survey $endSurvey, SurveySurface $surface): ?string
     {
         if (! $endSurvey instanceof Survey) {
             return null;
@@ -377,7 +396,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             }
         }
 
-        return $endSurvey->isAwaitingSubjectEnd() && $source->canManage($userId, $subject->subjectId)
+        return $endSurvey->isAwaitingSubjectEnd() && $source->canManage($userId, $subjectId)
             ? route('surveys.manage.edit', $endSurvey->id()->value)
             : null;
     }
@@ -390,8 +409,8 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             || $source->canManage($userId, $subjectId);
     }
 
-    private function endKey(SurveySubjectDTO $subject): string
+    private function endKey(string $sourceType, string $subjectId): string
     {
-        return "{$subject->sourceType}:{$subject->subjectId}";
+        return "{$sourceType}:{$subjectId}";
     }
 }
