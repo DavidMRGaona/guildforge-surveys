@@ -12,6 +12,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Question;
 use Modules\Surveys\Domain\ValueObjects\Definition\ScaleSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 
 /**
  * The templates the module ships for a role-playing and wargames association. Structure lives
@@ -77,18 +78,18 @@ final class RecommendedTemplates
                 ]),
             ]),
             $this->template('tournament', 'tournament', [$this->tournamentSection()]),
-            $this->template('tournament_40k', null, [
+            $this->template('tournament_40k', null, sections: [
                 $this->tournamentSection(),
                 $this->section('tournament_40k', 'game', $this->wargameQuestions()),
-            ]),
-            $this->template('tournament_aos', null, [
+            ], for: 'tournament'),
+            $this->template('tournament_aos', null, sections: [
                 $this->tournamentSection(),
                 $this->section('tournament_aos', 'game', [
                     ...$this->wargameQuestions(),
                     $this->scale('tournament_aos', 'battleplans'),
                 ]),
-            ]),
-            $this->template('tournament_kill_team', null, [
+            ], for: 'tournament'),
+            $this->template('tournament_kill_team', null, sections: [
                 $this->tournamentSection(),
                 $this->section('tournament_kill_team', 'game', [
                     $this->scale('tournament_kill_team', 'killzones'),
@@ -96,8 +97,8 @@ final class RecommendedTemplates
                     $this->scale('tournament_kill_team', 'team_balance'),
                     $this->choice('wargame', 'round_time', QuestionType::SingleChoice),
                 ]),
-            ]),
-            $this->template('tournament_blood_bowl', null, [
+            ], for: 'tournament'),
+            $this->template('tournament_blood_bowl', null, sections: [
                 $this->tournamentSection(),
                 $this->section('tournament_blood_bowl', 'game', [
                     $this->scale('tournament_blood_bowl', 'team_rules'),
@@ -105,7 +106,7 @@ final class RecommendedTemplates
                     $this->choice('tournament_blood_bowl', 'inducements', QuestionType::SingleChoice),
                     $this->choice('tournament_blood_bowl', 'match_length', QuestionType::SingleChoice),
                 ]),
-            ]),
+            ], for: 'tournament'),
             $this->template('member_satisfaction', null, [
                 $this->section('member_satisfaction', 'main', [
                     $this->stars('member_satisfaction', 'satisfaction'),
@@ -172,13 +173,17 @@ final class RecommendedTemplates
     }
 
     /**
+     * A template is meant for the kind of subject it is the default of; without one, for general
+     * surveys unless $for says otherwise.
+     *
      * @param  list<Section>  $sections
      */
-    private function template(string $catalogKey, ?string $subjectType, array $sections): RecommendedTemplate
+    private function template(string $catalogKey, ?string $subjectType, array $sections, ?string $for = null): RecommendedTemplate
     {
         return new RecommendedTemplate(
             catalogKey: $catalogKey,
             subjectType: $subjectType,
+            uses: new TemplateUses([$for ?? $subjectType ?? TemplateUses::GENERAL]),
             name: $this->translate("{$catalogKey}.name"),
             description: $this->translate("{$catalogKey}.description"),
             definition: new SurveyDefinition($sections),

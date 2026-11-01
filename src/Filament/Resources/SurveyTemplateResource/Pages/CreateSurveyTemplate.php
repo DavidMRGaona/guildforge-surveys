@@ -41,6 +41,7 @@ final class CreateSurveyTemplate extends CreateRecord
                 kind: $kind,
                 definition: $definition,
                 createdBy: is_string(auth()->id()) ? auth()->id() : null,
+                uses: SurveyTemplateResource::usesFrom($data),
             );
         });
 

@@ -64,6 +64,29 @@ final class RecommendedTemplatesSeederTest extends ModuleTestCase
         $this->assertNull($template->created_by);
     }
 
+    public function test_each_recommended_template_says_what_it_is_for(): void
+    {
+        $this->runSeeder();
+
+        $this->assertSame(
+            [
+                'activity_interest' => ['general'],
+                'association_event' => ['event'],
+                'availability' => ['general'],
+                'campaign' => ['campaign'],
+                'campaign_session' => ['campaign-session'],
+                'game_table' => ['game-table'],
+                'member_satisfaction' => ['general'],
+                'tournament' => ['tournament'],
+                'tournament_40k' => ['tournament'],
+                'tournament_aos' => ['tournament'],
+                'tournament_blood_bowl' => ['tournament'],
+                'tournament_kill_team' => ['tournament'],
+            ],
+            SurveyTemplateModel::query()->orderBy('catalog_key')->pluck('uses', 'catalog_key')->all(),
+        );
+    }
+
     public function test_running_it_again_creates_nothing_new(): void
     {
         $this->runSeeder();

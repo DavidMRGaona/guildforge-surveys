@@ -24,6 +24,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Modules\Surveys\Application\Services\SurveyLifecycleService;
 use Modules\Surveys\Domain\Enums\AudienceType;
 use Modules\Surveys\Domain\Enums\PublicLinkMode;
@@ -32,10 +33,12 @@ use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Domain\ValueObjects\TemplateUses;
 use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Forms\DefinitionEditor;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
+use Modules\Surveys\Filament\Support\SubjectTypeOptions;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
@@ -198,6 +201,14 @@ final class SurveyResource extends BaseResource
                     ->label(__('surveys::filament.survey.fields.title'))
                     ->searchable()
                     ->sortable(),
+                // From the snapshot, so it outlives the subject and the module that offered it
+                TextColumn::make('subject')
+                    ->label(__('surveys::filament.survey.fields.subject'))
+                    ->state(static fn (SurveyModel $record): string => is_string($record->subject_snapshot['title'] ?? null)
+                        ? $record->subject_snapshot['title']
+                        : SubjectTypeOptions::label(TemplateUses::GENERAL))
+                    ->description(static fn (SurveyModel $record): ?string => $record->subject_type === null ? null : SubjectTypeOptions::label($record->subject_type))
+                    ->searchable(query: static fn (Builder $query, string $search): Builder => $query->whereLike('subject_snapshot->title', "%{$search}%")),
                 TextColumn::make('kind')
                     ->label(__('surveys::filament.fields.kind'))
                     ->badge()
@@ -231,9 +242,19 @@ final class SurveyResource extends BaseResource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('status')
-                    ->label(__('surveys::filament.survey.fields.status'))
-                    ->options(self::statusOptions()),
+                SelectFilter::make('subject_type')
+                    ->label(__('surveys::filament.survey.fields.subject_type'))
+                    ->options(static fn (): array => SubjectTypeOptions::options(
+                        SurveyModel::query()->whereNotNull('subject_type')->distinct()->orderBy('subject_type')->pluck('subject_type'),
+                    ))
+                    ->query(static function (Builder $query, array $data): Builder {
+                        $type = $data['value'] ?? null;
+                        if (! is_string($type) || $type === '') {
+                            return $query;
+                        }
+
+                        return $type === TemplateUses::GENERAL ? $query->whereNull('subject_type') : $query->where('subject_type', $type);
+                    }),
                 SelectFilter::make('kind')
                     ->label(__('surveys::filament.fields.kind'))
                     ->options(SurveyTemplateResource::kindOptions()),
