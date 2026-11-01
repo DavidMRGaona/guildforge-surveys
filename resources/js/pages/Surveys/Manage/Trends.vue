@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-import { FormSelect } from '@/components/form';
+import { FormDatePicker, FormSelect } from '@/components/form';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import PageHeader from '../../../components/PageHeader.vue';
+import { CARD_CLASS, SECONDARY_ACTION_CLASS } from '../../../components/styles';
 import TrendChart from '../../../components/results/TrendChart.vue';
 import type {
     TrendComparison,
@@ -35,8 +37,16 @@ const comparisonOptions = COMPARISONS.map((comparison) => ({
     label: t(`surveys.trends.comparisons.${comparison}`),
 }));
 
-const inputClass =
-    'mt-1 w-full rounded-lg border border-neutral-300 bg-surface px-4 py-2.5 text-base-primary focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none';
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+// On phones the filters fold away behind a button that says how many are in use
+const filtersOpen = ref(false);
+const activeFilters = computed(
+    () =>
+        [props.filters.type, props.filters.system, props.filters.from, props.filters.to].filter(
+            (value) => value !== null
+        ).length
+);
 
 /**
  * Visits the page with the new cut. A new template drops the filters taken from the last one.
@@ -78,19 +88,19 @@ function text(value: string | number | null): string | null {
     return value === null || value === '' ? null : String(value);
 }
 
-function dateValue(event: Event): string | null {
-    return text(event.target instanceof HTMLInputElement ? event.target.value : null);
+/** A date filter changes once the picker holds a whole day, or nothing. */
+function setDate(key: 'from' | 'to', value: string): void {
+    if (value === '' || DAY.test(value)) {
+        apply({ [key]: text(value) });
+    }
 }
 </script>
 
 <template>
-    <div class="mx-auto max-w-3xl space-y-6 px-4 py-12">
-        <header class="space-y-1">
-            <h1 class="text-2xl font-semibold break-words text-base-primary">
-                {{ t('surveys.trends.title') }}
-            </h1>
+    <div class="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:py-12">
+        <PageHeader :title="t('surveys.trends.title')">
             <p class="text-sm text-base-secondary">{{ t('surveys.trends.intro') }}</p>
-        </header>
+        </PageHeader>
 
         <EmptyState
             v-if="props.templates.length === 0"
@@ -100,8 +110,23 @@ function dateValue(event: Event): string | null {
         />
 
         <template v-else>
+            <button
+                type="button"
+                :class="['sm:hidden', SECONDARY_ACTION_CLASS]"
+                :aria-expanded="filtersOpen ? 'true' : 'false'"
+                aria-controls="trends-filters"
+                data-testid="filters-toggle"
+                @click="filtersOpen = !filtersOpen"
+            >
+                {{ t('surveys.trends.filters_toggle', { count: activeFilters }, activeFilters) }}
+            </button>
             <section
-                class="grid gap-4 rounded-lg border border-neutral-200 bg-surface p-4 sm:grid-cols-2 sm:p-6"
+                id="trends-filters"
+                :class="[
+                    CARD_CLASS,
+                    'gap-4 p-4 sm:grid-cols-2 sm:p-6',
+                    filtersOpen ? 'grid' : 'hidden sm:grid',
+                ]"
                 :aria-label="t('surveys.trends.filters')"
                 data-testid="filters"
             >
@@ -150,25 +175,27 @@ function dateValue(event: Event): string | null {
                     <label for="trends-from" class="block text-sm font-medium text-base-primary">
                         {{ t('surveys.trends.from') }}
                     </label>
-                    <input
-                        id="trends-from"
-                        type="date"
-                        :class="inputClass"
-                        :value="props.filters.from ?? ''"
-                        @change="apply({ from: dateValue($event) })"
-                    />
+                    <div class="mt-1">
+                        <FormDatePicker
+                            id="trends-from"
+                            :model-value="props.filters.from ?? ''"
+                            :max="props.filters.to ?? undefined"
+                            @update:model-value="setDate('from', $event)"
+                        />
+                    </div>
                 </div>
                 <div>
                     <label for="trends-to" class="block text-sm font-medium text-base-primary">
                         {{ t('surveys.trends.to') }}
                     </label>
-                    <input
-                        id="trends-to"
-                        type="date"
-                        :class="inputClass"
-                        :value="props.filters.to ?? ''"
-                        @change="apply({ to: dateValue($event) })"
-                    />
+                    <div class="mt-1">
+                        <FormDatePicker
+                            id="trends-to"
+                            :model-value="props.filters.to ?? ''"
+                            :min="props.filters.from ?? undefined"
+                            @update:model-value="setDate('to', $event)"
+                        />
+                    </div>
                 </div>
                 <div>
                     <label for="trends-period" class="block text-sm font-medium text-base-primary">
@@ -198,7 +225,7 @@ function dateValue(event: Event): string | null {
 
             <section
                 v-if="props.trends"
-                class="space-y-1 rounded-lg border border-neutral-200 bg-surface p-4 sm:p-6"
+                :class="[CARD_CLASS, 'space-y-1 p-4 sm:p-6']"
                 :aria-label="t('surveys.trends.summary_label')"
             >
                 <p class="text-lg font-semibold text-base-primary" data-testid="summary">
@@ -232,11 +259,13 @@ function dateValue(event: Event): string | null {
             <article
                 v-for="question in props.trends?.questions ?? []"
                 :key="question.key"
-                class="space-y-4 rounded-lg border border-neutral-200 bg-surface p-4 sm:p-6"
+                :class="[CARD_CLASS, 'space-y-4 p-4 sm:p-6']"
                 :data-question="question.key"
             >
                 <div>
-                    <h2 class="font-medium break-words text-base-primary">{{ question.title }}</h2>
+                    <h2 class="text-lg font-semibold break-words text-base-primary">
+                        {{ question.title }}
+                    </h2>
                     <p v-if="question.measure !== 'none'" class="mt-1 text-sm text-base-secondary">
                         {{ t(`surveys.trends.measures.${question.measure}`) }}
                     </p>

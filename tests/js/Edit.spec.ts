@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { router } from '@inertiajs/vue3';
-import { FormSelect } from '@/components/form';
+import { FormDatePicker, FormSelect, FormTimePicker } from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import Edit from '../../resources/js/pages/Surveys/Manage/Edit.vue';
 import type { EditSurveyProps } from '../../resources/js/types/Editor';
@@ -286,6 +286,41 @@ describe('Edit', () => {
         expect(wrapper.find('#survey-closes-at').exists()).toBe(true);
         expect(wrapper.text()).not.toContain('Añadir pregunta');
         expect(wrapper.text()).not.toContain('Guardar y enviar');
+    });
+
+    it('changes the closing day and time with the site pickers', async () => {
+        vi.mocked(router.put).mockClear();
+        const wrapper = mount(Edit, {
+            props: props({}, { opened: true, closesAt: '2030-01-12T20:00', sendable: false }),
+        });
+
+        expect(wrapper.find('input[type="datetime-local"]').exists()).toBe(false);
+        const day = wrapper.getComponent(FormDatePicker);
+        const time = wrapper.getComponent(FormTimePicker);
+        expect(day.props('modelValue')).toBe('2030-01-12');
+        expect(time.props('modelValue')).toBe('20:00');
+
+        day.vm.$emit('update:modelValue', '2030-01-14');
+        time.vm.$emit('update:modelValue', '08:30');
+        await nextTick();
+        await wrapper.get('form').trigger('submit');
+
+        const data = vi.mocked(router.put).mock.calls[0]?.[1] as unknown as {
+            closes_at: string | null;
+        };
+        expect(data.closes_at).toBe('2030-01-14T08:30');
+    });
+
+    it('groups the closing day and time under one label', () => {
+        const wrapper = mount(Edit, {
+            props: props({}, { opened: true, closesAt: '2030-01-12T20:00', sendable: false }),
+        });
+
+        const group = wrapper.get('[data-testid="closes-at"]');
+        expect(group.element.tagName).toBe('FIELDSET');
+        expect(group.get('legend').text()).toBe('Fecha de cierre');
+        expect(group.findComponent(FormDatePicker).exists()).toBe(true);
+        expect(group.findComponent(FormTimePicker).exists()).toBe(true);
     });
 
     it('keeps the content as sent while it waits for review', () => {

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import { FormCheckbox } from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
+import PageHeader from '../../../components/PageHeader.vue';
 import QuestionChart from '../../../components/results/QuestionChart.vue';
+import { BADGE_CLASS, CARD_CLASS } from '../../../components/styles';
 import type { ChartType, ManageResultsProps } from '../../../types/Results';
 
 const props = defineProps<ManageResultsProps>();
@@ -70,22 +72,16 @@ function save(): void {
 </script>
 
 <template>
-    <div class="mx-auto max-w-3xl space-y-6 px-4 py-12">
-        <header class="space-y-1">
-            <p class="text-sm text-base-secondary">{{ props.subject.title }}</p>
-            <h1 class="text-2xl font-semibold break-words text-base-primary">
-                {{ t('surveys.manage.results_heading', { title: props.survey.title }) }}
-            </h1>
-            <Link
-                :href="props.backUrl"
-                class="text-sm text-primary underline-offset-2 hover:underline"
-            >
-                {{ t('surveys.manage.back_to_surveys') }}
-            </Link>
-        </header>
+    <div class="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:py-12">
+        <PageHeader
+            :title="t('surveys.manage.results_heading', { title: props.survey.title })"
+            :eyebrow="props.subject.title"
+            :back-url="props.backUrl"
+            :back-label="t('surveys.manage.back_to_surveys')"
+        />
 
         <section
-            class="grid grid-cols-2 gap-4 rounded-lg border border-neutral-200 bg-surface p-4 sm:p-6"
+            :class="[CARD_CLASS, 'grid grid-cols-2 gap-4 p-4 sm:p-6']"
             :aria-label="t('surveys.manage.results_participation')"
         >
             <div>
@@ -130,12 +126,26 @@ function save(): void {
         <article
             v-for="question in props.results.questions"
             :key="question.id"
-            class="space-y-4 rounded-lg border border-neutral-200 bg-surface p-4 sm:p-6"
-            :class="{ 'opacity-60': isHidden(question.id) }"
+            :class="[
+                CARD_CLASS,
+                'space-y-4 p-4 sm:p-6',
+                { 'border-dashed': isHidden(question.id) },
+            ]"
             :data-question="question.id"
         >
             <div>
-                <h2 class="font-medium break-words text-base-primary">{{ question.title }}</h2>
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <h2 class="text-lg font-semibold break-words text-base-primary">
+                        {{ question.title }}
+                    </h2>
+                    <span
+                        v-if="isHidden(question.id)"
+                        :class="[BADGE_CLASS, 'shrink-0 bg-muted text-base-primary']"
+                        data-testid="left-out"
+                    >
+                        {{ t('surveys.manage.results_left_out') }}
+                    </span>
+                </div>
                 <p class="mt-1 text-sm text-base-secondary">
                     {{
                         t(
@@ -175,30 +185,32 @@ function save(): void {
             </p>
 
             <div
-                class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-neutral-200 pt-3"
+                class="flex flex-col gap-3 border-t border-default pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6"
             >
                 <fieldset
                     v-if="question.chartTypes.length > 1"
-                    class="flex flex-wrap items-center gap-3"
+                    class="flex flex-wrap items-center gap-x-3 gap-y-2"
                 >
                     <legend class="sr-only">{{ t('surveys.manage.results_chart') }}</legend>
                     <span class="text-sm text-base-secondary" aria-hidden="true">
                         {{ t('surveys.manage.results_chart') }}
                     </span>
-                    <label
-                        v-for="type in question.chartTypes"
-                        :key="type"
-                        class="inline-flex items-center gap-1.5 text-sm text-base-primary"
-                    >
-                        <input
-                            v-model="chartTypes[question.id]"
-                            type="radio"
-                            :name="`chart-${question.id}`"
-                            :value="type"
-                            class="accent-primary-600"
-                        />
-                        {{ t(`surveys.manage.chart_types.${type}`) }}
-                    </label>
+                    <div class="inline-flex rounded-lg bg-muted p-1">
+                        <label v-for="type in question.chartTypes" :key="type" class="flex">
+                            <input
+                                v-model="chartTypes[question.id]"
+                                type="radio"
+                                :name="`chart-${question.id}`"
+                                :value="type"
+                                class="peer sr-only"
+                            />
+                            <span
+                                class="inline-flex min-h-11 cursor-pointer items-center rounded-md px-3 text-sm font-medium text-base-secondary transition-colors peer-checked:bg-surface peer-checked:text-base-primary peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-muted hover:text-base-primary sm:min-h-9"
+                            >
+                                {{ t(`surveys.manage.chart_types.${type}`) }}
+                            </span>
+                        </label>
+                    </div>
                 </fieldset>
                 <FormCheckbox
                     :id="`hide-${question.id}`"
@@ -211,9 +223,9 @@ function save(): void {
 
         <section
             v-if="props.hiddenQuestions.length > 0"
-            class="space-y-3 rounded-lg border border-neutral-200 bg-surface p-4 sm:p-6"
+            :class="[CARD_CLASS, 'space-y-3 p-4 sm:p-6']"
         >
-            <h2 class="font-medium text-base-primary">
+            <h2 class="text-lg font-semibold text-base-primary">
                 {{ t('surveys.manage.results_hidden_title') }}
             </h2>
             <p class="text-sm text-base-secondary">{{ t('surveys.manage.results_hidden_hint') }}</p>
@@ -230,7 +242,7 @@ function save(): void {
         </section>
 
         <div class="flex justify-end">
-            <BaseButton :loading="saving" :disabled="saving" @click="save">
+            <BaseButton class="w-full sm:w-auto" :loading="saving" :disabled="saving" @click="save">
                 {{ t('surveys.manage.results_save') }}
             </BaseButton>
         </div>

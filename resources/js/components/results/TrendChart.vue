@@ -250,11 +250,7 @@ onBeforeUnmount(() => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr
-                        v-for="(row, index) in rows"
-                        :key="index"
-                        class="border-t border-neutral-200"
-                    >
+                    <tr v-for="(row, index) in rows" :key="index" class="border-t border-default">
                         <th scope="row" class="py-1 pr-3 text-left font-normal text-base-primary">
                             {{ row.label }}
                         </th>

@@ -91,6 +91,36 @@ describe('Results', () => {
         expect(wrapper.text().match(/La vieron/g)).toHaveLength(1);
     });
 
+    it('offers the chart types as one segmented choice, still radio buttons underneath', () => {
+        const wrapper = mount(Results, { props: props() });
+
+        const group = wrapper.get('[data-question="q-1"] fieldset');
+        const radios = group.findAll('input[type="radio"]');
+        expect(radios).toHaveLength(2);
+        for (const radio of radios) {
+            expect(radio.classes()).toContain('sr-only');
+        }
+    });
+
+    it('marks a question to leave out without fading its text', async () => {
+        const wrapper = mount(Results, { props: props() });
+
+        await wrapper.get('#hide-q-1').setValue(true);
+
+        const article = wrapper.get('[data-question="q-1"]');
+        expect(article.classes()).not.toContain('opacity-60');
+        expect(article.get('[data-testid="left-out"]').text()).not.toBe('');
+    });
+
+    it('leads with the way back to the surveys, the subject and the title', () => {
+        const wrapper = mount(Results, { props: props() });
+
+        const header = wrapper.get('header');
+        expect(header.find('a').attributes('href')).toBe('/encuestas/de/thing/thing-1');
+        expect(header.text()).toContain('Partida de ejemplo');
+        expect(header.get('h1').text()).toContain('Valora la partida');
+    });
+
     it('saves the chosen charts and the questions left out', async () => {
         const wrapper = mount(Results, { props: props() });
 

@@ -2,7 +2,13 @@
 import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-import { FormCheckbox, FormNumberInput, FormToggle } from '@/components/form';
+import {
+    FormCheckbox,
+    FormDatePicker,
+    FormNumberInput,
+    FormTimePicker,
+    FormToggle,
+} from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import DefinitionEditor from '../../../components/editor/DefinitionEditor.vue';
 import PageHeader from '../../../components/PageHeader.vue';
@@ -19,7 +25,10 @@ const title = ref(props.survey.title);
 const description = ref(props.survey.description ?? '');
 const anonymous = ref(props.survey.anonymous);
 const durationDays = ref<number | null>(props.survey.durationDays);
-const closesAt = ref(props.survey.closesAt ?? '');
+// The closing moment comes as the site shows it ('YYYY-MM-DDTHH:MM') and is edited as a day
+// and a time
+const closesDay = ref(props.survey.closesAt?.slice(0, 10) ?? '');
+const closesTime = ref(props.survey.closesAt?.slice(11, 16) ?? '');
 const reminderHoursBefore = ref<number | null>(props.survey.reminderHoursBefore);
 const liveResults = ref(props.survey.liveResults);
 const visibleToRespondents = ref(props.survey.visibleToRespondents);
@@ -61,6 +70,18 @@ const detailsLocked = computed(() => locks.value.structure);
 // An anonymous survey never becomes named, and a named one only changes before anyone answers
 const anonymityLocked = computed(() => props.survey.anonymous || props.locked);
 
+/**
+ * Both halves empty keep the date as it is; anything else goes as typed, so a missing or
+ * mistyped half comes back as the server's error on the field.
+ */
+function closesAt(): string | null {
+    if (closesDay.value === '' && closesTime.value === '') {
+        return null;
+    }
+
+    return `${closesDay.value}T${closesTime.value}`;
+}
+
 function submit(send: boolean): void {
     router[props.submitMethod](
         send ? `${props.submitUrl}?send=1` : props.submitUrl,
@@ -70,7 +91,7 @@ function submit(send: boolean): void {
             definition: definition.value,
             anonymous: anonymous.value,
             duration_days: props.survey.opened ? null : durationDays.value,
-            closes_at: props.survey.opened && closesAt.value !== '' ? closesAt.value : null,
+            closes_at: props.survey.opened ? closesAt() : null,
             reminder_hours_before: reminderHoursBefore.value,
             live_results: liveResults.value,
             visible_to_respondents: visibleToRespondents.value,
@@ -229,24 +250,50 @@ function submit(send: boolean): void {
                         {{ t('surveys.editor.duration_help') }}
                     </p>
                 </div>
-                <div v-else>
-                    <label
-                        for="survey-closes-at"
-                        class="block text-sm font-medium text-base-primary"
-                    >
+                <fieldset
+                    v-else
+                    :aria-describedby="errors.closes_at ? 'survey-closes-at-error' : undefined"
+                    data-testid="closes-at"
+                >
+                    <legend class="block text-sm font-medium text-base-primary">
                         {{ t('surveys.editor.closes_at') }}
-                    </label>
-                    <input
-                        id="survey-closes-at"
-                        v-model="closesAt"
-                        type="datetime-local"
-                        :class="['mt-1', FIELD_CLASS]"
-                        :aria-invalid="errors.closes_at ? 'true' : undefined"
-                    />
-                    <p v-if="errors.closes_at" class="mt-1 text-sm text-error">
+                    </legend>
+                    <div class="mt-1 grid gap-3 sm:grid-cols-2">
+                        <div class="space-y-1">
+                            <label
+                                for="survey-closes-at"
+                                class="block text-xs font-medium text-base-secondary"
+                            >
+                                {{ t('surveys.editor.closes_at_day') }}
+                            </label>
+                            <FormDatePicker
+                                id="survey-closes-at"
+                                v-model="closesDay"
+                                :aria-invalid="errors.closes_at ? 'true' : undefined"
+                            />
+                        </div>
+                        <div class="space-y-1">
+                            <label
+                                for="survey-closes-at-time"
+                                class="block text-xs font-medium text-base-secondary"
+                            >
+                                {{ t('surveys.editor.closes_at_time') }}
+                            </label>
+                            <FormTimePicker
+                                id="survey-closes-at-time"
+                                v-model="closesTime"
+                                :aria-invalid="errors.closes_at ? 'true' : undefined"
+                            />
+                        </div>
+                    </div>
+                    <p
+                        v-if="errors.closes_at"
+                        id="survey-closes-at-error"
+                        class="mt-1 text-sm text-error"
+                    >
                         {{ errors.closes_at }}
                     </p>
-                </div>
+                </fieldset>
                 <div>
                     <label
                         for="survey-reminder"

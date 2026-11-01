@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import type { VNode } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { FormDatePicker } from '@/components/form';
 import Trends from '../../resources/js/pages/Surveys/Manage/Trends.vue';
 import type { TrendsPageProps } from '../../resources/js/types/Trends';
 
@@ -125,6 +126,57 @@ describe('Trends', () => {
             { template: 't-2', period: 'quarter', compare: 'none' },
             expect.anything()
         );
+    });
+
+    it('filters the dates with the site date picker, once a whole day is written', async () => {
+        vi.mocked(router.get).mockClear();
+        const wrapper = mount(Trends, { props: props() });
+
+        expect(wrapper.find('input[type="date"]').exists()).toBe(false);
+        const [from, to] = wrapper.findAllComponents(FormDatePicker);
+
+        from?.vm.$emit('update:modelValue', '12/0');
+        await wrapper.vm.$nextTick();
+        expect(router.get).not.toHaveBeenCalled();
+
+        from?.vm.$emit('update:modelValue', '2030-01-01');
+        await wrapper.vm.$nextTick();
+        expect(router.get).toHaveBeenLastCalledWith(
+            '/encuestas/tendencias',
+            expect.objectContaining({ from: '2030-01-01' }),
+            expect.any(Object)
+        );
+        expect(to?.props('min')).toBeUndefined();
+    });
+
+    it('keeps the end after the start in the pickers', () => {
+        const wrapper = mount(Trends, {
+            props: props({
+                filters: { ...props().filters, from: '2030-01-01', to: '2030-06-30' },
+            }),
+        });
+
+        const [from, to] = wrapper.findAllComponents(FormDatePicker);
+        expect(from?.props('max')).toBe('2030-06-30');
+        expect(to?.props('min')).toBe('2030-01-01');
+    });
+
+    it('folds the filters on phones behind a button that counts the active ones', async () => {
+        const wrapper = mount(Trends, {
+            props: props({ filters: { ...props().filters, system: 'Rol', from: '2030-01-01' } }),
+        });
+
+        const toggle = wrapper.get('[data-testid="filters-toggle"]');
+        expect(toggle.attributes('aria-expanded')).toBe('false');
+        expect(toggle.text()).toContain('2');
+        const filters = wrapper.get(`#${toggle.attributes('aria-controls')}`);
+        expect(filters.classes()).toContain('hidden');
+        expect(filters.classes()).toContain('sm:grid');
+
+        await toggle.trigger('click');
+
+        expect(toggle.attributes('aria-expanded')).toBe('true');
+        expect(filters.classes()).not.toContain('hidden');
     });
 
     it('says so below the minimum', () => {
