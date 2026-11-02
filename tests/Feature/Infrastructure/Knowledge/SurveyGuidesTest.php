@@ -12,17 +12,23 @@ use App\Infrastructure\Persistence\Eloquent\Models\PermissionModel;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Livewire\Livewire;
+use Modules\Surveys\Domain\Entities\SurveyTemplate;
 use Modules\Surveys\Domain\Enums\SurveyKind;
+use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
+use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Resources\SurveyResource;
+use Modules\Surveys\Filament\Resources\SurveyResource\Pages\CreateSurvey;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\EditSurvey;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ListSurveys;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ViewSurvey;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ViewSurveyResults;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource;
+use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages\CreateSurveyTemplate;
+use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages\EditSurveyTemplate;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages\ListSurveyTemplates;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
 use Modules\Surveys\Tests\Support\ExampleThingSource;
@@ -38,27 +44,35 @@ final class SurveyGuidesTest extends ModuleTestCase
     use AnswersExampleSurveys;
     use InteractsWithModulePanel;
 
-    private const array SITE_GUIDES = [
+    /** For every account: answering, and what an anonymous survey keeps. */
+    private const array EVERYONE_GUIDES = [
+        'surveys.anonymous-surveys',
         'surveys.answer-survey',
-        'surveys.organizer-end-survey',
-        'surveys.organizer-polls',
-        'surveys.organizer-results',
     ];
 
     private const array ORGANIZER_GUIDES = [
         'surveys.organizer-end-survey',
         'surveys.organizer-polls',
+        'surveys.organizer-questions',
         'surveys.organizer-results',
     ];
 
     private const array PANEL_GUIDES = [
+        'surveys.panel.anonymity',
         'surveys.panel.create-survey',
+        'surveys.panel.end-survey-field',
+        'surveys.panel.notifications',
         'surveys.panel.open-share-close',
-        'surveys.panel.templates',
-        'surveys.panel.settings',
+        'surveys.panel.overview',
+        'surveys.panel.polls',
+        'surveys.panel.question-types',
+        'surveys.panel.quizzes',
         'surveys.panel.results',
-        'surveys.panel.trends',
         'surveys.panel.review',
+        'surveys.panel.sections-and-jumps',
+        'surveys.panel.settings',
+        'surveys.panel.templates',
+        'surveys.panel.trends',
     ];
 
     protected ?string $moduleName = 'surveys';
@@ -89,6 +103,7 @@ final class SurveyGuidesTest extends ModuleTestCase
     {
         $admin = UserModel::factory()->admin()->create();
 
+        $this->assertSame(self::PANEL_GUIDES, $this->visiblePanelGuides($admin));
         foreach (self::PANEL_GUIDES as $id) {
             $guide = $this->queries()->guide($admin, GuideAudience::Panel, GuideId::fromString($id));
             $this->assertNotNull($guide, $id);
@@ -100,18 +115,20 @@ final class SurveyGuidesTest extends ModuleTestCase
 
     public function test_each_permission_shows_only_its_panel_guides(): void
     {
-        $this->assertSame(
-            ['surveys.panel.create-survey', 'surveys.panel.open-share-close', 'surveys.panel.settings', 'surveys.panel.templates'],
-            $this->visiblePanelGuides($this->userWith('surveys:surveys.manage')),
-        );
-        $this->assertSame(
-            ['surveys.panel.results', 'surveys.panel.trends'],
-            $this->visiblePanelGuides($this->userWith('surveys:surveys.view_results')),
-        );
-        $this->assertSame(
-            ['surveys.panel.review'],
-            $this->visiblePanelGuides($this->userWith('surveys:surveys.moderate')),
-        );
+        $this->assertSame([
+            'surveys.panel.anonymity', 'surveys.panel.create-survey', 'surveys.panel.end-survey-field', 'surveys.panel.notifications',
+            'surveys.panel.open-share-close', 'surveys.panel.overview', 'surveys.panel.polls', 'surveys.panel.question-types',
+            'surveys.panel.quizzes', 'surveys.panel.sections-and-jumps', 'surveys.panel.settings', 'surveys.panel.templates',
+        ], $this->visiblePanelGuides($this->userWith('surveys:surveys.manage')));
+        $this->assertSame([
+            'surveys.panel.anonymity', 'surveys.panel.end-survey-field', 'surveys.panel.overview', 'surveys.panel.question-types',
+            'surveys.panel.quizzes', 'surveys.panel.results', 'surveys.panel.sections-and-jumps', 'surveys.panel.trends',
+        ], $this->visiblePanelGuides($this->userWith('surveys:surveys.view_results')));
+        $this->assertSame([
+            'surveys.panel.end-survey-field', 'surveys.panel.notifications', 'surveys.panel.overview', 'surveys.panel.review',
+        ], $this->visiblePanelGuides($this->userWith('surveys:surveys.moderate')));
+        // The end survey field shows in the forms of activities, whoever edits them
+        $this->assertSame(['surveys.panel.end-survey-field'], $this->visiblePanelGuides(UserModel::factory()->editor()->create()));
     }
 
     public function test_organizer_guides_need_surveys_of_something_the_person_organizes(): void
@@ -121,9 +138,9 @@ final class SurveyGuidesTest extends ModuleTestCase
         // Manages the thing too, but no survey names them yet
         ExampleThingSource::$managers = [$organizer->id, $newOrganizer->id];
 
-        $this->assertSame(self::SITE_GUIDES, $this->visibleSiteGuides($organizer));
-        $this->assertSame(['surveys.answer-survey'], $this->visibleSiteGuides($player));
-        $this->assertSame(['surveys.answer-survey'], $this->visibleSiteGuides($newOrganizer));
+        $this->assertSame([...self::EVERYONE_GUIDES, ...self::ORGANIZER_GUIDES], $this->visibleSiteGuides($organizer));
+        $this->assertSame(self::EVERYONE_GUIDES, $this->visibleSiteGuides($player));
+        $this->assertSame(self::EVERYONE_GUIDES, $this->visibleSiteGuides($newOrganizer));
     }
 
     public function test_every_site_guide_renders_without_raw_markup(): void
@@ -131,7 +148,7 @@ final class SurveyGuidesTest extends ModuleTestCase
         [$organizer] = $this->people;
         $this->surveyOrganizedBy($organizer);
 
-        foreach (self::ORGANIZER_GUIDES as $id) {
+        foreach ([...self::EVERYONE_GUIDES, ...self::ORGANIZER_GUIDES] as $id) {
             $guide = $this->queries()->guide($organizer, GuideAudience::Site, GuideId::fromString($id));
             $this->assertNotNull($guide, $id);
             $this->assertStringNotContainsString('[[', $guide->html, $id);
@@ -144,13 +161,18 @@ final class SurveyGuidesTest extends ModuleTestCase
         $this->actingAsPanelAdmin();
         [$id] = $this->openForm(anonymous: false);
         $record = ['record' => $id->value];
+        $template = new SurveyTemplate(SurveyTemplateId::generate(), 'Valoración', null, SurveyKind::Form, SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()));
+        $this->app->make(SurveyTemplateRepositoryInterface::class)->save($template);
 
         $pages = [
-            [ListSurveys::class, [], 'surveys.panel.create-survey'],
+            [ListSurveys::class, [], 'surveys.panel.overview'],
+            [CreateSurvey::class, [], 'surveys.panel.create-survey'],
             [EditSurvey::class, $record, 'surveys.panel.open-share-close'],
             [ViewSurvey::class, $record, 'surveys.panel.open-share-close'],
             [ViewSurveyResults::class, $record, 'surveys.panel.results'],
             [ListSurveyTemplates::class, [], 'surveys.panel.templates'],
+            [CreateSurveyTemplate::class, [], 'surveys.panel.templates'],
+            [EditSurveyTemplate::class, ['record' => $template->id()->value], 'surveys.panel.templates'],
             [SurveySettingsPage::class, [], 'surveys.panel.settings'],
             [SurveyTrendsPage::class, [], 'surveys.panel.trends'],
         ];
@@ -164,10 +186,11 @@ final class SurveyGuidesTest extends ModuleTestCase
 
     public function test_no_help_button_without_the_guide_permission(): void
     {
-        // A moderator reads the list, but its guide is about creating surveys (surveys.manage)
+        // A moderator reads a survey under review, but its guide is about opening it (surveys.manage)
+        [$id] = $this->openForm(anonymous: false);
         $this->actingAs($this->userWith('surveys:surveys.moderate'));
 
-        Livewire::test(ListSurveys::class)->assertActionDoesNotExist('contextualHelp');
+        Livewire::test(ViewSurvey::class, ['record' => $id->value])->assertActionDoesNotExist('contextualHelp');
     }
 
     /**

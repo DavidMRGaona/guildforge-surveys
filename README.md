@@ -2,7 +2,7 @@
 
 Encuestas para la plataforma GuildForge: formularios al estilo de un formulario web, sondeos rápidos de una pregunta y encuestas al terminar una mesa, una campaña, un torneo o un evento.
 
-Requiere el core de GuildForge `^3.34`.
+Requiere el core de GuildForge `^3.35`.
 
 ## Qué hace
 
@@ -128,12 +128,12 @@ Si el módulo del sujeto lista sus sistemas de juego (game-tables y tournaments 
 
 ## Ayuda
 
-El módulo trae sus guías para el centro de ayuda del core (`resources/knowledge/es/`), cada una visible solo para quien puede hacer lo que explica:
+El módulo trae sus guías para el centro de ayuda del core (`resources/knowledge/es/`), escritas para quien no conoce el módulo y cada una visible solo para quien puede hacer lo que explica.
 
-- **Sitio** (categoría «Comunidad»): «Responder una encuesta», para cualquier cuenta, y tres guías para quien organiza: la encuesta al terminar, los sondeos y encuestas propios, y los resultados y las tendencias. Estas tres piden la capacidad `surveys.organizes_surveys`, la misma regla que la parte «De lo que organizas» de la pestaña *Encuestas* del perfil: la persona tiene encuestas de algo que sigue organizando. El botón de las tendencias pide `surveys.has_trends`, la regla del enlace a `/encuestas/tendencias`.
-- **Panel** (categoría «Contenido»): crear una encuesta o un sondeo; abrir, compartir y cerrar; plantillas y ajustes, con `surveys.manage`; resultados y tendencias, con `surveys.view_results`; y revisión, con `surveys.moderate`.
+- **Panel** (categoría «Contenido», en orden): «Encuestas: cómo funcionan» (la de entrada), crear una encuesta, tipos de pregunta, secciones y saltos, cuestionarios con nota, sondeos rápidos y de disponibilidad, abrir, compartir y cerrar, anonimato y privacidad, avisos y correos, resultados, tendencias, plantillas, la encuesta al terminar de mesas, torneos y eventos, ajustes y revisión. Cada una pide el permiso de lo que explica; la de la encuesta al terminar la ve cualquiera del panel, porque el campo sale en los formularios de las actividades.
+- **Sitio** (categoría «Comunidad»): responder una encuesta y «Encuestas anónimas: qué se guarda de ti», para cualquier cuenta, y cuatro para quien organiza (la encuesta al terminar, sondeos y encuestas propios, preguntas, secciones y saltos, y resultados y tendencias). Estas cuatro piden la capacidad `surveys.organizes_surveys`, la misma regla que la parte «De lo que organizas» de la pestaña *Encuestas* del perfil. El botón de las tendencias pide `surveys.has_trends`.
 
-Las páginas del módulo enlazan su guía con el botón «?», que solo aparece a quien puede leerla: las del panel con `HasKnowledgeGuideAction` y las de la web con `HelpLink`. `KnowledgeGuidesTest` pasa el lint de la base de conocimiento en el CI.
+El «?» de cada página abre la guía más concreta: las del panel con `HasKnowledgeGuideAction` y las de la web con `HelpLink`. En las páginas de otros módulos llega por los contratos del core (core ≥ 3.35): el campo «Encuesta al terminar» abre la guía que da `EndSurveyChoiceDTO::$guideId`, y el bloque «Encuestas» de cada ficha, la de `SurveySubjectLinksDTO::$guideId` (la de organizador para quien gestiona la actividad, la de responder para el resto). `KnowledgeGuidesTest` pasa el lint de la base de conocimiento en el CI.
 
 ## Datos de desarrollo
 

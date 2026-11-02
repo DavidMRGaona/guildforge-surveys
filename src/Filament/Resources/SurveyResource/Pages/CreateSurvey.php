@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 
+use App\Filament\Concerns\HasKnowledgeGuideAction;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Surveys\Domain\Entities\Survey;
@@ -22,8 +24,17 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 final class CreateSurvey extends CreateRecord
 {
     use HandlesDefinitionErrors;
+    use HasKnowledgeGuideAction;
 
     protected static string $resource = SurveyResource::class;
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return array_filter([$this->knowledgeGuideAction('surveys.panel.create-survey')]);
+    }
 
     /**
      * @param  array<string, mixed>  $data
