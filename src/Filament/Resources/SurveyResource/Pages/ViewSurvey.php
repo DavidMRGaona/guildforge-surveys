@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 
+use App\Filament\Concerns\HasKnowledgeGuideAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Modules\Surveys\Filament\Actions\SurveyActions;
@@ -15,6 +16,8 @@ use Modules\Surveys\Filament\Support\SurveyFormData;
  */
 final class ViewSurvey extends ViewRecord
 {
+    use HasKnowledgeGuideAction;
+
     protected static string $resource = SurveyResource::class;
 
     protected function getHeaderActions(): array
@@ -27,6 +30,7 @@ final class ViewSurvey extends ViewRecord
             SurveyActions::duplicate(),
             SurveyActions::saveAsTemplate(),
             EditAction::make(),
+            ...array_filter([$this->knowledgeGuideAction('surveys.panel.open-share-close')]),
         ];
     }
 

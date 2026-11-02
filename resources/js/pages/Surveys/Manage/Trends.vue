@@ -98,7 +98,7 @@ function setDate(key: 'from' | 'to', value: string): void {
 
 <template>
     <div class="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:py-12">
-        <PageHeader :title="t('surveys.trends.title')">
+        <PageHeader :title="t('surveys.trends.title')" guide="surveys.organizer-results">
             <p class="text-sm text-base-secondary">{{ t('surveys.trends.intro') }}</p>
         </PageHeader>
 

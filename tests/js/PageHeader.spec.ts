@@ -34,6 +34,22 @@ describe('PageHeader', () => {
             slots: { default: '<p>Cómo cambian las respuestas.</p>' },
         });
 
-        expect(wrapper.get('h1 + p').text()).toBe('Cómo cambian las respuestas.');
+        expect(wrapper.get('header > p').text()).toBe('Cómo cambian las respuestas.');
+    });
+
+    it('shows the help button of its guide next to the title', () => {
+        const wrapper = mount(PageHeader, {
+            props: { title: 'Tendencias', guide: 'surveys.organizer-results' },
+        });
+
+        expect(wrapper.get('[data-testid="help-link"]').attributes('data-guide')).toBe(
+            'surveys.organizer-results'
+        );
+    });
+
+    it('has no help button without a guide', () => {
+        const wrapper = mount(PageHeader, { props: { title: 'Tendencias' } });
+
+        expect(wrapper.find('[data-testid="help-link"]').exists()).toBe(false);
     });
 });

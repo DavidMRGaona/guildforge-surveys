@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 
+use App\Filament\Concerns\HasKnowledgeGuideAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
@@ -34,6 +35,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class ViewSurveyResults extends Page
 {
+    use HasKnowledgeGuideAction;
     use InteractsWithRecord;
 
     protected static string $resource = SurveyResource::class;
@@ -90,6 +92,7 @@ final class ViewSurveyResults extends Page
             $this->exportAction('export_csv', 'csv'),
             $this->exportAction('export_xlsx', 'xlsx'),
             $this->configureResultsAction(),
+            ...array_filter([$this->knowledgeGuideAction('surveys.panel.results')]),
         ];
     }
 

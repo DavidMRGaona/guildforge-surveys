@@ -165,6 +165,14 @@ describe('Respond', () => {
         expect(wrapper.text()).toContain('Esta encuesta no es anónima');
     });
 
+    it('links to the guide on answering surveys', () => {
+        const wrapper = mountPage();
+
+        expect(wrapper.get('[data-testid="help-link"]').attributes('data-guide')).toBe(
+            'surveys.answer-survey'
+        );
+    });
+
     it('shows a closed or answered survey without its form', () => {
         for (const state of ['closed', 'answered'] as const) {
             const wrapper = mountPage({ state, definition: undefined, submitUrl: undefined });

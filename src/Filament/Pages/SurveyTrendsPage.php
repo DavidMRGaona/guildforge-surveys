@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modules\Surveys\Filament\Pages;
 
 use App\Filament\Concerns\ChecksPermissions;
+use App\Filament\Concerns\HasKnowledgeGuideAction;
 use App\Filament\Concerns\SafeModuleNavigation;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -34,6 +36,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 final class SurveyTrendsPage extends Page implements HasForms
 {
     use ChecksPermissions;
+    use HasKnowledgeGuideAction;
     use InteractsWithForms;
     use SafeModuleNavigation;
 
@@ -65,6 +68,14 @@ final class SurveyTrendsPage extends Page implements HasForms
     public function getTitle(): string
     {
         return __('surveys::filament.trends.title');
+    }
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return array_filter([$this->knowledgeGuideAction('surveys.panel.trends')]);
     }
 
     public static function canAccess(): bool

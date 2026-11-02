@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+import HelpLink from '@/components/knowledge/HelpLink.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { VENUE_TIMEZONE } from '@/utils/datetime';
 import type { OrganizedSurvey } from '../../types/Manage';
@@ -55,9 +56,12 @@ function closesAt(value: string): string {
     <div class="space-y-8">
         <section v-if="organized.length > 0 || props.profileSurveyTrendsUrl" class="space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
-                <h2 class="text-xl font-semibold text-base-primary">
-                    {{ t('surveys.manage.profile_title') }}
-                </h2>
+                <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-semibold text-base-primary">
+                        {{ t('surveys.manage.profile_title') }}
+                    </h2>
+                    <HelpLink guide="surveys.organizer-end-survey" />
+                </div>
                 <Link
                     v-if="props.profileSurveyTrendsUrl"
                     :href="props.profileSurveyTrendsUrl"
@@ -71,9 +75,12 @@ function closesAt(value: string): string {
         </section>
 
         <section class="space-y-4">
-            <h2 class="text-xl font-semibold text-base-primary">
-                {{ t('surveys.profile.title') }}
-            </h2>
+            <div class="flex items-center gap-2">
+                <h2 class="text-xl font-semibold text-base-primary">
+                    {{ t('surveys.profile.title') }}
+                </h2>
+                <HelpLink guide="surveys.answer-survey" />
+            </div>
 
             <EmptyState
                 v-if="surveys.length === 0"

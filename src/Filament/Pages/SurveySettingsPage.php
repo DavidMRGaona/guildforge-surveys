@@ -12,6 +12,7 @@ use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Domain\Modules\ValueObjects\ModuleName;
 use App\Filament\Concerns\ChecksPermissions;
+use App\Filament\Concerns\HasKnowledgeGuideAction;
 use App\Filament\Concerns\SafeModuleNavigation;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -44,6 +45,7 @@ use Modules\Surveys\Infrastructure\Services\SurveySettings;
 final class SurveySettingsPage extends Page implements HasForms
 {
     use ChecksPermissions;
+    use HasKnowledgeGuideAction;
     use InteractsWithForms;
     use SafeModuleNavigation;
 
@@ -73,6 +75,14 @@ final class SurveySettingsPage extends Page implements HasForms
     public function getTitle(): string
     {
         return __('surveys::messages.settings.title');
+    }
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return array_filter([$this->knowledgeGuideAction('surveys.panel.settings')]);
     }
 
     public static function canAccess(): bool

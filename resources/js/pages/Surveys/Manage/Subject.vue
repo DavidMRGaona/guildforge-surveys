@@ -100,6 +100,7 @@ function prepare(): void {
             :back-url="props.subject.url"
             :back-label="t('surveys.manage.back_to_subject')"
             back-reloads
+            guide="surveys.organizer-end-survey"
         />
 
         <p
