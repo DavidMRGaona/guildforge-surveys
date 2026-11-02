@@ -46,9 +46,13 @@ final readonly class SurveySubjectLinks implements SurveySubjectLinksInterface
             }
         }
 
+        $manages = $source->canManage($userId, $subjectId);
+
         return new SurveySubjectLinksDTO(
-            manageUrl: $source->canManage($userId, $subjectId) ? route('surveys.subject', [$sourceType, $subjectId]) : null,
+            manageUrl: $manages ? route('surveys.subject', [$sourceType, $subjectId]) : null,
             surveys: $links,
+            // The page's help button: managing its surveys, or answering them
+            guideId: $manages ? 'surveys.organizer-end-survey' : 'surveys.answer-survey',
         );
     }
 

@@ -60,6 +60,9 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
 
     private const string VIEW = 'surveys:surveys.view_results';
 
+    /** The panel guide the field's help button opens. */
+    private const string GUIDE = 'surveys.panel.end-survey-field';
+
     public function __construct(
         private SurveySubjectSourceRegistryInterface $sources,
         private SubjectEndChoiceRepositoryInterface $choices,
@@ -110,6 +113,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             locked: $lockedReason !== null,
             lockedReason: $lockedReason,
             editUrl: $this->editUrl($userId, $source, $subjectId, $this->inForce($endSurvey), $surface),
+            guideId: self::GUIDE,
         );
     }
 
@@ -284,6 +288,7 @@ final readonly class SubjectEndSurveyChoice implements SubjectEndSurveyChoiceInt
             selected: $selected,
             ownValue: $withOwn && $names !== [] ? self::OWN : null,
             baseTemplates: $withOwn ? $baseTemplates : [],
+            guideId: self::GUIDE,
         );
     }
 
