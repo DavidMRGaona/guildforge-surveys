@@ -22,7 +22,6 @@ return new class extends Migration
             $table->unsignedInteger('size');
             // Only on named surveys
             $table->string('original_name')->nullable();
-            $table->timestamp('created_at')->nullable();
             $table->index(['survey_id', 'question_id']);
         });
     }

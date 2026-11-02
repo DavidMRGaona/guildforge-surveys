@@ -27,6 +27,7 @@ use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ListSurveys;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
+use Modules\Surveys\Tests\Unit\Domain\Services\FileQuestionDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\InteractsWithModulePanel;
@@ -102,6 +103,37 @@ final class SurveyResourceTest extends ModuleTestCase
             ->fillForm(['title' => 'Cuestionario', 'anonymous' => false, 'audience_type' => 'all_users', 'closes_at' => '2030-01-10 20:00:00', 'sections' => $fill['sections'], 'quiz' => true])
             ->call('create')
             ->assertHasFormErrors(['quiz']);
+    }
+
+    public function test_creates_a_survey_that_asks_for_a_file(): void
+    {
+        $fill = DefinitionFormState::formFill(SurveyDefinition::fromArray(FileQuestionDefinitionTest::data()));
+
+        Livewire::test(CreateSurvey::class)
+            ->fillForm(['title' => 'Concurso de pintura', 'anonymous' => false, 'audience_type' => 'all_users', 'closes_at' => '2030-01-10 20:00:00', 'sections' => $fill['sections']])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(['accept' => ['image', 'pdf'], 'max_mb' => 5], $this->stored()->definition()->questions()[0]->file?->toArray());
+    }
+
+    public function test_an_anonymous_survey_takes_no_pdf_and_the_change_says_so(): void
+    {
+        $fill = DefinitionFormState::formFill(SurveyDefinition::fromArray(FileQuestionDefinitionTest::data()));
+        $form = ['title' => 'Concurso de pintura', 'audience_type' => 'all_users', 'closes_at' => '2030-01-10 20:00:00', 'sections' => $fill['sections']];
+
+        Livewire::test(CreateSurvey::class)
+            ->fillForm([...$form, 'anonymous' => true])
+            ->call('create')
+            ->assertHasErrors();
+        $this->assertSame(0, SurveyModel::query()->count());
+
+        Livewire::test(CreateSurvey::class)->fillForm([...$form, 'anonymous' => false])->call('create')->assertHasNoFormErrors();
+        Livewire::test(EditSurvey::class, ['record' => $this->stored()->id()->value])
+            ->fillForm(['anonymous' => true])
+            ->call('save')
+            ->assertHasFormErrors(['anonymous']);
+        $this->assertFalse($this->stored()->isAnonymous());
     }
 
     public function test_the_public_link_asks_for_an_email_unless_it_is_made_open(): void

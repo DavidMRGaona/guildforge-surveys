@@ -172,6 +172,7 @@ final readonly class SubmissionService
                 $file->size > $maxBytes => 'file_too_large',
                 $contentType === null || ! $kind instanceof FileKind || ! $question->file->accepts($kind) => 'file_type',
                 $kind === FileKind::Pdf && $survey->isAnonymous() => 'file_type',
+                ! $this->files->fits($file, $contentType) => 'file_too_large',
                 default => null,
             };
             if ($error !== null) {

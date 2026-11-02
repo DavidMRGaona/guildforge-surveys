@@ -21,7 +21,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class SurveyAnswerFileModel extends Model
 {
-    public const ?string UPDATED_AT = null;
+    // An anonymous response keeps only its day: its files keep no time at all
+    public $timestamps = false;
 
     protected $table = 'surveys_answer_files';
 

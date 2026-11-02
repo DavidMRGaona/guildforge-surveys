@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { FormCombobox, FormDatePicker, FormSelect, FormTimePicker } from '@/components/form';
 import { OTHER, type AnswerDraft, type SurveyQuestion } from '../types/Respond';
 import AvailabilityAnswer from './respond/AvailabilityAnswer.vue';
+import FileAnswer from './respond/FileAnswer.vue';
 import GridAnswer from './respond/GridAnswer.vue';
 import OptionCards from './respond/OptionCards.vue';
 import RankingAnswer from './respond/RankingAnswer.vue';
@@ -209,6 +210,15 @@ const textClass =
             :slots="question.slots"
             :cells="draft.cells"
             @choose="chooseCell"
+        />
+
+        <FileAnswer
+            v-else-if="question.type === 'file' && question.file"
+            :id="inputId"
+            :settings="question.file"
+            :file="draft.file"
+            :described-by="describedBy"
+            @choose="(file: File | null) => update({ file })"
         />
 
         <RankingAnswer

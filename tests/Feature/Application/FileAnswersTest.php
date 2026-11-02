@@ -64,13 +64,15 @@ final class FileAnswersTest extends ModuleTestCase
         $this->assertSame($file->id, SurveyAnswerModel::query()->where('question_id', 'q-photo')->sole()->text_value);
     }
 
-    public function test_an_anonymous_survey_forgets_the_file_name(): void
+    public function test_an_anonymous_survey_forgets_the_file_name_and_the_time_it_came(): void
     {
         $id = $this->open(anonymous: true);
 
         $this->send($id, 0, [ExampleFiles::incoming('q-photo', ExampleFiles::photo())]);
 
-        $this->assertNull(SurveyAnswerFileModel::query()->sole()->original_name);
+        $file = SurveyAnswerFileModel::query()->sole();
+        $this->assertNull($file->original_name);
+        $this->assertSame(now()->startOfDay()->getTimestamp(), Storage::disk('local')->lastModified($file->path));
     }
 
     public function test_a_pdf_is_kept_as_sent(): void
@@ -91,6 +93,9 @@ final class FileAnswersTest extends ModuleTestCase
 
         $this->assertErrors(['q-photo' => 'file_type'], fn () => $this->send($id, 0, [ExampleFiles::incoming('q-photo', ExampleFiles::fakeImage())]));
         $this->assertErrors(['q-photo' => 'file_too_large'], fn () => $this->send($id, 1, [ExampleFiles::incoming('q-photo', ExampleFiles::photo(), size: 5 * 1024 * 1024 + 1)]));
+
+        // Small on disk, but too many pixels to decode
+        $this->assertErrors(['q-photo' => 'file_too_large'], fn () => $this->send($id, 2, [ExampleFiles::incoming('q-photo', ExampleFiles::hugeImage())]));
 
         config(['modules.settings.surveys.max_file_mb' => 2]);
         $this->assertErrors(['q-photo' => 'file_too_large'], fn () => $this->send($id, 2, [ExampleFiles::incoming('q-photo', ExampleFiles::photo(), size: 2 * 1024 * 1024 + 1)]));

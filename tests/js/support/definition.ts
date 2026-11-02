@@ -25,6 +25,7 @@ function question(
         slots: [],
         correct_option_ids: [],
         points: null,
+        file: null,
         ...extra,
     };
 }

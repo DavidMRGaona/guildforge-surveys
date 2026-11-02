@@ -22,6 +22,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
 use Modules\Surveys\Tests\Support\ExampleThingSource;
+use Modules\Surveys\Tests\Unit\Domain\Services\FileQuestionDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\ModuleTestCase;
 
@@ -159,6 +160,26 @@ final class OrganizerSurveyEditorTest extends ModuleTestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('definition.quiz.show_correct_answers', false)
                 ->where('definition.sections.0.questions.3.correct_option_ids', ['o-1']));
+    }
+
+    public function test_an_anonymous_survey_asks_for_images_only(): void
+    {
+        $survey = $this->offered();
+        $definition = $survey->definition()->toArray();
+        $definition['sections'][0]['questions'][] = [
+            ...FileQuestionDefinitionTest::data()['sections'][0]['questions'][0],
+            'id' => 'q-photo',
+        ];
+
+        $this->actingAs($this->organizer)
+            ->put(route('surveys.manage.update', $survey->id()->value), $this->payload($survey, ['definition' => $definition]))
+            ->assertSessionHasErrors(['definition.sections.0.questions.5.file.accept' => __('surveys::messages.definition_errors.pdf_not_allowed_anonymous')]);
+
+        $definition['sections'][0]['questions'][5]['file']['accept'] = ['image'];
+        $this->actingAs($this->organizer)
+            ->put(route('surveys.manage.update', $survey->id()->value), $this->payload($survey, ['definition' => $definition]))
+            ->assertSessionHasNoErrors();
+        $this->assertSame(['accept' => ['image'], 'max_mb' => 5], $this->surveys->findOrFail($survey->id())->definition()->question('q-photo')?->file?->toArray());
     }
 
     public function test_with_a_response_the_content_comes_back_locked(): void

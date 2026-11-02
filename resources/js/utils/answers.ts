@@ -14,10 +14,11 @@ export type AnswerPayload =
     | string[]
     | Record<string, string>
     | { option: string; other: string }
-    | { options: string[]; other: string };
+    | { options: string[]; other: string }
+    | File;
 
 export function emptyDraft(): AnswerDraft {
-    return { text: '', choice: '', choices: [], other: '', number: null, cells: {} };
+    return { text: '', choice: '', choices: [], other: '', number: null, cells: {}, file: null };
 }
 
 /** One empty draft per question of the survey, keyed by question id. */
@@ -137,6 +138,8 @@ function answerOf(question: SurveyQuestion, draft: AnswerDraft): AnswerPayload |
 
             return order.length === 0 ? undefined : order;
         }
+        case 'file':
+            return draft.file ?? undefined;
         default:
             return draft.text.trim() === '' ? undefined : draft.text;
     }

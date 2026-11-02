@@ -26,6 +26,7 @@ export const QUESTION_TYPES: QuestionType[] = [
     'date',
     'time',
     'grid',
+    'file',
 ];
 
 /** The only types a poll may use. */
@@ -39,6 +40,10 @@ export const RANKING_OPTIONS_MAX = 10;
 /** As SurveyDefinitionValidator::SLOTS_MIN and SLOTS_MAX on the server. */
 export const SLOTS_MIN = 2;
 export const SLOTS_MAX = 30;
+
+/** As SurveyDefinitionValidator::FILE_MB_MIN and FILE_MB_MAX on the server. */
+export const FILE_MB_MIN = 1;
+export const FILE_MB_MAX = 10;
 
 /** As SurveyDefinitionValidator::POINTS_MIN and POINTS_MAX on the server. */
 export const POINTS_MIN = 1;
@@ -107,6 +112,7 @@ export function newQuestion(type: QuestionType): SurveyQuestion {
         slots: [],
         correct_option_ids: [],
         points: null,
+        file: null,
     };
 
     return withSettingsFor(question, type);
@@ -139,6 +145,7 @@ export function changeType(question: SurveyQuestion, type: QuestionType): Survey
             slots: [],
             correct_option_ids: correct,
             points: correct.length > 0 ? question.points : null,
+            file: type === 'file' ? question.file : null,
         },
         type
     );
@@ -283,6 +290,9 @@ function withSettingsFor(question: SurveyQuestion, type: QuestionType): SurveyQu
     }
     if (type === 'availability') {
         return { ...question, slots: [newSlot(), newSlot()] };
+    }
+    if (type === 'file' && question.file === null) {
+        return { ...question, file: { accept: ['image'], max_mb: 5 } };
     }
 
     return question;

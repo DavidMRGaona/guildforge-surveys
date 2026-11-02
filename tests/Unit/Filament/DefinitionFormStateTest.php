@@ -9,6 +9,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
+use Modules\Surveys\Tests\Unit\Domain\Services\FileQuestionDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use PHPUnit\Framework\TestCase;
@@ -216,6 +217,30 @@ final class DefinitionFormStateTest extends TestCase
         $this->assertSame("sections.{$sectionKey}.questions.{$questionKey}.data.options", DefinitionFormState::formPath($state, 'sections.0.questions.0.correct_option_ids'));
         $this->assertSame("sections.{$sectionKey}.questions.{$questionKey}.data.points", DefinitionFormState::formPath($state, 'sections.0.questions.0.points'));
         $this->assertSame('quiz', DefinitionFormState::formPath($state, 'quiz'));
+    }
+
+    public function test_a_file_question_goes_through_the_form_with_what_it_takes(): void
+    {
+        $definition = SurveyDefinition::fromArray(FileQuestionDefinitionTest::data());
+
+        $fill = DefinitionFormState::formFill($definition);
+        $data = self::blockData($fill['sections'], 0);
+
+        $this->assertSame(['image', 'pdf'], $data['file_accept']);
+        $this->assertSame(5, $data['file_max_mb']);
+        $this->assertEquals($definition, DefinitionFormState::fromFormData($fill));
+    }
+
+    public function test_file_errors_land_on_their_fields(): void
+    {
+        $state = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray(FileQuestionDefinitionTest::data()));
+        $sectionKey = (string) array_key_first($state);
+        $questionKey = array_key_first((array) $state[$sectionKey]['questions']);
+        $block = "sections.{$sectionKey}.questions.{$questionKey}.data";
+
+        $this->assertSame("{$block}.file_accept", DefinitionFormState::formPath($state, 'sections.0.questions.0.file.accept'));
+        $this->assertSame("{$block}.file_max_mb", DefinitionFormState::formPath($state, 'sections.0.questions.0.file.max_mb'));
+        $this->assertSame("{$block}.file_accept", DefinitionFormState::formPath($state, 'sections.0.questions.0.file'));
     }
 
     private function definition(): SurveyDefinition
