@@ -24,8 +24,9 @@ final class SurveyDefinitionTest extends TestCase
 
         $this->assertSame($data, $definition->toArray());
         $this->assertEquals($definition, SurveyDefinition::fromArray($definition->toArray()));
-        // Availability lives in a survey of its own kind: AvailabilityDefinitionTest
-        $this->assertCount(count(QuestionType::cases()) - 1, $definition->questions());
+        // Availability lives in a survey of its own kind (AvailabilityDefinitionTest) and files
+        // need a stored file to answer them (FileQuestionDefinitionTest)
+        $this->assertCount(count(QuestionType::cases()) - 2, $definition->questions());
     }
 
     public function test_from_array_rejects_unknown_type(): void
@@ -241,6 +242,7 @@ final class SurveyDefinitionTest extends TestCase
             'slots' => [],
             'correct_option_ids' => [],
             'points' => null,
+            'file' => null,
         ];
     }
 }

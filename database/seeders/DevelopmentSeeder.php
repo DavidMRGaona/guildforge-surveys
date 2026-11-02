@@ -421,6 +421,8 @@ final class DevelopmentSeeder extends Seeder
             QuestionType::Time => ['17:00', '17:30', '18:00', '19:00'][mt_rand(0, 3)],
             QuestionType::Ranking => $this->rank($options),
             QuestionType::Availability => $this->availabilityAnswer($question),
+            // A file is only answered by storing one: the demo data leaves them out
+            QuestionType::File => null,
         };
     }
 

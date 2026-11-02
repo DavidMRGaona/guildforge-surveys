@@ -11,6 +11,7 @@ use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
 use Modules\Surveys\Application\DTOs\GuestRecipient;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyAnswerFileModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyAnswerModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyParticipationModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyRecipientModel;
@@ -54,9 +55,10 @@ final class EloquentResponseStore implements ResponseStoreInterface
         ?string $responseUserId,
         ?string $responseGuestName,
         array $values,
+        array $files = [],
     ): void {
         try {
-            DB::transaction(static function () use ($surveyId, $participantUserId, $participantTokenHash, $submittedOn, $responseUserId, $responseGuestName, $values): void {
+            DB::transaction(static function () use ($surveyId, $participantUserId, $participantTokenHash, $submittedOn, $responseUserId, $responseGuestName, $values, $files): void {
                 $verified = $participantUserId !== null || $participantTokenHash !== null;
                 if ($verified) {
                     // The unique indexes settle a race between two submissions of the same person
@@ -84,6 +86,19 @@ final class EloquentResponseStore implements ResponseStoreInterface
                         'row_id' => $value->rowId,
                         'text_value' => $value->text,
                         'number_value' => $value->number,
+                    ]);
+                }
+
+                foreach ($files as $file) {
+                    SurveyAnswerFileModel::query()->create([
+                        'id' => $file->id,
+                        'survey_id' => $file->surveyId,
+                        'response_id' => $response->id,
+                        'question_id' => $file->questionId,
+                        'path' => $file->path,
+                        'content_type' => $file->contentType,
+                        'size' => $file->size,
+                        'original_name' => $file->originalName,
                     ]);
                 }
             });

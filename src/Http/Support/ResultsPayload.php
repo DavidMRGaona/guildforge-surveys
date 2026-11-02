@@ -16,8 +16,11 @@ use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
 use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
 use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
+use Modules\Surveys\Application\DTOs\StoredAnswerFile;
 use Modules\Surveys\Domain\Enums\ChartType;
+use Modules\Surveys\Domain\Enums\FileKind;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
+use Modules\Surveys\Infrastructure\Files\AnswerFileLinks;
 
 /**
  * A survey's results as the public site's pages receive them. Respondents get the counts;
@@ -52,6 +55,15 @@ final class ResultsPayload
                 'chartType' => $question->chartType->value,
                 'chartTypes' => array_map(static fn (ChartType $type): string => $type->value, $question->type->chartTypes()),
                 'texts' => $question->texts,
+                // Images get a preview that opens in the page; every file a download link
+                'files' => array_map(static fn (StoredAnswerFile $file): array => [
+                    'id' => $file->id,
+                    'name' => AnswerFileLinks::downloadName($file),
+                    'contentType' => $file->contentType,
+                    'size' => $file->size,
+                    'url' => AnswerFileLinks::forPage($file),
+                    'previewUrl' => FileKind::forContentType($file->contentType) === FileKind::Image ? AnswerFileLinks::forPage($file, inline: true) : null,
+                ], $question->files),
                 'quiz' => $question->quiz instanceof QuizQuestionResultDTO ? [
                     'correctOptionIds' => $question->quiz->correctOptionIds,
                     'points' => $question->quiz->points,

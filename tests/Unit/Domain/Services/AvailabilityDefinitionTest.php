@@ -89,8 +89,8 @@ final class AvailabilityDefinitionTest extends TestCase
         yield 'end before start' => [static fn (array $d): array => $slot($d, 1, ['id' => 'd-2', 'date' => null, 'starts_at' => '2026-12-11T16:00:00+00:00', 'ends_at' => '2026-12-11T15:00:00+00:00']), "{$q}.slots.1.ends_at", 'slot_ends_before_start'];
         yield 'end at start' => [static fn (array $d): array => $slot($d, 1, ['id' => 'd-2', 'date' => null, 'starts_at' => '2026-12-11T16:00:00+00:00', 'ends_at' => '2026-12-11T16:00:00+00:00']), "{$q}.slots.1.ends_at", 'slot_ends_before_start'];
         yield 'the same slot twice' => [static fn (array $d): array => $slot($d, 1, ['id' => 'd-2', 'date' => '2026-12-05', 'starts_at' => null, 'ends_at' => null]), "{$q}.slots.1", 'duplicate_slot'];
-        yield 'two questions' => [static fn (array $d): array => self::withQuestions($d, [$d['sections'][0]['questions'][0], ['id' => 'q-2', 'key' => null, 'type' => 'short_text', 'title' => 'Comentarios', 'help' => null, 'required' => false, 'options' => [], 'allow_other' => false, 'scale' => null, 'stars' => null, 'grid' => null, 'next_by_option' => [], 'slots' => [], 'correct_option_ids' => [], 'points' => null]]), 'sections', 'availability_single_question'];
-        yield 'another type' => [static fn (array $d): array => self::withQuestions($d, [['id' => 'q-1', 'key' => null, 'type' => 'single_choice', 'title' => '¿Qué día?', 'help' => null, 'required' => true, 'options' => [['id' => 'o-1', 'label' => 'Sábado'], ['id' => 'o-2', 'label' => 'Domingo']], 'allow_other' => false, 'scale' => null, 'stars' => null, 'grid' => null, 'next_by_option' => [], 'slots' => [], 'correct_option_ids' => [], 'points' => null]]), "{$q}.type", 'availability_type'];
+        yield 'two questions' => [static fn (array $d): array => self::withQuestions($d, [$d['sections'][0]['questions'][0], ['id' => 'q-2', 'key' => null, 'type' => 'short_text', 'title' => 'Comentarios', 'help' => null, 'required' => false, 'options' => [], 'allow_other' => false, 'scale' => null, 'stars' => null, 'grid' => null, 'next_by_option' => [], 'slots' => [], 'correct_option_ids' => [], 'points' => null, 'file' => null]]), 'sections', 'availability_single_question'];
+        yield 'another type' => [static fn (array $d): array => self::withQuestions($d, [['id' => 'q-1', 'key' => null, 'type' => 'single_choice', 'title' => '¿Qué día?', 'help' => null, 'required' => true, 'options' => [['id' => 'o-1', 'label' => 'Sábado'], ['id' => 'o-2', 'label' => 'Domingo']], 'allow_other' => false, 'scale' => null, 'stars' => null, 'grid' => null, 'next_by_option' => [], 'slots' => [], 'correct_option_ids' => [], 'points' => null, 'file' => null]]), "{$q}.type", 'availability_type'];
     }
 
     public function test_an_availability_question_only_lives_in_an_availability_survey(): void
@@ -156,6 +156,7 @@ final class AvailabilityDefinitionTest extends TestCase
                 ],
                 'correct_option_ids' => [],
                 'points' => null,
+                'file' => null,
             ]],
         ]], 'quiz' => null];
     }

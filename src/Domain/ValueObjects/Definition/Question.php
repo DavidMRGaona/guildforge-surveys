@@ -13,7 +13,7 @@ use Modules\Surveys\Domain\Enums\QuestionType;
  * the respondent elsewhere after this question's section depending on the option chosen;
  * only types that canBranch() use it. $slots are the dates an availability question proposes.
  * In a quiz, a choice question with $correctOptionIds is scored and gives $points when exactly
- * those options are chosen.
+ * those options are chosen. $file says what a file question takes.
  */
 final readonly class Question
 {
@@ -39,6 +39,7 @@ final readonly class Question
         public array $slots = [],
         public array $correctOptionIds = [],
         public ?int $points = null,
+        public ?FileSettings $file = null,
     ) {}
 
     /**
@@ -84,6 +85,7 @@ final readonly class Question
             'slots' => array_map(static fn (Slot $slot): array => $slot->toArray(), $this->slots),
             'correct_option_ids' => $this->correctOptionIds,
             'points' => $this->points,
+            'file' => $this->file?->toArray(),
         ];
     }
 }

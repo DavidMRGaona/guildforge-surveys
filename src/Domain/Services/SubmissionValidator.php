@@ -29,6 +29,8 @@ final class SubmissionValidator
 
     private const string TIME_PATTERN = '/^([01]\d|2[0-3]):[0-5]\d$/';
 
+    private const string FILE_ID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
+
     /**
      * @return array<string, string>
      */
@@ -71,6 +73,8 @@ final class SubmissionValidator
             QuestionType::Grid => $this->checkGrid($question, $values),
             QuestionType::Ranking => $this->checkRanking($question, $values),
             QuestionType::Availability => $this->checkAvailability($question, $values),
+            // The id the stored file got: the submission never takes anything else for it
+            QuestionType::File => count($values) === 1 && preg_match(self::FILE_ID_PATTERN, $values[0]->text ?? '') === 1 ? null : 'invalid_file',
         };
     }
 

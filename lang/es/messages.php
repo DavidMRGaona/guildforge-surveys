@@ -18,6 +18,9 @@ return [
         'results' => 'Resultados',
         'min_responses' => 'Mínimo de respuestas',
         'min_responses_help' => 'Respuestas que necesita una encuesta anónima para mostrar sus resultados, el texto libre y la exportación. Con 0 no hay mínimo.',
+        'files' => 'Archivos',
+        'max_file_mb' => 'Tamaño máximo de un archivo',
+        'max_file_mb_help' => 'Lo más que admite cualquier pregunta de archivo, de 1 a 10 MB. Cada pregunta puede pedir menos. Se guardan en un almacenamiento privado y solo los ve quien puede ver los resultados.',
         'defaults' => 'Valores por defecto de las encuestas nuevas',
         'default_close_days' => 'Días abierta',
         'default_close_days_help' => 'Días que pasa abierta una encuesta nueva antes de cerrarse sola.',
@@ -177,6 +180,12 @@ return [
         'quiz_without_scored_questions' => 'Marca la respuesta correcta de al menos una pregunta.',
         'quiz_off' => 'Las respuestas correctas solo se marcan en un cuestionario.',
         'quiz_kind_only' => 'Solo las encuestas pueden ser cuestionarios.',
+        'file_required' => 'Indica qué archivos admite la pregunta.',
+        'file_not_allowed' => 'Solo las preguntas de archivo admiten archivos.',
+        'invalid_file_accept' => 'Elige al menos un tipo de archivo, sin repetirlo.',
+        'invalid_file_size' => 'El tamaño máximo va de 1 a 10 MB.',
+        'pdf_not_allowed_anonymous' => 'Una encuesta anónima no admite PDF: sus propiedades pueden llevar el nombre de quien lo escribió. Admite solo imágenes.',
+        'file_needs_verified_link' => 'Con preguntas de archivo, el enlace público tiene que pedir el correo: abierto, cualquiera podría llenar el almacenamiento.',
     ],
 
     'state_errors' => [
@@ -198,6 +207,10 @@ return [
         'not_invited' => 'No puedes responder esta encuesta.',
     ],
 
+    'files' => [
+        'download_name' => 'archivo-:id',
+    ],
+
     'submission_errors' => [
         'required' => 'Esta pregunta es obligatoria.',
         'invalid_option' => 'Elige una de las opciones.',
@@ -211,6 +224,9 @@ return [
         'ranking_incomplete' => 'Coloca todas las opciones en orden.',
         'too_long' => 'La respuesta es demasiado larga.',
         'not_reached' => 'Esta pregunta no corresponde a las respuestas que has dado: vuelve a cargar la encuesta.',
+        'invalid_file' => 'Vuelve a elegir el archivo.',
+        'file_type' => 'Este archivo no es de un tipo que admita la pregunta.',
+        'file_too_large' => 'El archivo es demasiado grande.',
     ],
 
     'availability' => [

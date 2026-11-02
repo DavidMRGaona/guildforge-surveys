@@ -5,6 +5,10 @@ declare(strict_types=1);
 return [
     // Responses an anonymous survey needs before its results show (0 = no minimum)
     'min_responses' => 3,
+    // The largest file any file question takes, in megabytes (each question may ask for less)
+    'max_file_mb' => 10,
+    // Private disk the files sent as answers are kept on (never a public one)
+    'files_disk' => 'local',
     // Days a new survey stays open by default
     'default_close_days' => 7,
     'anonymous_by_default' => true,

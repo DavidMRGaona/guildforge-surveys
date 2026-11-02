@@ -6,10 +6,12 @@ namespace Modules\Surveys\Domain\Services;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Modules\Surveys\Domain\Enums\FileKind;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\ValueObjects\Definition\DefinitionViolation;
+use Modules\Surveys\Domain\ValueObjects\Definition\FileSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
@@ -49,6 +51,11 @@ final class SurveyDefinitionValidator
     public const int POINTS_MIN = 1;
 
     public const int POINTS_MAX = 100;
+
+    public const int FILE_MB_MIN = 1;
+
+    /** Photos from a phone fit; anything bigger belongs somewhere other than a survey. */
+    public const int FILE_MB_MAX = 10;
 
     /**
      * @return list<DefinitionViolation>
@@ -230,6 +237,12 @@ final class SurveyDefinitionValidator
             array_push($violations, ...$this->checkSlots($question->slots, "{$path}.slots"));
         } elseif ($question->slots !== []) {
             $violations[] = new DefinitionViolation("{$path}.slots", 'slots_not_allowed');
+        }
+
+        if ($type === QuestionType::File) {
+            array_push($violations, ...$this->checkFile($question->file, "{$path}.file"));
+        } elseif ($question->file instanceof FileSettings) {
+            $violations[] = new DefinitionViolation("{$path}.file", 'file_not_allowed');
         }
 
         return $violations;
@@ -434,6 +447,28 @@ final class SurveyDefinitionValidator
                     $violations[] = new DefinitionViolation("sections.{$s}.questions.{$q}.type", 'availability_type');
                 }
             }
+        }
+
+        return $violations;
+    }
+
+    /**
+     * At least one kind of file, none twice, and a size between FILE_MB_MIN and FILE_MB_MAX.
+     *
+     * @return list<DefinitionViolation>
+     */
+    private function checkFile(?FileSettings $file, string $path): array
+    {
+        if (! $file instanceof FileSettings) {
+            return [new DefinitionViolation($path, 'file_required')];
+        }
+
+        $violations = [];
+        if ($file->accept === [] || count(array_unique(array_map(static fn (FileKind $kind): string => $kind->value, $file->accept))) !== count($file->accept)) {
+            $violations[] = new DefinitionViolation("{$path}.accept", 'invalid_file_accept');
+        }
+        if ($file->maxMb < self::FILE_MB_MIN || $file->maxMb > self::FILE_MB_MAX) {
+            $violations[] = new DefinitionViolation("{$path}.max_mb", 'invalid_file_size');
         }
 
         return $violations;

@@ -7,9 +7,11 @@ namespace Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
+use Modules\Surveys\Application\DTOs\StoredAnswerFile;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyAnswerFileModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
 
 /**
@@ -221,6 +223,33 @@ final class EloquentSurveyResultsQuery implements SurveyResultsQueryInterface
         }
 
         return $responses;
+    }
+
+    public function answerFiles(SurveyId $surveyId, array $questionIds): array
+    {
+        if ($questionIds === []) {
+            return [];
+        }
+
+        $files = [];
+        $rows = SurveyAnswerFileModel::query()->where('survey_id', $surveyId->value)->whereIn('question_id', $questionIds)->orderBy('id')->get();
+        foreach ($rows as $row) {
+            $files[$row->question_id][] = $this->storedFile($row);
+        }
+
+        return $files;
+    }
+
+    public function answerFile(string $fileId): ?StoredAnswerFile
+    {
+        $row = SurveyAnswerFileModel::query()->find($fileId);
+
+        return $row instanceof SurveyAnswerFileModel ? $this->storedFile($row) : null;
+    }
+
+    private function storedFile(SurveyAnswerFileModel $row): StoredAnswerFile
+    {
+        return new StoredAnswerFile($row->id, $row->survey_id, $row->question_id, $row->path, $row->content_type, $row->size, $row->original_name);
     }
 
     /**

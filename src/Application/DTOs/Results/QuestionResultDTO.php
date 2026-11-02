@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Application\DTOs\Results;
 
+use Modules\Surveys\Application\DTOs\StoredAnswerFile;
 use Modules\Surveys\Domain\Enums\ChartType;
 use Modules\Surveys\Domain\Enums\QuestionType;
 
@@ -18,6 +19,7 @@ final readonly class QuestionResultDTO
      *                         when that is fewer than all of them and, on an anonymous survey, at
      *                         least the minimum
      * @param  ?QuizQuestionResultDTO  $quiz  a scored question of a quiz, never for respondents
+     * @param  list<StoredAnswerFile>  $files  the files sent to a file question, never for respondents
      */
     public function __construct(
         public string $questionId,
@@ -36,5 +38,6 @@ final readonly class QuestionResultDTO
         public ?RankingResultDTO $ranking = null,
         public ?AvailabilityResultDTO $availability = null,
         public ?QuizQuestionResultDTO $quiz = null,
+        public array $files = [],
     ) {}
 }

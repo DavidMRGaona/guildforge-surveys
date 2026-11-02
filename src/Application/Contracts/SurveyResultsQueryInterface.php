@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Application\Contracts;
 
+use Modules\Surveys\Application\DTOs\StoredAnswerFile;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 
@@ -101,4 +102,15 @@ interface SurveyResultsQueryInterface
      * @return list<array{verified: bool, name: ?string, values: list<AnswerValue>}>
      */
     public function responseValues(SurveyId $surveyId, array $questionIds): array;
+
+    /**
+     * The files sent to the given questions, by their random id so the list keeps no trace of
+     * who sent which.
+     *
+     * @param  list<string>  $questionIds
+     * @return array<string, list<StoredAnswerFile>> question id => files
+     */
+    public function answerFiles(SurveyId $surveyId, array $questionIds): array;
+
+    public function answerFile(string $fileId): ?StoredAnswerFile;
 }

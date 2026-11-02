@@ -18,6 +18,8 @@ final readonly class SurveySettings implements SurveySettingsInterface
 
     public const int DEFAULT_SEND_DELAY_HOURS = 12;
 
+    public const int DEFAULT_MAX_FILE_MB = 10;
+
     /**
      * Responses an anonymous survey needs before its results, free text or export show.
      * 0 means no minimum; a negative value is read as 0.
@@ -27,6 +29,13 @@ final readonly class SurveySettings implements SurveySettingsInterface
         $value = config('modules.settings.surveys.min_responses');
 
         return is_numeric($value) ? max(0, (int) $value) : self::DEFAULT_MIN_RESPONSES;
+    }
+
+    public function maxFileMb(): int
+    {
+        $value = config('modules.settings.surveys.max_file_mb');
+
+        return is_numeric($value) && (int) $value >= 1 ? (int) $value : self::DEFAULT_MAX_FILE_MB;
     }
 
     public function defaultCloseDays(): int

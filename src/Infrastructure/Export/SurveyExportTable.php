@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Surveys\Application\Contracts\SurveyResultsQueryInterface;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
+use Modules\Surveys\Application\DTOs\StoredAnswerFile;
 use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Application\Services\ResultsService;
 use Modules\Surveys\Domain\Entities\Survey;
@@ -27,6 +28,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Infrastructure\Files\AnswerFileLinks;
 
 /**
  * A survey's responses as a table: one row per response, ordered by its random id, and one
@@ -95,7 +97,7 @@ final readonly class SurveyExportTable
 
         return new ExportTable(
             array_map(static fn (mixed $header): string => is_string($header) ? $header : '', $headers),
-            $this->rows($survey, $columns, $withheld, $withScore),
+            $this->rows($survey, $columns, $withheld, $withScore, $this->files($survey)),
             Str::slug($survey->title()).'-'.$this->timezone->today()->format('Y-m-d'),
         );
     }
@@ -103,9 +105,10 @@ final readonly class SurveyExportTable
     /**
      * @param  list<array{Question, ?Option}>  $columns
      * @param  list<string>  $withheld
+     * @param  array<string, StoredAnswerFile>  $files  file id => file
      * @return Generator<int, list<string|int|null>>
      */
-    private function rows(Survey $survey, array $columns, array $withheld, bool $withScore): Generator
+    private function rows(Survey $survey, array $columns, array $withheld, bool $withScore, array $files): Generator
     {
         $named = ! $survey->isAnonymous();
         // "Not reached" would give away, row by row, a withheld answer that decided the way
@@ -124,13 +127,13 @@ final readonly class SurveyExportTable
             $batch[] = $response;
 
             if (count($batch) === self::BATCH) {
-                yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null, $withScore ? $survey->definition() : null);
+                yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null, $withScore ? $survey->definition() : null, $files);
                 $batch = [];
             }
         }
 
         if ($batch !== []) {
-            yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null, $withScore ? $survey->definition() : null);
+            yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null, $withScore ? $survey->definition() : null, $files);
         }
     }
 
@@ -140,9 +143,10 @@ final readonly class SurveyExportTable
      * @param  list<string>  $withheld
      * @param  ?SurveyDefinition  $definition  set when cells of questions a response did not reach say so
      * @param  ?SurveyDefinition  $quiz  set when each row ends with its score
+     * @param  array<string, StoredAnswerFile>  $files  file id => file
      * @return Generator<int, list<string|int|null>>
      */
-    private function batch(array $responses, array $columns, bool $named, array $withheld, ?SurveyDefinition $definition, ?SurveyDefinition $quiz): Generator
+    private function batch(array $responses, array $columns, bool $named, array $withheld, ?SurveyDefinition $definition, ?SurveyDefinition $quiz, array $files): Generator
     {
         $notReached = __('surveys::messages.export.not_reached');
         $notReached = is_string($notReached) ? $notReached : '';
@@ -168,6 +172,8 @@ final readonly class SurveyExportTable
                 $row[] = match (true) {
                     in_array($question->id, $withheld, true) => null,
                     $reached !== null && ! in_array($question->id, $reached, true) => $notReached,
+                    // A link to the file, signed and good for some days: never the file itself
+                    $question->type === QuestionType::File => $this->fileLink($files, $answers[$responseId][$question->id] ?? []),
                     default => $this->value($question, $part, $answers[$responseId][$question->id] ?? []),
                 };
             }
@@ -250,6 +256,39 @@ final readonly class SurveyExportTable
         $text = $answers[0]->text_value ?? null;
 
         return is_string($text) ? $text : null;
+    }
+
+    /**
+     * Every file of the survey's file questions, by id.
+     *
+     * @return array<string, StoredAnswerFile>
+     */
+    private function files(Survey $survey): array
+    {
+        $questionIds = array_values(array_map(
+            static fn (Question $question): string => $question->id,
+            array_filter($survey->definition()->questions(), static fn (Question $question): bool => $question->type === QuestionType::File),
+        ));
+
+        $files = [];
+        foreach ($this->query->answerFiles($survey->id(), $questionIds) as $questionFiles) {
+            foreach ($questionFiles as $file) {
+                $files[$file->id] = $file;
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * @param  array<string, StoredAnswerFile>  $files
+     * @param  list<object>  $answers
+     */
+    private function fileLink(array $files, array $answers): ?string
+    {
+        $file = $files[self::string($answers[0]->text_value ?? null)] ?? null;
+
+        return $file instanceof StoredAnswerFile ? AnswerFileLinks::forExport($file) : null;
     }
 
     /**

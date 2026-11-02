@@ -11,6 +11,7 @@ use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
+use Modules\Surveys\Domain\Services\FileQuestionRules;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
@@ -64,7 +65,9 @@ final class Survey
         private bool $closingSummary = false,
         private ?string $chosenSlotId = null,
         private ?DateTimeImmutable $chosenSlotAt = null,
-    ) {}
+    ) {
+        $this->assertFileRules($definition, $anonymous, $publicLinkEnabled, $publicLinkMode);
+    }
 
     /**
      * A survey with a requested duration closes that many days after it opens. Opening again
@@ -475,6 +478,7 @@ final class Survey
             throw InvalidSurveyStateException::audienceFixed($this->id->value);
         }
 
+        $this->assertFileRules($this->definition, $this->anonymous, $publicLinkEnabled, $publicLinkMode);
         $this->audienceType = $type;
         $this->audienceRoles = $roles;
         $this->publicLinkEnabled = $publicLinkEnabled;
@@ -515,6 +519,7 @@ final class Survey
     {
         $validator->assertValid($definition, $this->kind);
         $validator->assertChangeAllowed($this->definition, $definition, $hasResponses, keysFixed: true);
+        $this->assertFileRules($definition, $this->anonymous, $this->publicLinkEnabled, $this->publicLinkMode);
 
         $this->definition = $definition;
     }
@@ -536,6 +541,7 @@ final class Survey
             throw InvalidSurveyStateException::anonymityLockedByResponses($this->id->value);
         }
 
+        $this->assertFileRules($this->definition, true, $this->publicLinkEnabled, $this->publicLinkMode);
         $this->anonymous = true;
     }
 
@@ -813,5 +819,16 @@ final class Survey
         }
 
         return null;
+    }
+
+    /**
+     * @throws InvalidSurveyDefinitionException when a file question does not fit the survey
+     */
+    private function assertFileRules(SurveyDefinition $definition, bool $anonymous, bool $publicLinkEnabled, PublicLinkMode $publicLinkMode): void
+    {
+        $violations = (new FileQuestionRules)->violations($definition, $anonymous, $publicLinkEnabled, $publicLinkMode);
+        if ($violations !== []) {
+            throw InvalidSurveyDefinitionException::withViolations($violations);
+        }
     }
 }

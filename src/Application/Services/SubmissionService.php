@@ -6,11 +6,17 @@ namespace Modules\Surveys\Application\Services;
 
 use App\Application\Services\TimezoneServiceInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Modules\Surveys\Application\Contracts\AnswerFileStoreInterface;
 use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
+use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\DTOs\GuestRecipient;
+use Modules\Surveys\Application\DTOs\IncomingFile;
 use Modules\Surveys\Application\DTOs\Respondent;
 use Modules\Surveys\Domain\Entities\Survey;
+use Modules\Surveys\Domain\Enums\FileKind;
 use Modules\Surveys\Domain\Enums\PublicLinkMode;
+use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyStatus;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
@@ -19,10 +25,12 @@ use Modules\Surveys\Domain\Exceptions\SurveyNotAcceptingResponsesException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Services\QuizScorer;
 use Modules\Surveys\Domain\Services\SubmissionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\FileSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\QuizSettings;
 use Modules\Surveys\Domain\ValueObjects\Submission\QuizScore;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Throwable;
 
 /**
  * Takes a response. On an anonymous survey the response keeps no link to the person: their
@@ -50,6 +58,8 @@ final readonly class SubmissionService
         private SurveyRepositoryInterface $surveys,
         private ResponseStoreInterface $responses,
         private TimezoneServiceInterface $timezone,
+        private AnswerFileStoreInterface $files,
+        private SurveySettingsInterface $settings,
     ) {}
 
     /**
@@ -57,28 +67,30 @@ final readonly class SubmissionService
      * again from the answers.
      *
      * @param  array<mixed>  $input  answers keyed by question id (see Submission::fromInput())
+     * @param  list<IncomingFile>  $files  the files sent for file questions; nothing else answers them
      *
      * @throws SurveyNotAcceptingResponsesException
      * @throws NotInvitedException
      * @throws InvalidSubmissionException
      * @throws AlreadyAnsweredException
      */
-    public function submit(SurveyId $id, Respondent $respondent, array $input): ?QuizScore
+    public function submit(SurveyId $id, Respondent $respondent, array $input, array $files = []): ?QuizScore
     {
         // The survey's row stays locked until the response is stored, so an organizer's edit
         // (which locks it too) never changes the content under a first response
-        return DB::transaction(fn (): ?QuizScore => $this->submitLocked($id, $respondent, $input));
+        return DB::transaction(fn (): ?QuizScore => $this->submitLocked($id, $respondent, $input, $files));
     }
 
     /**
      * @param  array<mixed>  $input
+     * @param  list<IncomingFile>  $files
      *
      * @throws SurveyNotAcceptingResponsesException
      * @throws NotInvitedException
      * @throws InvalidSubmissionException
      * @throws AlreadyAnsweredException
      */
-    private function submitLocked(SurveyId $id, Respondent $respondent, array $input): ?QuizScore
+    private function submitLocked(SurveyId $id, Respondent $respondent, array $input, array $files): ?QuizScore
     {
         $survey = $this->surveys->findForUpdate($id);
         $now = now()->toDateTimeImmutable();
@@ -88,24 +100,92 @@ final readonly class SubmissionService
 
         [$participantUserId, $participantTokenHash, $guestName] = $this->identify($survey, $respondent);
 
+        [$input, $accepted, $fileErrors] = $this->acceptFiles($survey, $input, $files);
         $submission = Submission::fromInput($survey->definition(), $input);
-        $errors = (new SubmissionValidator)->validate($survey->definition(), $submission);
+        $errors = [...(new SubmissionValidator)->validate($survey->definition(), $submission), ...$fileErrors];
         if ($errors !== []) {
             throw InvalidSubmissionException::withErrors($errors);
         }
 
         $named = ! $survey->isAnonymous();
-        $this->responses->record(
-            surveyId: $id,
-            participantUserId: $participantUserId,
-            participantTokenHash: $participantTokenHash,
-            submittedOn: $this->timezone->toDisplay($now),
-            responseUserId: $named ? $participantUserId : null,
-            responseGuestName: $named ? $guestName : null,
-            values: $submission->values,
-        );
+        $stored = [];
+        try {
+            foreach ($accepted as [$fileId, $file, $contentType]) {
+                $stored[] = $this->files->store($id, $fileId, $file, $contentType, keepName: $named)
+                    ?? throw InvalidSubmissionException::withErrors([$file->questionId => 'file_type']);
+            }
+
+            $this->responses->record(
+                surveyId: $id,
+                participantUserId: $participantUserId,
+                participantTokenHash: $participantTokenHash,
+                submittedOn: $this->timezone->toDisplay($now),
+                responseUserId: $named ? $participantUserId : null,
+                responseGuestName: $named ? $guestName : null,
+                values: $submission->values,
+                files: $stored,
+            );
+        } catch (Throwable $exception) {
+            $this->files->discard($stored);
+
+            throw $exception;
+        }
 
         return $survey->definition()->quiz instanceof QuizSettings ? (new QuizScorer)->score($survey->definition(), $submission) : null;
+    }
+
+    /**
+     * A file question is only answered by a file: whatever text came for it is dropped, and each
+     * file sent gets the id its answer will hold. A file is refused when its contents are not a
+     * kind the question takes (no PDF on an anonymous survey) or it is larger than the question
+     * or the module allow.
+     *
+     * @param  array<mixed>  $input
+     * @param  list<IncomingFile>  $files
+     * @return array{array<mixed>, list<array{string, IncomingFile, string}>, array<string, string>} the input, the accepted
+     *                                                                                               files (id, file, content type) and the errors per question
+     */
+    private function acceptFiles(Survey $survey, array $input, array $files): array
+    {
+        $sent = [];
+        foreach ($files as $file) {
+            $sent[$file->questionId] = $file;
+        }
+
+        $accepted = [];
+        $errors = [];
+        foreach ($survey->definition()->questions() as $question) {
+            if ($question->type !== QuestionType::File || ! $question->file instanceof FileSettings) {
+                continue;
+            }
+
+            unset($input[$question->id]);
+            $file = $sent[$question->id] ?? null;
+            if (! $file instanceof IncomingFile) {
+                continue;
+            }
+
+            $contentType = $this->files->contentType($file);
+            $kind = $contentType === null ? null : FileKind::forContentType($contentType);
+            $maxBytes = min($question->file->maxMb, $this->settings->maxFileMb()) * 1024 * 1024;
+            $error = match (true) {
+                $file->size > $maxBytes => 'file_too_large',
+                $contentType === null || ! $kind instanceof FileKind || ! $question->file->accepts($kind) => 'file_type',
+                $kind === FileKind::Pdf && $survey->isAnonymous() => 'file_type',
+                default => null,
+            };
+            if ($error !== null) {
+                $errors[$question->id] = $error;
+
+                continue;
+            }
+
+            $fileId = (string) Str::uuid();
+            $input[$question->id] = $fileId;
+            $accepted[] = [$fileId, $file, (string) $contentType];
+        }
+
+        return [$input, $accepted, $errors];
     }
 
     /**

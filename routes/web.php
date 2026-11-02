@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Modules\Surveys\Http\Controllers\AnswerFileController;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyController;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyCopyController;
 use Modules\Surveys\Http\Controllers\OrganizerSurveyEditorController;
@@ -80,4 +81,6 @@ Route::prefix('encuestas')
         Route::post('{survey}/enviar', [OrganizerSurveyController::class, 'send'])->whereUuid('survey')->name('manage.send');
         Route::post('{survey}/descartar', [OrganizerSurveyController::class, 'dismiss'])->whereUuid('survey')->name('manage.dismiss');
         Route::post('{survey}/cerrar', [OrganizerSurveyController::class, 'close'])->whereUuid('survey')->name('manage.close');
+        // A file sent as an answer, through a signed link to whoever may see the results
+        Route::get('archivos/{file}', [AnswerFileController::class, 'show'])->whereUuid('file')->middleware('signed')->name('files.show');
     });
