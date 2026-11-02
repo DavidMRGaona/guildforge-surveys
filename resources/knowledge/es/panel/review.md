@@ -4,9 +4,9 @@ title: Revisar encuestas hechas en la web
 summary: Aprueba o rechaza las encuestas que los organizadores crean o cambian en la web antes de que salgan.
 category: content
 audience: panel
-order: 66
+order: 74
 keywords: [revisar, revisión, moderar, moderación, aprobar, rechazar, motivo del rechazo, pendientes de revisión, organizadores, encuestas de la web]
-related: [surveys.panel.settings]
+related: [surveys.panel.settings, surveys.panel.notifications, surveys.panel.overview]
 conditions:
   permissions:
     all: ['surveys:surveys.moderate']

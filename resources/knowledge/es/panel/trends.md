@@ -4,9 +4,9 @@ title: Tendencias de las encuestas
 summary: Mira cómo evoluciona cada pregunta de una plantilla a lo largo del tiempo y compárala por organizador, sistema de juego o tipo.
 category: content
 audience: panel
-order: 65
+order: 70
 keywords: [tendencias, evolución, comparar, histórico, media, satisfacción, organizador, sistema de juego, tipo de sujeto, mes, trimestre, año, gráfico, plantilla]
-related: [surveys.panel.results, surveys.panel.templates]
+related: [surveys.panel.results, surveys.panel.templates, surveys.panel.question-types]
 conditions:
   permissions:
     all: ['surveys:surveys.view_results']
