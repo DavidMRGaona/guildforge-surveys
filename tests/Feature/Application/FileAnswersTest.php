@@ -15,6 +15,7 @@ use Modules\Surveys\Console\Commands\PruneAnswerFilesCommand;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\Exceptions\InvalidSubmissionException;
+use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
@@ -25,6 +26,7 @@ use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
 use Modules\Surveys\Tests\Support\ExampleFiles;
 use Modules\Surveys\Tests\Unit\Domain\Services\FileQuestionDefinitionTest;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\Modules\ModuleTestCase;
 
 final class FileAnswersTest extends ModuleTestCase
@@ -126,19 +128,38 @@ final class FileAnswersTest extends ModuleTestCase
         $this->assertSame(1, SurveyAnswerFileModel::query()->count());
     }
 
-    public function test_deleting_the_survey_deletes_its_files(): void
+    /**
+     * @param  callable(SurveyId): void  $delete
+     */
+    #[DataProvider('deletions')]
+    public function test_deleting_the_survey_deletes_its_files(callable $delete): void
     {
         $id = $this->open(anonymous: false);
         $other = $this->open(anonymous: false);
         $this->send($id, 0, [ExampleFiles::incoming('q-photo', ExampleFiles::photo())]);
         $this->send($other, 0, [ExampleFiles::incoming('q-photo', ExampleFiles::pdf())]);
 
-        SurveyModel::query()->whereKey($id->value)->sole()->delete();
+        $delete($id);
 
         $this->assertSame(0, SurveyAnswerFileModel::query()->where('survey_id', $id->value)->count());
         $files = Storage::disk('local')->allFiles();
         $this->assertCount(1, $files);
         $this->assertStringStartsWith("surveys/{$other->value}/", $files[0]);
+    }
+
+    /**
+     * The panel deletes the model; services go through the repository.
+     *
+     * @return iterable<string, array{0: callable(SurveyId): void}>
+     */
+    public static function deletions(): iterable
+    {
+        yield 'the model' => [static function (SurveyId $id): void {
+            SurveyModel::query()->whereKey($id->value)->sole()->delete();
+        }];
+        yield 'the repository' => [static function (SurveyId $id): void {
+            app(SurveyRepositoryInterface::class)->delete($id);
+        }];
     }
 
     public function test_files_no_answer_points_at_are_pruned_once_a_day_old(): void
