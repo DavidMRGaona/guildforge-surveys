@@ -177,7 +177,8 @@ final readonly class EloquentSurveyRepository implements SurveyRepositoryInterfa
 
     public function delete(SurveyId $id): void
     {
-        SurveyModel::query()->whereKey($id->value)->delete();
+        // Through the model, never a bulk delete: its observers take the answer files with it
+        SurveyModel::query()->whereKey($id->value)->first()?->delete();
     }
 
     public function findDueToClose(DateTimeImmutable $now): array

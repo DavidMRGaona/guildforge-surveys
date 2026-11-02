@@ -33,7 +33,6 @@ use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
-use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyRecipientModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\SurveysServiceProvider;
@@ -245,7 +244,7 @@ final class DevelopmentSeeder extends Seeder
      */
     private function store(Survey $survey): Survey
     {
-        SurveyModel::query()->whereKey($survey->id()->value)->delete();
+        $this->surveys->delete($survey->id());
         $this->surveys->save($survey);
 
         return $survey;
