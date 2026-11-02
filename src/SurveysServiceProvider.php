@@ -25,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
+use Modules\Surveys\Application\Contracts\AnswerFileStoreInterface;
 use Modules\Surveys\Application\Contracts\AudienceResolverInterface;
 use Modules\Surveys\Application\Contracts\ChosenDateNotifierInterface;
 use Modules\Surveys\Application\Contracts\ClosingSummaryNotifierInterface;
@@ -41,6 +42,7 @@ use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
 use Modules\Surveys\Application\Contracts\TrendsQueryInterface;
 use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Console\Commands\CloseDueSurveysCommand;
+use Modules\Surveys\Console\Commands\PruneAnswerFilesCommand;
 use Modules\Surveys\Console\Commands\SendScheduledSurveysCommand;
 use Modules\Surveys\Console\Commands\SendSurveyRemindersCommand;
 use Modules\Surveys\Domain\Repositories\SubjectEndChoiceRepositoryInterface;
@@ -49,6 +51,8 @@ use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Widgets\PendingSurveyReviewsWidget;
+use Modules\Surveys\Infrastructure\Files\DeletesAnswerFilesWithSurvey;
+use Modules\Surveys\Infrastructure\Files\DiskAnswerFileStore;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentOrganizedSurveysQuery;
@@ -106,6 +110,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         $this->app->bind(SurveyRecipientStoreInterface::class, EloquentSurveyRecipientStore::class);
         $this->app->bind(AudienceResolverInterface::class, EloquentAudienceResolver::class);
         $this->app->bind(ResponseStoreInterface::class, EloquentResponseStore::class);
+        $this->app->bind(AnswerFileStoreInterface::class, DiskAnswerFileStore::class);
         $this->app->bind(SurveyNotifierInterface::class, SurveyInvitationSender::class);
         $this->app->bind(SurveyAnnouncerInterface::class, ChannelSurveyAnnouncer::class);
         $this->app->bind(PendingSurveysQueryInterface::class, EloquentPendingSurveysQuery::class);
@@ -128,6 +133,8 @@ final class SurveysServiceProvider extends ModuleServiceProvider
      */
     public function boot(): void
     {
+        SurveyModel::observe(DeletesAnswerFilesWithSurvey::class);
+
         parent::boot();
 
         // Register Livewire components (required for Filament RelationManagers)
@@ -210,6 +217,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
                 CloseDueSurveysCommand::class,
                 SendSurveyRemindersCommand::class,
                 SendScheduledSurveysCommand::class,
+                PruneAnswerFilesCommand::class,
             ]);
         }
     }
@@ -231,6 +239,11 @@ final class SurveysServiceProvider extends ModuleServiceProvider
             $schedule->command('surveys:send-reminders')
                 ->hourly()
                 ->withoutOverlapping(30);
+
+            // Removes answer files left behind by responses that failed after storing them
+            $schedule->command('surveys:prune-files')
+                ->daily()
+                ->withoutOverlapping(60);
         });
     }
 

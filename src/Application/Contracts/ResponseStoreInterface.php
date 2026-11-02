@@ -6,6 +6,7 @@ namespace Modules\Surveys\Application\Contracts;
 
 use DateTimeImmutable;
 use Modules\Surveys\Application\DTOs\GuestRecipient;
+use Modules\Surveys\Application\DTOs\StoredAnswerFile;
 use Modules\Surveys\Domain\Exceptions\AlreadyAnsweredException;
 use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
@@ -35,6 +36,7 @@ interface ResponseStoreInterface
      * @param  string|null  $responseUserId  only on named surveys
      * @param  string|null  $responseGuestName  only on named surveys
      * @param  list<AnswerValue>  $values
+     * @param  list<StoredAnswerFile>  $files  the files the values point at
      *
      * @throws AlreadyAnsweredException
      */
@@ -46,5 +48,6 @@ interface ResponseStoreInterface
         ?string $responseUserId,
         ?string $responseGuestName,
         array $values,
+        array $files = [],
     ): void;
 }

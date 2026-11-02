@@ -16,6 +16,7 @@ use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
 use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\ResultBucketDTO;
 use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
+use Modules\Surveys\Application\DTOs\StoredAnswerFile;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Enums\AvailabilityAnswer;
 use Modules\Surveys\Domain\Enums\QuestionType;
@@ -100,7 +101,8 @@ final readonly class ResultsService
 
         $questions = array_values(array_filter(
             $survey->definition()->questions(),
-            static fn (Question $question): bool => ! $question->type->isFreeText() && ! $survey->results()->isHidden($question->id),
+            // Files, like free text, could say who answered
+            static fn (Question $question): bool => ! $question->type->isFreeText() && $question->type !== QuestionType::File && ! $survey->results()->isHidden($question->id),
         ));
 
         return $this->build($survey, $responses, $reason, $questions, forRespondents: true);
@@ -145,6 +147,7 @@ final readonly class ResultsService
         $places = $this->query->positionCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Ranking));
         $numbers = $this->query->numberCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::LinearScale || $type === QuestionType::StarRating));
         $dates = $this->query->textCounts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::Date || $type === QuestionType::Time));
+        $files = $forRespondents ? [] : $this->query->answerFiles($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type === QuestionType::File));
         $texts = $forRespondents ? [] : $this->query->texts($id, $this->idsOf($questions, static fn (QuestionType $type): bool => $type->isFreeText() || $type->allowsOther()));
         $voters = ! $survey->isAnonymous() && $survey->kind() === SurveyKind::Poll ? $this->query->voters($id, $optionIds) : [];
         // Who can make each slot is the point of a named availability survey
@@ -199,6 +202,7 @@ final readonly class ResultsService
                 $quiz !== null && $question->isScored()
                     ? $this->scoredQuestion($question, $correct[$question->id] ?? 0, $answered[$question->id] ?? 0)
                     : null,
+                $files[$question->id] ?? [],
             );
         }
 
@@ -214,8 +218,9 @@ final readonly class ResultsService
      * @param  list<string>  $texts
      * @param  array<string, list<string>>  $voters
      * @param  array<string, array<string, list<string>>>  $cellVoters  row id => column id => names
+     * @param  list<StoredAnswerFile>  $files
      */
-    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $places, array $numbers, array $dates, array $texts, array $voters, array $cellVoters, ?int $reached, ?QuizQuestionResultDTO $quiz): QuestionResultDTO
+    private function question(Survey $survey, Question $question, int $answered, array $options, array $cells, array $places, array $numbers, array $dates, array $texts, array $voters, array $cellVoters, ?int $reached, ?QuizQuestionResultDTO $quiz, array $files): QuestionResultDTO
     {
         $buckets = [];
         $grid = null;
@@ -277,6 +282,7 @@ final readonly class ResultsService
             ranking: $ranking,
             availability: $availability,
             quiz: $quiz,
+            files: $files,
         );
     }
 

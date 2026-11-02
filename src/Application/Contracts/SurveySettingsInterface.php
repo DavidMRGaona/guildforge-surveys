@@ -13,6 +13,11 @@ interface SurveySettingsInterface
      */
     public function minResponses(): int;
 
+    /**
+     * The largest file any file question takes, in megabytes: each question may ask for less.
+     */
+    public function maxFileMb(): int;
+
     public function defaultCloseDays(): int;
 
     public function anonymousByDefault(): bool;

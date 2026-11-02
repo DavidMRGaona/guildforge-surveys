@@ -106,8 +106,9 @@ final class RecommendedTemplatesTest extends ModuleTestCase
             }
         }
 
-        // Availability proposes one-off dates and never becomes a template
-        $expected = array_filter(QuestionType::cases(), static fn (QuestionType $type): bool => $type !== QuestionType::Availability);
+        // Availability proposes one-off dates and never becomes a template; the recommended ones
+        // ask for opinions, never for files
+        $expected = array_filter(QuestionType::cases(), static fn (QuestionType $type): bool => ! in_array($type, [QuestionType::Availability, QuestionType::File], true));
         $this->assertEqualsCanonicalizing(array_map(static fn (QuestionType $type): string => $type->value, $expected), array_keys($types));
     }
 

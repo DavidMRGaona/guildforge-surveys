@@ -419,7 +419,8 @@ final class DefinitionEditor
 
         return array_values(array_filter(
             QuestionType::cases(),
-            static fn (QuestionType $type): bool => ($type === QuestionType::Availability) === $availability,
+            // File questions get their editor fields in a later change
+            static fn (QuestionType $type): bool => $type !== QuestionType::File && ($type === QuestionType::Availability) === $availability,
         ));
     }
 

@@ -43,6 +43,17 @@ final class SettingsTest extends ModuleTestCase
         $this->assertSame(7, $settings->defaultCloseDays());
     }
 
+    public function test_files_take_up_to_ten_megabytes_unless_the_panel_says_less(): void
+    {
+        $this->assertSame(10, (new SurveySettings)->maxFileMb());
+
+        config()->set('modules.settings.surveys.max_file_mb', '4');
+        $this->assertSame(4, (new SurveySettings)->maxFileMb());
+
+        config()->set('modules.settings.surveys.max_file_mb', '0');
+        $this->assertSame(10, (new SurveySettings)->maxFileMb());
+    }
+
     public function test_channel_announcements_are_off_by_default(): void
     {
         $this->assertFalse((new SurveySettings)->announceInChannelsByDefault());

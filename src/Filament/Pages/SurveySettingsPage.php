@@ -29,6 +29,7 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Modules\Surveys\Application\Contracts\SurveySettingsInterface;
+use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
 use Modules\Surveys\Filament\Support\TemplateOptions;
 use Modules\Surveys\Infrastructure\Services\SurveySettings;
 
@@ -175,6 +176,18 @@ final class SurveySettingsPage extends Page implements HasForms
                         ->minValue(0)
                         ->required()
                         ->default(SurveySettings::DEFAULT_MIN_RESPONSES),
+                ]),
+            Section::make(__('surveys::messages.settings.files'))
+                ->schema([
+                    TextInput::make('max_file_mb')
+                        ->label(__('surveys::messages.settings.max_file_mb'))
+                        ->helperText(__('surveys::messages.settings.max_file_mb_help'))
+                        ->integer()
+                        ->minValue(SurveyDefinitionValidator::FILE_MB_MIN)
+                        ->maxValue(SurveyDefinitionValidator::FILE_MB_MAX)
+                        ->suffix('MB')
+                        ->required()
+                        ->default(SurveySettings::DEFAULT_MAX_FILE_MB),
                 ]),
             Section::make(__('surveys::messages.settings.defaults'))
                 ->schema([

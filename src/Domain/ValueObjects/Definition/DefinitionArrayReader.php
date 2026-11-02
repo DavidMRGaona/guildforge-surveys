@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Domain\ValueObjects\Definition;
 
+use Modules\Surveys\Domain\Enums\FileKind;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 
@@ -109,7 +110,32 @@ final class DefinitionArrayReader
             slots: $this->slots($data, "{$path}.slots"),
             correctOptionIds: $this->stringList($data, 'correct_option_ids', "{$path}.correct_option_ids"),
             points: $this->nullableInt($data, 'points', $path),
+            file: $this->file($data, $path),
         );
+    }
+
+    /**
+     * @param  array<mixed>  $data
+     */
+    private function file(array $data, string $path): ?FileSettings
+    {
+        $file = $this->nullableMap($data, 'file', $path);
+        if ($file === null) {
+            return null;
+        }
+
+        $accept = [];
+        foreach ($this->stringList($file, 'accept', "{$path}.file.accept") as $value) {
+            $kind = FileKind::tryFrom($value);
+            if ($kind === null) {
+                $this->violate("{$path}.file.accept", 'malformed');
+
+                continue;
+            }
+            $accept[] = $kind;
+        }
+
+        return new FileSettings($accept, $this->int($file, 'max_mb', "{$path}.file"));
     }
 
     /**

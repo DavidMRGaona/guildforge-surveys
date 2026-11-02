@@ -18,6 +18,7 @@ enum QuestionType: string
     case Grid = 'grid';
     case Ranking = 'ranking';
     case Availability = 'availability';
+    case File = 'file';
 
     /**
      * Whether the question has a list of options: to pick from, or to put in order.
@@ -71,7 +72,7 @@ enum QuestionType: string
             self::Ranking => [ChartType::Bar, ChartType::StackedBar],
             // How many can, could and cannot make each slot
             self::Availability => [ChartType::StackedBar],
-            self::ShortText, self::Paragraph => [ChartType::List],
+            self::ShortText, self::Paragraph, self::File => [ChartType::List],
             default => [ChartType::Bar],
         };
     }

@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Surveys\Application\DTOs\IncomingFile;
 use Modules\Surveys\Application\DTOs\Respondent;
 use Modules\Surveys\Application\Services\AvailabilitySlotFormatter;
 use Modules\Surveys\Application\Services\PublicLinkAccessService;
@@ -29,6 +30,7 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Http\Requests\RequestPublicLinkRequest;
 use Modules\Surveys\Http\Support\QuizFeedbackPayload;
 use Modules\Surveys\Http\Support\ResultsPayload;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * The page where a survey is answered: with an account, with a guest's link or with the
@@ -193,12 +195,48 @@ final class RespondController extends Controller
         return substr(hash_hmac('sha256', $identity, is_string($key) ? $key : ''), 0, 32);
     }
 
+    /**
+     * The files sent as answers[<question id>]. One larger than PHP takes arrives without
+     * contents: it is passed on as too large, so the question says so.
+     *
+     * @return list<IncomingFile>
+     */
+    private function incomingFiles(Request $request): array
+    {
+        // Nested lists (answers[q][]) can be forged too: only a file per question counts
+        $sent = $request->files->all()['answers'] ?? null;
+        if (! is_array($sent)) {
+            return [];
+        }
+
+        $files = [];
+        foreach ($sent as $questionId => $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            $tooLarge = in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true);
+            if (! $file->isValid() && ! $tooLarge) {
+                continue;
+            }
+
+            $files[] = new IncomingFile(
+                questionId: (string) $questionId,
+                path: $tooLarge ? '' : (string) $file->getRealPath(),
+                clientName: $file->getClientOriginalName(),
+                size: $tooLarge ? PHP_INT_MAX : (int) $file->getSize(),
+            );
+        }
+
+        return $files;
+    }
+
     private function submit(Request $request, string $surveyId, Respondent $respondent, string $pageUrl): RedirectResponse
     {
         $answers = $request->input('answers', []);
 
         try {
-            $score = $this->submissions->submit(SurveyId::fromString($surveyId), $respondent, is_array($answers) ? $answers : []);
+            $score = $this->submissions->submit(SurveyId::fromString($surveyId), $respondent, is_array($answers) ? $answers : [], $this->incomingFiles($request));
         } catch (InvalidSubmissionException $exception) {
             $errors = [];
             foreach ($exception->errors as $questionId => $key) {

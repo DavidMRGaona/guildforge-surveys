@@ -118,7 +118,7 @@ final class QuizDefinitionTest extends TestCase
         $question = static fn (string $id, string $type, array $options, array $correct, ?int $points): array => [
             'id' => $id, 'key' => null, 'type' => $type, 'title' => "Pregunta {$id}", 'help' => null, 'required' => false,
             'options' => $options, 'allow_other' => false, 'scale' => null, 'stars' => null, 'grid' => null,
-            'next_by_option' => [], 'slots' => [], 'correct_option_ids' => $correct, 'points' => $points,
+            'next_by_option' => [], 'slots' => [], 'correct_option_ids' => $correct, 'points' => $points, 'file' => null,
         ];
 
         return [
