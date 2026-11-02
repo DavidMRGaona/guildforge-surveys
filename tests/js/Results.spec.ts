@@ -43,6 +43,7 @@ function question(
         chartTypes: ['bar', 'pie'],
         texts: [],
         quiz: null,
+        files: [],
         ...overrides,
     };
 }
@@ -250,6 +251,78 @@ describe('Results', () => {
 
         expect(wrapper.get('[data-testid="hidden-notice"]').text()).toContain('cuando cierre');
         expect(wrapper.find('[data-chart]').exists()).toBe(false);
+    });
+
+    it('lists the files sent, images with a preview, and never offers to leave them out', () => {
+        const photo = {
+            id: 'f-1',
+            name: 'miniatura.jpg',
+            contentType: 'image/jpeg',
+            size: 2_400_000,
+            url: '/encuestas/archivos/f-1?signature=a',
+            previewUrl: '/encuestas/archivos/f-1?inline=1&signature=b',
+        };
+        const list = {
+            id: 'f-2',
+            name: 'lista.pdf',
+            contentType: 'application/pdf',
+            size: 300,
+            url: '/encuestas/archivos/f-2?signature=c',
+            previewUrl: null,
+        };
+        const wrapper = mount(Results, {
+            props: props({
+                results: {
+                    ...props().results,
+                    questions: [
+                        question('q-file', {
+                            type: 'file',
+                            chartType: 'list',
+                            chartTypes: ['list'],
+                            files: [photo, list],
+                        }),
+                    ],
+                },
+            }),
+        });
+        const article = wrapper.get('[data-question="q-file"]');
+        const files = article.findAll('[data-testid="answer-file"]');
+
+        expect(article.find('[data-chart]').exists()).toBe(false);
+        expect(article.find('#hide-q-file').exists()).toBe(false);
+        expect(article.text()).toContain('nunca se muestran a quien responde');
+        expect(files).toHaveLength(2);
+        expect(files[0]?.get('img').attributes('src')).toBe(photo.previewUrl);
+        expect(files[0]?.get('a[download]').attributes('href')).toBe(photo.url);
+        expect(files[0]?.text()).toContain('miniatura.jpg');
+        expect(files[0]?.text()).toContain('2,3 MB');
+        expect(files[1]?.find('img').exists()).toBe(false);
+        expect(files[1]?.text()).toContain('1 KB');
+    });
+
+    it('says when a file question has nothing to show yet', () => {
+        const fileQuestion = (
+            overrides: Partial<OrganizerQuestionResult>
+        ): OrganizerQuestionResult =>
+            question('q-file', {
+                type: 'file',
+                chartType: 'list',
+                chartTypes: ['list'],
+                ...overrides,
+            });
+        const shown = (asked: OrganizerQuestionResult): string =>
+            mount(Results, {
+                props: props({ results: { ...props().results, questions: [asked] } }),
+            })
+                .get('[data-question="q-file"]')
+                .text();
+
+        expect(shown(fileQuestion({ answered: 0 }))).toContain(
+            'Nadie ha enviado archivos todavía.'
+        );
+        expect(shown(fileQuestion({ belowMinimum: true }))).toContain(
+            'Aún no hay respuestas suficientes'
+        );
     });
 
     it('shows a quiz with its mean, spread, leaderboard and how each question went', () => {

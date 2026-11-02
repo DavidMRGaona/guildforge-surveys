@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys\Tests\Feature\Filament;
 
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Number;
 use Livewire\Component;
 use Livewire\Livewire;
@@ -21,6 +22,8 @@ use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ViewSurveyResults;
 use Modules\Surveys\Filament\Widgets\QuestionResultChart;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
+use Modules\Surveys\Tests\Support\ExampleFiles;
+use Modules\Surveys\Tests\Unit\Domain\Services\FileQuestionDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use ReflectionMethod;
@@ -55,6 +58,29 @@ final class SurveyResultsPageTest extends ModuleTestCase
             ->assertSee(trans_choice('surveys::filament.results.responses', 1, ['count' => 1]))
             ->assertSee('Una partida genial')
             ->assertSee('Pregunta q-single');
+    }
+
+    public function test_a_file_question_lists_each_file_with_its_link_and_a_preview_of_images(): void
+    {
+        Storage::fake('local');
+        $this->actingAsPanelAdmin();
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(FileQuestionDefinitionTest::data()), false, ResultsSettings::defaultsFor(SurveyKind::Form));
+        $submissions = $this->app->make(SubmissionService::class);
+        $submissions->submit($id, Respondent::account($this->people[0]->id), [], [ExampleFiles::incoming('q-photo', ExampleFiles::photo('Mi miniatura.jpg'))]);
+        $submissions->submit($id, Respondent::account($this->people[1]->id), [], [ExampleFiles::incoming('q-photo', ExampleFiles::pdf('Lista del ejército.pdf'))]);
+
+        $html = Livewire::test(ViewSurveyResults::class, ['record' => $id->value])
+            ->assertOk()
+            ->assertSee('Mi miniatura.jpg')
+            ->assertSee('Lista del ejército.pdf')
+            ->assertDontSeeHtml('chart-q-photo')
+            ->html();
+
+        // Two signed download links, and the photo's preview opens in the browser
+        $this->assertSame(2, substr_count($html, 'data-answer-file='));
+        $this->assertSame(1, substr_count($html, 'alt="'.e(__('surveys::filament.results.file_preview', ['name' => 'Mi miniatura.jpg'])).'"'));
+        $this->assertSame(2, substr_count($html, 'inline=1'));
+        $this->assertStringContainsString('/encuestas/archivos/', $html);
     }
 
     public function test_a_quiz_shows_its_scores_and_how_each_question_went(): void

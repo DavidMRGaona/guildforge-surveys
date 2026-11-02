@@ -425,6 +425,13 @@ export default {
             other: 'Otra',
             other_answers: 'Otras respuestas',
             no_texts: 'Nadie ha escrito nada todavía.',
+            files: {
+                none: 'Nadie ha enviado archivos todavía.',
+                private:
+                    'Los archivos solo los ve quien gestiona la encuesta; nunca se muestran a quien responde. Los enlaces caducan a los 30 minutos: recarga la página para renovarlos.',
+                preview: 'Ver {name}',
+                download: 'Descargar',
+            },
             chart_summary:
                 'Gráfica de «{title}»: {answered} respuestas. Los datos están en la tabla.',
             answer: 'Respuesta',
