@@ -7,8 +7,13 @@ import BaseButton from '@/components/ui/BaseButton.vue';
 import PageHeader from '../../../components/PageHeader.vue';
 import AvailabilityResults from '../../../components/results/AvailabilityResults.vue';
 import QuestionChart from '../../../components/results/QuestionChart.vue';
+import QuizResults from '../../../components/results/QuizResults.vue';
 import { BADGE_CLASS, CARD_CLASS } from '../../../components/styles';
-import type { ChartType, ManageResultsProps } from '../../../types/Results';
+import type {
+    ChartType,
+    ManageResultsProps,
+    OrganizerQuestionResult,
+} from '../../../types/Results';
 
 const props = defineProps<ManageResultsProps>();
 
@@ -81,6 +86,24 @@ function number(value: number | null): string {
     return value === null
         ? ''
         : new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }).format(value);
+}
+
+function percent(value: number): string {
+    return new Intl.NumberFormat(locale.value, {
+        style: 'percent',
+        maximumFractionDigits: 0,
+    }).format(value);
+}
+
+const answers = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
+
+/** The labels of a scored question's correct options, in the order of its options. */
+function correctAnswers(question: OrganizerQuestionResult): string[] {
+    const ids = question.quiz?.correctOptionIds ?? [];
+
+    return question.buckets
+        .filter((bucket) => ids.includes(bucket.key))
+        .map((bucket) => bucket.label ?? '');
 }
 
 function isHidden(id: string): boolean {
@@ -211,6 +234,11 @@ function save(): void {
             {{ hiddenNotice }}
         </p>
 
+        <QuizResults
+            v-if="props.results.visible && props.results.quiz"
+            :quiz="props.results.quiz"
+        />
+
         <article
             v-for="question in props.results.questions"
             :key="question.id"
@@ -251,6 +279,26 @@ function save(): void {
                             })
                         }}
                     </template>
+                    <template v-if="question.quiz && !question.belowMinimum">
+                        ·
+                        {{
+                            t(
+                                'surveys.results.quiz.question_points',
+                                { points: question.quiz.points },
+                                question.quiz.points
+                            )
+                        }}
+                        <template v-if="question.quiz.rate !== null">
+                            ·
+                            {{
+                                t('surveys.results.quiz.correct_rate', {
+                                    rate: percent(question.quiz.rate),
+                                    correct: question.quiz.correct,
+                                    answered: question.answered,
+                                })
+                            }}
+                        </template>
+                    </template>
                     <template v-if="question.mean !== null && !question.belowMinimum">
                         ·
                         {{
@@ -275,6 +323,19 @@ function save(): void {
             />
             <p v-else class="text-sm text-base-secondary">
                 {{ t('surveys.manage.results_will_hide') }}
+            </p>
+            <p
+                v-if="question.quiz && !question.belowMinimum"
+                class="text-sm font-medium text-base-primary"
+                data-testid="correct-answers"
+            >
+                {{
+                    t(
+                        'surveys.results.quiz.correct_answer',
+                        { answers: answers.format(correctAnswers(question)) },
+                        question.quiz.correctOptionIds.length
+                    )
+                }}
             </p>
 
             <div

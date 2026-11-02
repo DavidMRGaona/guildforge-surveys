@@ -12,6 +12,30 @@ export interface OrganizerQuestionResult extends QuestionResult {
     chartTypes: ChartType[];
     /** Free text and "Other" answers. */
     texts: string[];
+    /** A scored question of a quiz. */
+    quiz: QuestionQuizResult | null;
+}
+
+/** How a scored question went (QuizQuestionResultDTO on the server). */
+export interface QuestionQuizResult {
+    correctOptionIds: string[];
+    points: number;
+    /** Responses that got it right. */
+    correct: number;
+    /** Correct over answered, 0 to 1; null while nobody answered. */
+    rate: number | null;
+}
+
+/** A quiz's scores (QuizResultDTO on the server). */
+export interface QuizResults {
+    maxPoints: number;
+    mean: number | null;
+    /** How many responses got each score, lowest first. */
+    distribution: { points: number; responses: number }[];
+    /** Only on named surveys, highest first; people on the same score share their place. */
+    leaderboard: { name: string; points: number; rank: number }[] | null;
+    /** An anonymous quiz with a scored question below the minimum shows no score. */
+    belowMinimum: boolean;
 }
 
 export interface OrganizerResults {
@@ -22,6 +46,7 @@ export interface OrganizerResults {
     /** Responses over audience, 0 to 1; null without audience. */
     rate: number | null;
     questions: OrganizerQuestionResult[];
+    quiz: QuizResults | null;
 }
 
 export interface ManageResultsProps {

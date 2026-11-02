@@ -21,6 +21,7 @@ use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ViewSurveyResults;
 use Modules\Surveys\Filament\Widgets\QuestionResultChart;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
+use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use ReflectionMethod;
 use Tests\Support\Modules\InteractsWithModulePanel;
@@ -54,6 +55,22 @@ final class SurveyResultsPageTest extends ModuleTestCase
             ->assertSee(trans_choice('surveys::filament.results.responses', 1, ['count' => 1]))
             ->assertSee('Una partida genial')
             ->assertSee('Pregunta q-single');
+    }
+
+    public function test_a_quiz_shows_its_scores_and_how_each_question_went(): void
+    {
+        $this->actingAsPanelAdmin();
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(QuizDefinitionTest::data()), false, ResultsSettings::defaultsFor(SurveyKind::Form));
+        $this->answer($id, 0, ['q-capital' => 'o-b', 'q-colours' => ['o-blue', 'o-red']]);
+        $this->answer($id, 1, ['q-capital' => 'o-a', 'q-colours' => ['o-blue']]);
+
+        Livewire::test(ViewSurveyResults::class, ['record' => $id->value])
+            ->assertOk()
+            ->assertSee(__('surveys::filament.results.quiz.title'))
+            ->assertSee(__('surveys::filament.results.quiz.mean', ['mean' => Number::format(2.5, maxPrecision: 2, locale: 'es'), 'max' => 5]))
+            ->assertSeeInOrder(['Persona A', '5', 'Persona B', '0'])
+            ->assertSee(__('surveys::filament.results.quiz.correct_rate', ['rate' => '50', 'correct' => 1, 'answered' => 2]))
+            ->assertSee(trans_choice('surveys::filament.results.quiz.correct_answer', 2, ['answers' => 'Azul y Rojo']));
     }
 
     public function test_says_how_many_reached_a_question_some_sections_skipped(): void

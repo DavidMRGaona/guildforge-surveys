@@ -42,6 +42,7 @@ function question(
         chartType: 'bar',
         chartTypes: ['bar', 'pie'],
         texts: [],
+        quiz: null,
         ...overrides,
     };
 }
@@ -60,6 +61,7 @@ function props(overrides: Partial<ManageResultsProps> = {}): ManageResultsProps 
                 question('q-1'),
                 question('q-2', { type: 'paragraph', chartType: 'list', chartTypes: ['list'] }),
             ],
+            quiz: null,
         },
         hiddenQuestions: [{ id: 'q-3', title: 'Comentarios privados' }],
         settingsUrl: '/encuestas/gestionar/s-1/resultados',
@@ -119,6 +121,7 @@ describe('Results', () => {
                             chartTypes: ['stacked_bar'],
                         }),
                     ],
+                    quiz: null,
                 },
                 chooseDateUrl: '/encuestas/gestionar/s-1/fecha',
             }),
@@ -164,6 +167,7 @@ describe('Results', () => {
                 results: {
                     ...props().results,
                     questions: [question('q-1'), question('q-2', { reached: 2 })],
+                    quiz: null,
                 },
             }),
         });
@@ -239,11 +243,96 @@ describe('Results', () => {
                     audienceSize: 4,
                     rate: 0.75,
                     questions: [],
+                    quiz: null,
                 },
             }),
         });
 
         expect(wrapper.get('[data-testid="hidden-notice"]').text()).toContain('cuando cierre');
         expect(wrapper.find('[data-chart]').exists()).toBe(false);
+    });
+
+    it('shows a quiz with its mean, spread, leaderboard and how each question went', () => {
+        const capital = question('q-1', {
+            title: '¿Capital de Francia?',
+            answered: 3,
+            buckets: [
+                { key: 'o-a', label: 'Lyon', count: 1, voters: [] },
+                { key: 'o-b', label: 'París', count: 2, voters: [] },
+            ],
+            quiz: { correctOptionIds: ['o-b'], points: 2, correct: 2, rate: 0.6667 },
+        });
+        const wrapper = mount(Results, {
+            props: props({
+                results: {
+                    visible: true,
+                    hiddenReason: null,
+                    responses: 3,
+                    audienceSize: 3,
+                    rate: 1,
+                    questions: [capital, question('q-2')],
+                    quiz: {
+                        maxPoints: 5,
+                        mean: 2.33,
+                        belowMinimum: false,
+                        distribution: [
+                            { points: 0, responses: 1 },
+                            { points: 2, responses: 1 },
+                            { points: 5, responses: 1 },
+                        ],
+                        leaderboard: [
+                            { name: 'Persona A', points: 5, rank: 1 },
+                            { name: 'Persona B', points: 2, rank: 2 },
+                            { name: 'Persona C', points: 0, rank: 3 },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const quiz = wrapper.get('[data-testid="quiz-results"]');
+        expect(quiz.text()).toContain('Nota media: 2,33 de 5 puntos');
+        expect(quiz.findAll('li')).toHaveLength(3);
+        expect(quiz.findAll('tbody tr').map((row) => row.text())).toEqual([
+            '1.ºPersona A5 puntos',
+            '2.ºPersona B2 puntos',
+            '3.ºPersona C0 puntos',
+        ]);
+        const first = wrapper.get('[data-question="q-1"]');
+        expect(first.text().replace(/\s+/g, ' ')).toContain('2 puntos · Acierto: 67 % (2 de 3)');
+        expect(first.get('[data-testid="correct-answers"]').text()).toBe(
+            'Respuesta correcta: París'
+        );
+        expect(
+            wrapper.get('[data-question="q-2"]').find('[data-testid="correct-answers"]').exists()
+        ).toBe(false);
+    });
+
+    it('shows no score of an anonymous quiz while a scored question is below the minimum', () => {
+        const wrapper = mount(Results, {
+            props: props({
+                survey: { id: 's-1', title: 'Cuestionario', anonymous: true, closed: true },
+                results: {
+                    visible: true,
+                    hiddenReason: null,
+                    responses: 3,
+                    audienceSize: 3,
+                    rate: 1,
+                    questions: [question('q-1')],
+                    quiz: {
+                        maxPoints: 5,
+                        mean: null,
+                        belowMinimum: true,
+                        distribution: [],
+                        leaderboard: null,
+                    },
+                },
+            }),
+        });
+
+        const quiz = wrapper.get('[data-testid="quiz-results"]');
+        expect(quiz.text()).toContain('pocas respuestas');
+        expect(quiz.text()).not.toContain('Nota media');
+        expect(quiz.find('table').exists()).toBe(false);
     });
 });
