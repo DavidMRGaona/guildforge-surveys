@@ -2,7 +2,7 @@
 
 Encuestas para la plataforma GuildForge: formularios al estilo de un formulario web, sondeos rápidos de una pregunta y encuestas al terminar una mesa, una campaña, un torneo o un evento.
 
-Requiere el core de GuildForge `^3.29`.
+Requiere el core de GuildForge `^3.34`.
 
 ## Qué hace
 
@@ -125,6 +125,15 @@ En «Ajustes de encuestas», en el panel (con `surveys.manage`): mínimo de resp
 Por cada tipo de sujeto que ofrezcan los módulos activos: la plantilla de su encuesta (sin plantilla no se prepara ninguna), si se envía sola y con cuántas horas de retraso, los días que queda abierta y si es anónima.
 
 Si el módulo del sujeto lista sus sistemas de juego (game-tables y tournaments lo hacen), el tipo tiene además «Plantilla por sistema de juego»: una lista de sistemas, cada uno con su plantilla. Un sujeto de un sistema de la lista sale con esa plantilla; los demás, con la del tipo. El sistema se reconoce por su identificador en su módulo, no por su nombre, así que cambiarle el nombre no rompe la regla. Si se borra un sistema, su fila se sigue viendo como «Un sistema de juego que ya no existe» para poder quitarla, y si se borra la plantilla de una fila, se usa la del tipo. Lo que se elija en el formulario de cada sujeto sigue mandando.
+
+## Ayuda
+
+El módulo trae sus guías para el centro de ayuda del core (`resources/knowledge/es/`), cada una visible solo para quien puede hacer lo que explica:
+
+- **Sitio** (categoría «Comunidad»): «Responder una encuesta», para cualquier cuenta, y tres guías para quien organiza: la encuesta al terminar, los sondeos y encuestas propios, y los resultados y las tendencias. Estas tres piden la capacidad `surveys.organizes_surveys`, la misma regla que la parte «De lo que organizas» de la pestaña *Encuestas* del perfil: la persona tiene encuestas de algo que sigue organizando. El botón de las tendencias pide `surveys.has_trends`, la regla del enlace a `/encuestas/tendencias`.
+- **Panel** (categoría «Contenido»): crear una encuesta o un sondeo; abrir, compartir y cerrar; plantillas y ajustes, con `surveys.manage`; resultados y tendencias, con `surveys.view_results`; y revisión, con `surveys.moderate`.
+
+Las páginas del módulo enlazan su guía con el botón «?», que solo aparece a quien puede leerla: las del panel con `HasKnowledgeGuideAction` y las de la web con `HelpLink`. `KnowledgeGuidesTest` pasa el lint de la base de conocimiento en el CI.
 
 ## Datos de desarrollo
 

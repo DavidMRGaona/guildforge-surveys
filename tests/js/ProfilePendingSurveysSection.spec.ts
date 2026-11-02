@@ -40,6 +40,22 @@ describe('ProfilePendingSurveysSection', () => {
         expect(items[1]?.text()).not.toContain('Abierta hasta el');
     });
 
+    it('links each part to its help guide', () => {
+        const wrapper = mount(ProfilePendingSurveysSection, {
+            props: {
+                profilePendingSurveys: [pending()],
+                profileOrganizedSurveys: [],
+                profileSurveyTrendsUrl: '/encuestas/tendencias',
+            },
+        });
+
+        expect(
+            wrapper
+                .findAll('[data-testid="help-link"]')
+                .map((link) => link.attributes('data-guide'))
+        ).toEqual(['surveys.organizer-end-survey', 'surveys.answer-survey']);
+    });
+
     it('says what each survey is about', () => {
         const wrapper = mount(ProfilePendingSurveysSection, {
             props: {

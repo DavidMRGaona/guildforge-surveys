@@ -48,6 +48,22 @@ vi.mock('@/layouts/DefaultLayout.vue', async () => {
     };
 });
 
+// The help button asks the server which guides the person may read: a plain anchor naming its guide
+vi.mock('@/components/knowledge/HelpLink.vue', async () => {
+    const { defineComponent, h } = await import('vue');
+
+    return {
+        default: defineComponent({
+            name: 'HelpLink',
+            props: { guide: { type: String, required: true } },
+            setup(props) {
+                return (): VNode =>
+                    h('a', { 'data-testid': 'help-link', 'data-guide': props.guide }, '?');
+            },
+        }),
+    };
+});
+
 // The core's texts with the module's on top, in Spanish, as the site loads them
 config.global.plugins = [
     createI18n({

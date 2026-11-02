@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import HelpLink from '@/components/knowledge/HelpLink.vue';
 import { LINK_CLASS } from './styles';
 
 /**
  * Top of an organizer page: the way back first, then what the page belongs to and its
- * title. A description, when there is one, goes in the default slot.
+ * title, with the help button of its guide. A description, when there is one, goes in the
+ * default slot.
  */
 const props = withDefaults(
     defineProps<{
@@ -14,8 +16,10 @@ const props = withDefaults(
         backLabel?: string | null;
         /** The way back leaves the module's pages: a full page load, not an Inertia visit. */
         backReloads?: boolean;
+        /** Knowledge base guide of the page: its help button only shows to who may read it. */
+        guide?: string | null;
     }>(),
-    { eyebrow: null, backUrl: null, backLabel: null, backReloads: false }
+    { eyebrow: null, backUrl: null, backLabel: null, backReloads: false, guide: null }
 );
 </script>
 
@@ -44,9 +48,12 @@ const props = withDefaults(
         <p v-if="props.eyebrow" class="text-sm font-medium break-words text-base-secondary">
             {{ props.eyebrow }}
         </p>
-        <h1 class="text-2xl font-semibold break-words text-base-primary sm:text-3xl">
-            {{ props.title }}
-        </h1>
+        <div class="flex items-start gap-3">
+            <h1 class="min-w-0 text-2xl font-semibold break-words text-base-primary sm:text-3xl">
+                {{ props.title }}
+            </h1>
+            <HelpLink v-if="props.guide" :guide="props.guide" class="mt-1 shrink-0 sm:mt-1.5" />
+        </div>
         <slot />
     </header>
 </template>

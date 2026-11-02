@@ -3,6 +3,7 @@ import { CalendarClock, CircleCheck, ShieldCheck, UserRound } from '@lucide/vue'
 import { computed, nextTick, ref, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+import HelpLink from '@/components/knowledge/HelpLink.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import { VENUE_TIMEZONE } from '@/utils/datetime';
 import QuestionField from '../../components/QuestionField.vue';
@@ -306,11 +307,14 @@ const secondaryLinkClass =
                 <span v-if="subjectStartsAt" class="hidden sm:inline" aria-hidden="true">·</span>
                 <span v-if="subjectStartsAt" class="w-full sm:w-auto">{{ subjectStartsAt }}</span>
             </p>
-            <h1
-                class="mt-3 text-3xl font-bold tracking-tight text-base-primary text-balance sm:text-4xl"
-            >
-                {{ survey.title }}
-            </h1>
+            <div class="mt-3 flex items-start gap-3">
+                <h1
+                    class="min-w-0 text-3xl font-bold tracking-tight text-base-primary text-balance sm:text-4xl"
+                >
+                    {{ survey.title }}
+                </h1>
+                <HelpLink guide="surveys.answer-survey" class="mt-1.5 shrink-0 sm:mt-2" />
+            </div>
             <p
                 v-if="survey.description"
                 class="mt-3 whitespace-pre-line text-lg text-base-secondary"

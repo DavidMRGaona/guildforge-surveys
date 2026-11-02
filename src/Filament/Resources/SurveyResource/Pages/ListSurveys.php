@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 
+use App\Filament\Concerns\HasKnowledgeGuideAction;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\DateTimePicker;
@@ -39,6 +40,8 @@ use Modules\Surveys\Infrastructure\Services\SurveySettings;
 
 final class ListSurveys extends ListRecords
 {
+    use HasKnowledgeGuideAction;
+
     protected static string $resource = SurveyResource::class;
 
     protected function getHeaderActions(): array
@@ -47,6 +50,7 @@ final class ListSurveys extends ListRecords
             $this->quickPollAction(),
             $this->quickAvailabilityAction(),
             CreateAction::make(),
+            ...array_filter([$this->knowledgeGuideAction('surveys.panel.create-survey')]),
         ];
     }
 

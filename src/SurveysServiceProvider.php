@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Surveys;
 
 use App\Application\Calendar\Contracts\CalendarEntrySourceInterface;
+use App\Application\Knowledge\Contracts\KnowledgeCapabilityInterface;
 use App\Application\Modules\DTOs\ModuleRouteDTO;
 use App\Application\Modules\DTOs\NavigationItemDTO;
 use App\Application\Modules\DTOs\PagePrefixDTO;
@@ -53,6 +54,8 @@ use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Widgets\PendingSurveyReviewsWidget;
 use Modules\Surveys\Infrastructure\Files\DeletesAnswerFilesWithSurvey;
 use Modules\Surveys\Infrastructure\Files\DiskAnswerFileStore;
+use Modules\Surveys\Infrastructure\Knowledge\HasTrendsCapability;
+use Modules\Surveys\Infrastructure\Knowledge\OrganizesSurveysCapability;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentOrganizedSurveysQuery;
@@ -447,6 +450,17 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     public function registerFilamentPages(): array
     {
         return [SurveySettingsPage::class, SurveyTrendsPage::class];
+    }
+
+    /**
+     * Register knowledge capabilities provided by this module.
+     * The site guides for organizers use them, with the same rules as the profile's surveys tab.
+     *
+     * @return array<class-string<KnowledgeCapabilityInterface>>
+     */
+    public function registerKnowledgeCapabilities(): array
+    {
+        return [OrganizesSurveysCapability::class, HasTrendsCapability::class];
     }
 
     /**

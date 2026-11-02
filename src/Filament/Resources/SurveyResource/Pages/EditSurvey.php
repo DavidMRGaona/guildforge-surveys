@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 
+use App\Filament\Concerns\HasKnowledgeGuideAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +23,7 @@ use Modules\Surveys\Filament\Support\SurveyFormData;
 final class EditSurvey extends EditRecord
 {
     use HandlesDefinitionErrors;
+    use HasKnowledgeGuideAction;
 
     protected static string $resource = SurveyResource::class;
 
@@ -37,6 +39,7 @@ final class EditSurvey extends EditRecord
             SurveyActions::duplicate(),
             SurveyActions::saveAsTemplate(),
             SurveyActions::delete(),
+            ...array_filter([$this->knowledgeGuideAction('surveys.panel.open-share-close')]),
         ];
     }
 

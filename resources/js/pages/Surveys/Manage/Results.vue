@@ -141,6 +141,7 @@ function save(): void {
             :eyebrow="props.subject.title"
             :back-url="props.backUrl"
             :back-label="t('surveys.manage.back_to_surveys')"
+            guide="surveys.organizer-results"
         />
 
         <section
