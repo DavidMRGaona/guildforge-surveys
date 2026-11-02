@@ -491,7 +491,7 @@ final class SurveyDefinitionValidator
             return $question->points === null ? [] : [new DefinitionViolation("{$path}.points", 'points_not_allowed')];
         }
 
-        if (! in_array($question->type, [QuestionType::SingleChoice, QuestionType::MultipleChoice, QuestionType::Dropdown], true)) {
+        if (! $question->type->isChoice()) {
             return [new DefinitionViolation("{$path}.correct_option_ids", 'correct_not_allowed')];
         }
 

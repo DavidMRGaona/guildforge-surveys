@@ -23,6 +23,7 @@ function definition(name: string): SurveyDefinition {
     }
 
     return {
+        quiz: null,
         sections: sections.map((section) => ({
             title: null,
             description: null,
@@ -39,6 +40,8 @@ function definition(name: string): SurveyDefinition {
                 grid: null,
                 next_by_option: [],
                 slots: [],
+                correct_option_ids: [],
+                points: null,
                 ...question,
             })),
         })),

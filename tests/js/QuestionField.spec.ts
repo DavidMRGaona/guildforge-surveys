@@ -31,6 +31,8 @@ function question(
         grid: null,
         next_by_option: [],
         slots: [],
+        correct_option_ids: [],
+        points: null,
         ...extra,
     };
 }

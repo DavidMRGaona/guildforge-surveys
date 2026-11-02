@@ -173,8 +173,67 @@ final class DefinitionFormStateTest extends TestCase
         $this->assertSame(['o-blue', 'o-red'], $copy->questions()[1]->correctOptionIds);
     }
 
+    public function test_a_quiz_goes_through_the_form_with_its_correct_options_and_points(): void
+    {
+        $quiz = SurveyDefinition::fromArray(QuizDefinitionTest::data());
+
+        $fill = DefinitionFormState::formFill($quiz);
+        $options = array_values((array) ($this->blockData($fill['sections'], 0)['options'] ?? []));
+
+        $this->assertTrue($fill['quiz']);
+        $this->assertTrue($fill['quiz_show_correct_answers']);
+        $this->assertSame([false, true], array_column($options, 'correct'));
+        $this->assertEquals($quiz, DefinitionFormState::fromFormData($fill));
+    }
+
+    public function test_with_the_quiz_switch_off_the_marks_are_left_out(): void
+    {
+        $fill = DefinitionFormState::formFill(SurveyDefinition::fromArray(QuizDefinitionTest::data()));
+        $fill['quiz'] = false;
+
+        $definition = DefinitionFormState::fromFormData($fill);
+
+        $this->assertNull($definition->quiz);
+        $this->assertSame([], $definition->questions()[0]->correctOptionIds);
+        $this->assertNull($definition->questions()[0]->points);
+    }
+
+    public function test_a_question_with_no_correct_option_gives_no_points(): void
+    {
+        $fill = DefinitionFormState::formFill(SurveyDefinition::fromArray(QuizDefinitionTest::data()));
+        $notes = $this->blockData($fill['sections'], 2);
+
+        $this->assertSame(1, $notes['points']);
+        $this->assertNull(DefinitionFormState::fromFormData($fill)->questions()[2]->points);
+    }
+
+    public function test_quiz_errors_land_on_the_options_and_the_switch(): void
+    {
+        $state = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray(QuizDefinitionTest::data()));
+        $sectionKey = (string) array_key_first($state);
+        $questionKey = array_key_first((array) $state[$sectionKey]['questions']);
+
+        $this->assertSame("sections.{$sectionKey}.questions.{$questionKey}.data.options", DefinitionFormState::formPath($state, 'sections.0.questions.0.correct_option_ids'));
+        $this->assertSame("sections.{$sectionKey}.questions.{$questionKey}.data.points", DefinitionFormState::formPath($state, 'sections.0.questions.0.points'));
+        $this->assertSame('quiz', DefinitionFormState::formPath($state, 'quiz'));
+    }
+
     private function definition(): SurveyDefinition
     {
         return SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition());
+    }
+
+    /**
+     * The data of a question block of the first section, by its place.
+     *
+     * @param  array<string, array<string, mixed>>  $sections
+     * @return array<mixed>
+     */
+    private function blockData(array $sections, int $question): array
+    {
+        $questions = array_values((array) (array_first($sections)['questions'] ?? []));
+        $block = $questions[$question] ?? null;
+
+        return is_array($block) && is_array($block['data'] ?? null) ? $block['data'] : [];
     }
 }

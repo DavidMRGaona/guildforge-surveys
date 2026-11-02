@@ -11,6 +11,7 @@ use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
 use Modules\Surveys\Domain\ValueObjects\Definition\OptionJump;
 use Modules\Surveys\Domain\ValueObjects\Definition\Question;
+use Modules\Surveys\Domain\ValueObjects\Definition\QuizSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Section;
 use Modules\Surveys\Domain\ValueObjects\Definition\Slot;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
@@ -24,6 +25,9 @@ use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
  * its options ("next") and "Other" ("other_next"), behind a switch ("branches"): with
  * the switch off they are left out of the definition. Availability slots are edited as typed
  * in the site's zone (day, start, end) and stored as AvailabilitySlotFormatter reads them.
+ * A quiz is two switches next to the editor ("quiz", "quiz_show_correct_answers"); its
+ * correct options are marked on the options ("correct") and its points sit on the question,
+ * all left out with the quiz switch off.
  */
 final class DefinitionFormState
 {
@@ -44,6 +48,36 @@ final class DefinitionFormState
         'starts_at' => 'start',
         'ends_at' => 'end',
     ];
+
+    /**
+     * The editor's fields for a stored definition: its sections and the quiz switches.
+     *
+     * @return array{sections: array<string, array<string, mixed>>, quiz: bool, quiz_show_correct_answers: bool}
+     */
+    public static function formFill(SurveyDefinition $definition): array
+    {
+        return [
+            'sections' => self::fromDefinition($definition),
+            'quiz' => $definition->quiz instanceof QuizSettings,
+            'quiz_show_correct_answers' => $definition->quiz instanceof QuizSettings ? $definition->quiz->showCorrectAnswers : true,
+        ];
+    }
+
+    /**
+     * The definition the editor's fields hold (see formFill()).
+     *
+     * @param  array<mixed>  $data
+     *
+     * @throws InvalidSurveyDefinitionException when the state does not have a definition's shape
+     */
+    public static function fromFormData(array $data): SurveyDefinition
+    {
+        return self::toDefinition(
+            is_array($data['sections'] ?? null) ? $data['sections'] : [],
+            quiz: (bool) ($data['quiz'] ?? false),
+            showCorrectAnswers: (bool) ($data['quiz_show_correct_answers'] ?? true),
+        );
+    }
 
     /**
      * @return array<string, array<string, mixed>>
@@ -74,14 +108,14 @@ final class DefinitionFormState
      *
      * @throws InvalidSurveyDefinitionException when the state does not have a definition's shape
      */
-    public static function toDefinition(array $state): SurveyDefinition
+    public static function toDefinition(array $state, bool $quiz = false, bool $showCorrectAnswers = true): SurveyDefinition
     {
         $sections = [];
         foreach ($state as $section) {
             $section = is_array($section) ? $section : [];
             $questions = [];
             foreach (self::items($section['questions'] ?? []) as $block) {
-                $questions[] = self::questionArray(is_string($block['type'] ?? null) ? $block['type'] : '', is_array($block['data'] ?? null) ? $block['data'] : []);
+                $questions[] = self::questionArray(is_string($block['type'] ?? null) ? $block['type'] : '', is_array($block['data'] ?? null) ? $block['data'] : [], $quiz);
             }
 
             $sections[] = [
@@ -93,7 +127,10 @@ final class DefinitionFormState
             ];
         }
 
-        return SurveyDefinition::fromArray(['sections' => $sections]);
+        return SurveyDefinition::fromArray([
+            'sections' => $sections,
+            'quiz' => $quiz ? (new QuizSettings($showCorrectAnswers))->toArray() : null,
+        ]);
     }
 
     /**
@@ -135,6 +172,10 @@ final class DefinitionFormState
         }
         if (in_array($tokens[0] ?? null, ['id', 'type'], true)) {
             $path[] = 'title';
+            $tokens = [];
+        } elseif (($tokens[0] ?? null) === 'correct_option_ids') {
+            // The correct options are marked on the options
+            $path[] = 'options';
             $tokens = [];
         } elseif (isset(self::FLATTENED[$field])) {
             $path[] = self::FLATTENED[$field];
@@ -232,6 +273,8 @@ final class DefinitionFormState
             'grid_rows' => self::keyedOptions($question->grid->rows ?? []),
             'grid_columns' => self::keyedOptions($question->grid->columns ?? []),
             'slots' => self::keyedSlots($question->slots),
+            // A question that gives no points yet starts at one, ready for a correct option
+            'points' => $question->points ?? 1,
         ];
     }
 
@@ -281,9 +324,10 @@ final class DefinitionFormState
      * @param  array<mixed>  $data
      * @return array<string, mixed>
      */
-    private static function questionArray(string $typeValue, array $data): array
+    private static function questionArray(string $typeValue, array $data, bool $quiz): array
     {
         $type = QuestionType::tryFrom($typeValue);
+        $correct = $quiz && $type?->isChoice() === true ? self::correctOptionIds($data['options'] ?? []) : [];
 
         return [
             'id' => self::string($data['id'] ?? null),
@@ -307,7 +351,20 @@ final class DefinitionFormState
             ] : null,
             'next_by_option' => $type?->canBranch() === true && (bool) ($data['branches'] ?? false) ? array_map(static fn (array $jump): array => ['option_id' => $jump['option_id'], 'next' => $jump['next']], self::jumps($data)) : [],
             'slots' => $type === QuestionType::Availability ? self::slotList($data['slots'] ?? []) : [],
+            'correct_option_ids' => $correct,
+            'points' => $correct === [] ? null : self::int($data['points'] ?? null),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function correctOptionIds(mixed $items): array
+    {
+        return array_values(array_map(
+            static fn (array $item): string => self::string($item['id'] ?? null),
+            array_filter(self::items($items), static fn (array $item): bool => (bool) ($item['correct'] ?? false)),
+        ));
     }
 
     /**
@@ -357,7 +414,11 @@ final class DefinitionFormState
     {
         $keyed = [];
         foreach ($question->options as $option) {
-            $keyed[self::itemKey()] = [...$option->toArray(), 'next' => $question->nextFor($option->id)];
+            $keyed[self::itemKey()] = [
+                ...$option->toArray(),
+                'next' => $question->nextFor($option->id),
+                'correct' => in_array($option->id, $question->correctOptionIds, true),
+            ];
         }
 
         return $keyed;

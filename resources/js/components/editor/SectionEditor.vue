@@ -20,6 +20,8 @@ const props = defineProps<{
     path: string;
     /** Every section of the survey, to offer the later ones as jump targets. */
     sections: SurveySection[];
+    /** The survey is a quiz: choice questions mark their correct options. */
+    quiz: boolean;
 }>();
 
 const section = defineModel<SurveySection>({ required: true });
@@ -152,6 +154,7 @@ function setNewType(value: string | number | null): void {
                     :errors="props.errors"
                     :path="`${props.path}.questions.${index}`"
                     :targets="targets"
+                    :quiz="props.quiz"
                     @update:model-value="setQuestion(index, $event)"
                 />
             </li>

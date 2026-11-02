@@ -28,7 +28,7 @@ final class SurveyFormData
         $definition = is_array($data['definition'] ?? null) ? $data['definition'] : ['sections' => []];
         $results = ResultsSettings::fromArray(is_array($data['results_settings'] ?? null) ? $data['results_settings'] : []);
 
-        $data['sections'] = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray($definition));
+        $data = [...$data, ...DefinitionFormState::formFill(SurveyDefinition::fromArray($definition))];
         $data['live_results'] = $results->liveResults;
         $data['visible_to_respondents'] = $results->visibleToRespondents;
 

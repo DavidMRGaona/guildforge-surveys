@@ -37,6 +37,9 @@ use Modules\Surveys\Domain\ValueObjects\Definition\Section;
  *
  * An availability survey offers only the availability block, and nothing else offers it: its
  * slots are typed as a day and, optionally, the times in the site's zone.
+ *
+ * A form may be a quiz (quizFields(), next to the editor): its choice questions then mark their
+ * correct options and give points.
  */
 final class DefinitionEditor
 {
@@ -86,6 +89,32 @@ final class DefinitionEditor
             ->deletable(static fn (Repeater $component): bool => ! $component->evaluate($contentLocked))
             ->reorderable(static fn (Repeater $component): bool => ! $component->evaluate($contentLocked))
             ->columnSpanFull();
+    }
+
+    /**
+     * The quiz switches, for forms only. They are part of the content, so responses lock them too.
+     *
+     * @return list<Component>
+     */
+    public static function quizFields(Closure|bool $contentLocked = false): array
+    {
+        return [
+            Toggle::make('quiz')
+                ->label(__('surveys::filament.definition.quiz'))
+                ->helperText(__('surveys::filament.definition.quiz_help'))
+                ->default(false)
+                ->live()
+                ->visible(static fn (Toggle $component): bool => self::isForm($component))
+                ->disabled($contentLocked)
+                ->dehydrated(),
+            Toggle::make('quiz_show_correct_answers')
+                ->label(__('surveys::filament.definition.quiz_show_correct_answers'))
+                ->helperText(__('surveys::filament.definition.quiz_show_correct_answers_help'))
+                ->default(true)
+                ->visible(static fn (Toggle $component, Get $get): bool => self::isForm($component) && (bool) $get('quiz'))
+                ->disabled($contentLocked)
+                ->dehydrated(),
+        ];
     }
 
     /**
@@ -145,7 +174,17 @@ final class DefinitionEditor
 
         if ($type->hasOptions()) {
             $fields = [
-                self::optionList('options', 'surveys::filament.definition.options', 2, $locked, withTargets: $type->canBranch()),
+                self::optionList('options', 'surveys::filament.definition.options', 2, $locked, withTargets: $type->canBranch(), withCorrect: true),
+                TextInput::make('points')
+                    ->label(__('surveys::filament.definition.points'))
+                    ->helperText(__('surveys::filament.definition.points_help'))
+                    ->integer()
+                    ->minValue(SurveyDefinitionValidator::POINTS_MIN)
+                    ->maxValue(SurveyDefinitionValidator::POINTS_MAX)
+                    ->default(1)
+                    ->visible(static fn (TextInput $component): bool => self::isQuiz($component))
+                    ->disabled($locked)
+                    ->dehydrated(),
                 Toggle::make('allow_other')
                     ->label(__('surveys::filament.definition.allow_other'))
                     ->default(false)
@@ -260,13 +299,20 @@ final class DefinitionEditor
 
     /**
      * @param  bool  $withTargets  options of a question that may jump get the select of where each leads
+     * @param  bool  $withCorrect  options of a choice question are marked correct in a quiz
      */
-    private static function optionList(string $name, string $labelKey, int $minItems, Closure|bool $locked, bool $withTargets = false): Repeater
+    private static function optionList(string $name, string $labelKey, int $minItems, Closure|bool $locked, bool $withTargets = false, bool $withCorrect = false): Repeater
     {
         $label = TextInput::make('label')
             ->hiddenLabel()
             ->required()
             ->maxLength(255)
+            ->disabled($locked)
+            ->dehydrated();
+        $correct = Toggle::make('correct')
+            ->label(__('surveys::filament.definition.correct'))
+            ->default(false)
+            ->visible(static fn (Toggle $component): bool => $withCorrect && self::isQuiz($component))
             ->disabled($locked)
             ->dehydrated();
 
@@ -280,7 +326,8 @@ final class DefinitionEditor
                         ->hiddenLabel()
                         ->visible(static fn (Get $get): bool => (bool) $get('../../branches')),
                 ]),
-            ] : [self::id(), $label])
+                $correct,
+            ] : [self::id(), $label, $correct])
             ->minItems($minItems)
             ->defaultItems($minItems)
             ->addActionLabel(__('surveys::filament.definition.add_option'))
@@ -334,6 +381,22 @@ final class DefinitionEditor
         }
 
         return [...$targets, Section::SUBMIT => (string) __('surveys::filament.definition.submit_form')];
+    }
+
+    /**
+     * Whether the form the component sits in is a quiz (its switch, next to the editor).
+     */
+    private static function isQuiz(Component $component): bool
+    {
+        return self::isForm($component) && (bool) data_get($component->getLivewire(), 'data.quiz');
+    }
+
+    /**
+     * Surveys created in the panel are forms, so a missing kind is one.
+     */
+    private static function isForm(Component $component): bool
+    {
+        return in_array(self::kind($component), [null, SurveyKind::Form->value], true);
     }
 
     /**

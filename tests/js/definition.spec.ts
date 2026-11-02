@@ -3,13 +3,17 @@ import { OTHER, SUBMIT } from '../../resources/js/types/Respond';
 import {
     allowsOther,
     canBranch,
+    canBeScored,
     changeType,
+    definitionToSave,
     hasOptions,
     jumpTargets,
     move,
     newQuestion,
     newSection,
+    pruneCorrect,
     pruneJumps,
+    setCorrect,
     setJump,
     withoutSection,
 } from '../../resources/js/utils/definition';
@@ -134,5 +138,69 @@ describe('definition utils', () => {
         expect(left[0]?.next).toBeNull();
         expect(left[0]?.questions[0]?.next_by_option).toEqual([]);
         expect(left[1]?.next).toBeNull();
+    });
+
+    it('scores only choice questions', () => {
+        expect(
+            ['single_choice', 'multiple_choice', 'dropdown'].every((type) =>
+                canBeScored(type as 'dropdown')
+            )
+        ).toBe(true);
+        expect(canBeScored('ranking')).toBe(false);
+        expect(canBeScored('short_text')).toBe(false);
+    });
+
+    it('keeps one correct option on a single answer and several on checkboxes, in their order', () => {
+        const single = newQuestion('single_choice');
+        const [first, second] = single.options.map((option) => option.id);
+
+        const marked = setCorrect(setCorrect(single, String(first), true), String(second), true);
+        expect(marked.correct_option_ids).toEqual([second]);
+        expect(marked.points).toBe(1);
+
+        const multiple = changeType(single, 'multiple_choice');
+        const both = setCorrect(setCorrect(multiple, String(second), true), String(first), true);
+        expect(both.correct_option_ids).toEqual([first, second]);
+        expect(setCorrect(both, String(first), false).correct_option_ids).toEqual([second]);
+    });
+
+    it('drops the correct marks of removed options and of a type that is not scored', () => {
+        const question = newQuestion('multiple_choice');
+        const ids = question.options.map((option) => option.id);
+        const marked = setCorrect(setCorrect(question, String(ids[0]), true), String(ids[1]), true);
+
+        expect(
+            pruneCorrect({ ...marked, options: marked.options.slice(1) }).correct_option_ids
+        ).toEqual([ids[1]]);
+        expect(changeType(marked, 'single_choice').correct_option_ids).toEqual([ids[0]]);
+        expect(changeType(marked, 'ranking').correct_option_ids).toEqual([]);
+        expect(changeType(marked, 'ranking').points).toBeNull();
+    });
+
+    it('saves the marks only in a quiz, and points only where an option is correct', () => {
+        const question = newQuestion('single_choice');
+        const marked = {
+            ...setCorrect(question, String(question.options[0]?.id), true),
+            points: 4,
+        };
+        const unscored = { ...newQuestion('dropdown'), points: 3 };
+        const section = { ...newSection(), questions: [marked, unscored] };
+
+        const quiz = definitionToSave({
+            sections: [section],
+            quiz: { show_correct_answers: true },
+        });
+        expect(
+            quiz.sections[0]?.questions.map((q) => [q.correct_option_ids.length, q.points])
+        ).toEqual([
+            [1, 4],
+            [0, null],
+        ]);
+
+        const plain = definitionToSave({ sections: [section], quiz: null });
+        expect(plain.sections[0]?.questions.map((q) => [q.correct_option_ids, q.points])).toEqual([
+            [[], null],
+            [[], null],
+        ]);
     });
 });

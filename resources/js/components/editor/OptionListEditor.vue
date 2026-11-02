@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import { FormCheckbox } from '@/components/form';
 import type { SurveyOption } from '../../types/Respond';
 import { move, newOption } from '../../utils/definition';
 import { ADD_BUTTON_CLASS, FIELD_CLASS, ICON_BUTTON_CLASS } from '../styles';
@@ -17,6 +18,12 @@ const props = defineProps<{
     path: string;
     /** Most items the list takes, if any. */
     max?: number;
+    /** In a quiz, the options marked correct: each option gets its mark. */
+    correct?: string[] | undefined;
+}>();
+
+const emit = defineEmits<{
+    'update:correct': [optionId: string, correct: boolean];
 }>();
 
 const options = defineModel<SurveyOption[]>({ required: true });
@@ -82,6 +89,14 @@ function error(index: number): string | undefined {
                     </button>
                 </template>
             </div>
+            <FormCheckbox
+                v-if="props.correct !== undefined"
+                :id="`${props.path.replaceAll('.', '-')}-${index}-correct`"
+                :model-value="props.correct.includes(option.id)"
+                :label="t('surveys.editor.correct', { number: index + 1 })"
+                :disabled="props.locked"
+                @update:model-value="emit('update:correct', option.id, $event)"
+            />
             <p v-if="error(index)" class="text-sm text-error">{{ error(index) }}</p>
         </div>
         <button

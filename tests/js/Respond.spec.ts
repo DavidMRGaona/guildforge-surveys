@@ -124,6 +124,60 @@ describe('Respond', () => {
         expect(wrapper.find('form').exists()).toBe(false);
         expect(wrapper.find('[role="status"]').text()).toContain('¡Gracias por responder!');
     });
+
+    it('shows the score of a quiz with what was right and the correct answers of the rest', () => {
+        const wrapper = mountPage({
+            result: 'submitted',
+            quiz: {
+                points: 2,
+                maxPoints: 5,
+                questions: [
+                    {
+                        id: 'q-1',
+                        title: '¿Capital de Francia?',
+                        correct: true,
+                        points: 2,
+                        correctAnswers: ['París'],
+                    },
+                    {
+                        id: 'q-2',
+                        title: '¿Colores de la bandera?',
+                        correct: false,
+                        points: 3,
+                        correctAnswers: ['Azul', 'Rojo'],
+                    },
+                ],
+            },
+        });
+
+        const feedback = wrapper.find('section[aria-labelledby="quiz-feedback-heading"]');
+        expect(feedback.text()).toContain('2 de 5 puntos');
+        expect(feedback.text()).toContain('Acertada: 2 puntos');
+        expect(feedback.text()).toContain('Fallada: 0 de 3 puntos');
+        expect(feedback.text()).toContain('Respuestas correctas: Azul y Rojo');
+        expect(feedback.text()).not.toContain('Respuesta correcta: París');
+        expect(feedback.text()).toContain('Solo la ves ahora');
+    });
+
+    it('shows only the score when the quiz keeps its answers', () => {
+        const wrapper = mountPage({
+            result: 'submitted',
+            survey: {
+                id: 'survey-1',
+                kind: 'form',
+                title: 'Cuestionario',
+                description: null,
+                anonymous: false,
+                closesAt: null,
+            },
+            quiz: { points: 3, maxPoints: 5, questions: null },
+        });
+
+        const feedback = wrapper.find('section[aria-labelledby="quiz-feedback-heading"]');
+        expect(feedback.text()).toContain('3 de 5 puntos');
+        expect(feedback.findAll('li')).toHaveLength(0);
+        expect(feedback.text()).not.toContain('Solo la ves ahora');
+    });
     it('asks for an email on the verified public link instead of the questions', async () => {
         const wrapper = mountPage({
             state: 'verify_email',

@@ -6,13 +6,18 @@ import type { EditorLocks } from '../../types/Editor';
 import type { QuestionType, SurveyOption, SurveyQuestion } from '../../types/Respond';
 import {
     allowsOther,
+    canBeScored,
     canBranch,
     changeType,
     hasOptions,
+    POINTS_MAX,
+    POINTS_MIN,
     POLL_TYPES,
+    pruneCorrect,
     pruneJumps,
     QUESTION_TYPES,
     RANKING_OPTIONS_MAX,
+    setCorrect,
 } from '../../utils/definition';
 import JumpsEditor from './JumpsEditor.vue';
 import OptionListEditor from './OptionListEditor.vue';
@@ -26,6 +31,8 @@ const props = defineProps<{
     path: string;
     /** Where its options may jump: the later sections and the end. */
     targets: { value: string; label: string }[];
+    /** The survey is a quiz: a choice question marks its correct options and gives points. */
+    quiz: boolean;
 }>();
 
 const question = defineModel<SurveyQuestion>({ required: true });
@@ -33,6 +40,7 @@ const question = defineModel<SurveyQuestion>({ required: true });
 const { t } = useI18n();
 
 const fieldId = computed(() => `question-${question.value.id}`);
+const scored = computed(() => props.quiz && canBeScored(question.value.type));
 // A question from the template keeps its type, or its series over time would break
 const typeLocked = computed(() => props.locks.structure || question.value.key !== null);
 const typeOptions = computed(() =>
@@ -47,8 +55,8 @@ function error(field: string): string | undefined {
 }
 
 function set<K extends keyof SurveyQuestion>(field: K, value: SurveyQuestion[K]): void {
-    // Removing an option or "Other" takes its jump with it
-    question.value = pruneJumps({ ...question.value, [field]: value });
+    // Removing an option or "Other" takes its jump (and its correct mark) with it
+    question.value = pruneCorrect(pruneJumps({ ...question.value, [field]: value }));
 }
 
 function setType(value: string | number | null): void {
@@ -156,8 +164,46 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                 :errors="props.errors"
                 :path="`${props.path}.options`"
                 :max="question.type === 'ranking' ? RANKING_OPTIONS_MAX : undefined"
+                :correct="scored ? question.correct_option_ids : undefined"
                 @update:model-value="set('options', $event)"
+                @update:correct="
+                    (id: string, value: boolean) => (question = setCorrect(question, id, value))
+                "
             />
+            <template v-if="scored">
+                <p class="text-sm text-base-secondary">
+                    {{
+                        t(
+                            question.type === 'multiple_choice'
+                                ? 'surveys.editor.correct_hint_multiple'
+                                : 'surveys.editor.correct_hint_single'
+                        )
+                    }}
+                </p>
+                <p v-if="error('correct_option_ids')" class="text-sm text-error">
+                    {{ error('correct_option_ids') }}
+                </p>
+                <div v-if="question.correct_option_ids.length > 0" class="max-w-xs">
+                    <label
+                        :for="`${fieldId}-points`"
+                        class="block text-sm font-medium text-base-primary"
+                    >
+                        {{ t('surveys.editor.points') }}
+                    </label>
+                    <FormNumberInput
+                        :id="`${fieldId}-points`"
+                        :model-value="question.points"
+                        :min="POINTS_MIN"
+                        :max="POINTS_MAX"
+                        :disabled="props.locks.structure"
+                        :error="error('points')"
+                        @update:model-value="set('points', $event)"
+                    />
+                    <p v-if="error('points')" class="mt-1 text-sm text-error">
+                        {{ error('points') }}
+                    </p>
+                </div>
+            </template>
             <p v-if="question.type === 'ranking'" class="text-sm text-base-secondary">
                 {{ t('surveys.editor.ranking_hint', { max: RANKING_OPTIONS_MAX }) }}
             </p>
@@ -169,6 +215,9 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                 :disabled="props.locks.structure"
                 @update:model-value="set('allow_other', $event)"
             />
+            <p v-if="error('allow_other')" class="text-sm text-error">
+                {{ error('allow_other') }}
+            </p>
             <JumpsEditor
                 v-if="canBranch(question.type) && !props.locks.poll"
                 :model-value="question"
@@ -216,6 +265,9 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                     :error="error('scale.max')"
                     @update:model-value="setScale('max', $event)"
                 />
+                <p v-if="error('scale.max')" class="mt-1 text-sm text-error">
+                    {{ error('scale.max') }}
+                </p>
             </div>
             <div>
                 <label
@@ -264,6 +316,9 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
                 :error="error('stars')"
                 @update:model-value="set('stars', $event)"
             />
+            <p v-if="error('stars')" class="mt-1 text-sm text-error">
+                {{ error('stars') }}
+            </p>
         </div>
 
         <div

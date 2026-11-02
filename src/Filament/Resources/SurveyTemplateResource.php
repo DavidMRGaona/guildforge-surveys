@@ -87,7 +87,7 @@ final class SurveyTemplateResource extends BaseResource
                     ->columns(2),
                 Section::make(__('surveys::filament.definition.title'))
                     ->description(__('surveys::filament.survey_template.definition_help'))
-                    ->schema([DefinitionEditor::make(withKeys: true)]),
+                    ->schema([...DefinitionEditor::quizFields(), DefinitionEditor::make(withKeys: true)]),
             ]);
     }
 

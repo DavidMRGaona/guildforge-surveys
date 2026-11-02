@@ -15,7 +15,7 @@ import PageHeader from '../../../components/PageHeader.vue';
 import { CARD_CLASS, FIELD_CLASS, NOTICE_CLASS } from '../../../components/styles';
 import type { EditorLocks, EditSurveyProps } from '../../../types/Editor';
 import type { SurveyDefinition } from '../../../types/Respond';
-import { cloneDefinition } from '../../../utils/definition';
+import { cloneDefinition, definitionToSave } from '../../../utils/definition';
 
 const props = defineProps<EditSurveyProps>();
 
@@ -84,6 +84,8 @@ function closesAt(): string | null {
 }
 
 function submit(send: boolean): void {
+    // What only a quiz keeps (correct marks, points) leaves the editor too once it is saved
+    definition.value = definitionToSave(definition.value);
     router[props.submitMethod](
         send ? `${props.submitUrl}?send=1` : props.submitUrl,
         {

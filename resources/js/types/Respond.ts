@@ -58,6 +58,10 @@ export interface SurveyQuestion {
     next_by_option: OptionJump[];
     /** Only on availability questions. */
     slots: SurveySlot[];
+    /** In a quiz, the options that score; never sent to whoever answers. */
+    correct_option_ids: string[];
+    /** What a scored question gives, 1 to 100; null when it scores nothing. */
+    points: number | null;
 }
 
 export interface OptionJump {
@@ -74,8 +78,15 @@ export interface SurveySection {
     questions: SurveyQuestion[];
 }
 
+/** A form that is a quiz (QuizSettings on the server). */
+export interface QuizSettings {
+    /** Whoever answers sees, on sending, what they got right. */
+    show_correct_answers: boolean;
+}
+
 export interface SurveyDefinition {
     sections: SurveySection[];
+    quiz: QuizSettings | null;
 }
 
 export type SurveyKind = 'form' | 'poll' | 'availability';
@@ -117,6 +128,23 @@ export interface RespondProps {
     requestUrl?: string;
     /** Only when the survey shares its results with the people who answer, and they may be seen. */
     results?: RespondResults;
+    /** Only right after sending a quiz: the score (QuizFeedbackPayload on the server). */
+    quiz?: QuizFeedback;
+}
+
+/** What whoever sent a quiz sees once: their score and, if the quiz shows it, what they got right. */
+export interface QuizFeedback {
+    points: number;
+    maxPoints: number;
+    questions: QuizFeedbackQuestion[] | null;
+}
+
+export interface QuizFeedbackQuestion {
+    id: string;
+    title: string;
+    correct: boolean;
+    points: number;
+    correctAnswers: string[];
 }
 
 /** One bar: an option (label null for "Other"), a scale value, a day or an hour. */

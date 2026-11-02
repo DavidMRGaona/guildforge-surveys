@@ -79,6 +79,16 @@ export default {
             option_label: 'Opción {number}',
             add_option: 'Añadir opción',
             allow_other: 'Permitir «Otra» con texto libre',
+            quiz: 'Es un cuestionario',
+            quiz_hint:
+                'Marca las respuestas correctas de las preguntas de opción y cuántos puntos da cada una. Una pregunta solo puntúa si se eligen exactamente sus opciones correctas.',
+            quiz_show_correct_answers: 'Mostrar qué acertó al enviar',
+            correct: 'Opción {number} correcta',
+            correct_hint_single:
+                'Marca la opción correcta. Sin ninguna marcada, la pregunta no puntúa.',
+            correct_hint_multiple:
+                'Marca todas las opciones correctas: solo puntúa quien elija exactamente esas. Sin ninguna marcada, la pregunta no puntúa.',
+            points: 'Puntos',
             ranking_hint:
                 'Quien responde las ordena todas, de la que más le gusta a la que menos. Como mucho, {max} opciones.',
             scale_min: 'Desde',
@@ -284,6 +294,15 @@ export default {
             thanks_availability_title: '¡Gracias! Ya sabemos qué días puedes',
             thanks_description: 'Tus respuestas se han guardado.',
             thanks_anonymous: 'Tus respuestas se han guardado sin tu nombre.',
+            quiz: {
+                title: 'Tu nota',
+                score: '{points} de {max} puntos',
+                only_now:
+                    'Solo la ves ahora: tus respuestas se guardan sin tu nombre y la nota no queda ligada a ti.',
+                right: 'Acertada: {points} punto | Acertada: {points} puntos',
+                wrong: 'Fallada: 0 de {points} punto | Fallada: 0 de {points} puntos',
+                correct_answer: 'Respuesta correcta: {answers} | Respuestas correctas: {answers}',
+            },
             back_to_subject: 'Volver a {title}',
             pending_surveys: 'Ver mis encuestas pendientes',
             verify_email: {
