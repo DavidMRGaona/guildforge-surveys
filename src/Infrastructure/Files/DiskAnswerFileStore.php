@@ -7,6 +7,7 @@ namespace Modules\Surveys\Infrastructure\Files;
 use DateTimeImmutable;
 use finfo;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Encoders\JpegEncoder;
@@ -32,6 +33,9 @@ final readonly class DiskAnswerFileStore implements AnswerFileStoreInterface
 {
     private const int IMAGE_QUALITY = 90;
 
+    /** Enough for any phone photo; GD needs about four bytes a pixel to decode one. */
+    public const int MAX_IMAGE_PIXELS = 50_000_000;
+
     public function contentType(IncomingFile $file): ?string
     {
         if (! is_file($file->path)) {
@@ -41,6 +45,18 @@ final readonly class DiskAnswerFileStore implements AnswerFileStoreInterface
         $type = (new finfo(FILEINFO_MIME_TYPE))->file($file->path);
 
         return is_string($type) ? $type : null;
+    }
+
+    public function fits(IncomingFile $file, string $contentType): bool
+    {
+        if (FileKind::forContentType($contentType) !== FileKind::Image) {
+            return true;
+        }
+
+        // Read from the header alone, before anything is decoded
+        $size = @getimagesize($file->path);
+
+        return is_array($size) && $size[0] > 0 && $size[1] > 0 && $size[0] * $size[1] <= self::MAX_IMAGE_PIXELS;
     }
 
     public function store(SurveyId $surveyId, string $fileId, IncomingFile $file, string $contentType, bool $keepName): ?StoredAnswerFile
@@ -56,7 +72,11 @@ final readonly class DiskAnswerFileStore implements AnswerFileStoreInterface
         }
 
         $path = "surveys/{$surveyId->value}/{$fileId}.{$kind->contentTypes()[$contentType]}";
-        $this->disk()->put($path, $contents);
+        $disk = $this->disk();
+        $disk->put($path, $contents);
+        if (! $keepName) {
+            $this->keepOnlyTheDay($disk, $path);
+        }
 
         return new StoredAnswerFile(
             id: $fileId,
@@ -99,6 +119,18 @@ final readonly class DiskAnswerFileStore implements AnswerFileStoreInterface
         }
 
         return $pruned;
+    }
+
+    /**
+     * An anonymous response keeps only its day: neither should its file's time say more.
+     */
+    private function keepOnlyTheDay(Filesystem $disk, string $path): void
+    {
+        if (! $disk instanceof FilesystemAdapter || ! is_file($disk->path($path))) {
+            return;
+        }
+
+        touch($disk->path($path), (int) now()->startOfDay()->getTimestamp());
     }
 
     private function strippedImage(string $path, string $contentType): ?string

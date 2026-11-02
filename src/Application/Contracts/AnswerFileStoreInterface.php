@@ -20,8 +20,15 @@ interface AnswerFileStoreInterface
     public function contentType(IncomingFile $file): ?string;
 
     /**
+     * Whether the file can be handled: an image may hold more pixels than there is memory to
+     * decode, however small the file is.
+     */
+    public function fits(IncomingFile $file, string $contentType): bool;
+
+    /**
      * Keeps the file under a random name. Images are written again, which leaves out their
-     * metadata (EXIF, location, camera); anything else is kept as sent.
+     * metadata (EXIF, location, camera); anything else is kept as sent. Without $keepName (an
+     * anonymous survey) it keeps neither the name nor the time it was sent: only the day.
      *
      * @return StoredAnswerFile|null null when the file is not what its contents claim (an image
      *                               that cannot be read)

@@ -38,6 +38,17 @@ final class ExampleFiles
         return self::upload($pdf, $name, 'application/pdf');
     }
 
+    /**
+     * A small PNG whose header claims 20000 × 20000 pixels: decoding it would take gigabytes.
+     */
+    public static function hugeImage(string $name = 'bomba.png'): UploadedFile
+    {
+        $ihdr = 'IHDR'.pack('NN', 20000, 20000)."\x08\x02\x00\x00\x00";
+        $png = "\x89PNG\r\n\x1a\n".pack('N', 13).$ihdr.pack('N', crc32($ihdr));
+
+        return self::upload($png, $name, 'image/png');
+    }
+
     /** Text with an image's name and type: only its contents tell what it is. */
     public static function fakeImage(string $name = 'foto.jpg'): UploadedFile
     {
