@@ -3,6 +3,7 @@ import { Paperclip, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FILE_CONTENT_TYPES, type FileSettings } from '../../types/Respond';
+import { fileSize } from '../../utils/files';
 import { FOCUS_RING_CLASS } from '../styles';
 
 const props = defineProps<{
@@ -30,14 +31,6 @@ const kinds = computed(() =>
         props.settings.accept.map((kind) => t(`surveys.respond.file.kinds.${kind}`))
     )
 );
-
-function size(bytes: number): string {
-    const megabytes = bytes / (1024 * 1024);
-
-    return megabytes >= 1
-        ? `${new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }).format(megabytes)} MB`
-        : `${new Intl.NumberFormat(locale.value).format(Math.max(1, Math.ceil(bytes / 1024)))} KB`;
-}
 
 /** A first check in the browser; the server reads the contents and decides. */
 function choose(event: Event): void {
@@ -85,7 +78,7 @@ function remove(): void {
             data-testid="chosen-file"
         >
             <span class="min-w-0 break-all">{{ props.file.name }}</span>
-            <span class="text-base-secondary">{{ size(props.file.size) }}</span>
+            <span class="text-base-secondary">{{ fileSize(props.file.size, locale) }}</span>
             <button
                 type="button"
                 :class="[

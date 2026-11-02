@@ -4,6 +4,9 @@
     $hiddenTitles = $this->hiddenQuestionTitles();
     $quiz = $results->visible ? $results->quiz : null;
     $number = static fn (float $value, int $precision = 2): string => (string) \Illuminate\Support\Number::format($value, maxPrecision: $precision, locale: app()->getLocale());
+    $fileSize = static fn (int $bytes): string => $bytes >= 1024 * 1024
+        ? $number($bytes / (1024 * 1024), 1).' MB'
+        : $number(max(1, (int) ceil($bytes / 1024)), 0).' KB';
 @endphp
 
 <x-filament-panels::page>
@@ -111,6 +114,30 @@
 
             @if ($question->belowMinimum)
                 <p>{{ __('surveys::filament.results.question_below_minimum') }}</p>
+            @elseif ($question->type === \Modules\Surveys\Domain\Enums\QuestionType::File)
+                {{-- Files are never charted: each one opens through a signed link, images with a preview --}}
+                <p style="margin-bottom: 0.75rem; font-size: 0.875rem; opacity: 0.75;">{{ __('surveys::filament.results.files_private') }}</p>
+                @forelse ($question->files as $file)
+                    @php
+                        $name = \Modules\Surveys\Infrastructure\Files\AnswerFileLinks::downloadName($file);
+                        $preview = \Modules\Surveys\Domain\Enums\FileKind::forContentType($file->contentType) === \Modules\Surveys\Domain\Enums\FileKind::Image
+                            ? \Modules\Surveys\Infrastructure\Files\AnswerFileLinks::forPage($file, inline: true)
+                            : null;
+                    @endphp
+                    <div data-answer-file="{{ $file->id }}" style="display: flex; align-items: center; gap: 0.75rem; padding-block: 0.5rem; border-bottom: 1px solid rgb(127 127 127 / 0.2);">
+                        @if ($preview !== null)
+                            <a href="{{ $preview }}" target="_blank" rel="noopener" style="flex-shrink: 0;">
+                                <img src="{{ $preview }}" alt="{{ __('surveys::filament.results.file_preview', ['name' => $name]) }}" loading="lazy" style="width: 4rem; height: 4rem; object-fit: cover; border-radius: 0.375rem;">
+                            </a>
+                        @endif
+                        <div style="min-width: 0;">
+                            <a href="{{ \Modules\Surveys\Infrastructure\Files\AnswerFileLinks::forPage($file) }}" style="font-weight: 500; text-decoration: underline; overflow-wrap: anywhere;">{{ $name }}</a>
+                            <span style="display: block; font-size: 0.875rem; opacity: 0.75;">{{ $fileSize($file->size) }}</span>
+                        </div>
+                    </div>
+                @empty
+                    <p>{{ __('surveys::filament.results.no_files') }}</p>
+                @endforelse
             @elseif ($question->chartType === \Modules\Surveys\Domain\Enums\ChartType::List)
                 @forelse ($question->texts as $text)
                     <p style="padding-block: 0.5rem; border-bottom: 1px solid rgb(127 127 127 / 0.2); white-space: pre-line;">{{ $text }}</p>

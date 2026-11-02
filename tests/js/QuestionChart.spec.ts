@@ -62,6 +62,7 @@ function question(overrides: Partial<OrganizerQuestionResult> = {}): OrganizerQu
         chartTypes: ['bar', 'pie'],
         texts: ['Depende del día'],
         quiz: null,
+        files: [],
         ...overrides,
     };
 }

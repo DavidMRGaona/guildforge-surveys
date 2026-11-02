@@ -14,6 +14,20 @@ export interface OrganizerQuestionResult extends QuestionResult {
     texts: string[];
     /** A scored question of a quiz. */
     quiz: QuestionQuizResult | null;
+    /** Files sent to a file question; empty below the minimum. */
+    files: OrganizerAnswerFile[];
+}
+
+/** A file sent as an answer, behind signed links that expire (ResultsPayload on the server). */
+export interface OrganizerAnswerFile {
+    id: string;
+    name: string;
+    contentType: string;
+    size: number;
+    /** Downloads it. */
+    url: string;
+    /** Opens an image in the browser; null for anything else. */
+    previewUrl: string | null;
 }
 
 /** How a scored question went (QuizQuestionResultDTO on the server). */

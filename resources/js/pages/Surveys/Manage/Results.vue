@@ -6,6 +6,7 @@ import { FormCheckbox, FormSelect } from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import PageHeader from '../../../components/PageHeader.vue';
 import AvailabilityResults from '../../../components/results/AvailabilityResults.vue';
+import FileResults from '../../../components/results/FileResults.vue';
 import QuestionChart from '../../../components/results/QuestionChart.vue';
 import QuizResults from '../../../components/results/QuizResults.vue';
 import { BADGE_CLASS, CARD_CLASS } from '../../../components/styles';
@@ -311,8 +312,10 @@ function save(): void {
                 </p>
             </div>
 
+            <!-- Files are never shown to whoever answers, so there is nothing to leave out -->
+            <FileResults v-if="question.type === 'file'" :question="question" />
             <AvailabilityResults
-                v-if="!isHidden(question.id) && question.availability"
+                v-else-if="!isHidden(question.id) && question.availability"
                 :availability="question.availability"
                 :answered="question.answered"
             />
@@ -339,6 +342,7 @@ function save(): void {
             </p>
 
             <div
+                v-if="question.type !== 'file'"
                 class="flex flex-col max-sm:gap-3 border-t border-default pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2"
             >
                 <fieldset
