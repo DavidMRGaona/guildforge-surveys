@@ -7,9 +7,11 @@ namespace Modules\Surveys\Filament\Resources\SurveyResource\Pages;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
+use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
+use Modules\Surveys\Domain\ValueObjects\Definition\DefinitionViolation;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Filament\Actions\SurveyActions;
 use Modules\Surveys\Filament\Concerns\HandlesDefinitionErrors;
@@ -103,6 +105,13 @@ final class EditSurvey extends EditRecord
             $change();
         } catch (InvalidSurveyStateException) {
             throw ValidationException::withMessages([$field => __("surveys::messages.state_errors.{$this->stateErrorKey($field)}")]);
+        } catch (InvalidSurveyDefinitionException $exception) {
+            // A change the content does not allow (a PDF question on an anonymous survey, a file
+            // question on an open link): said on the field that was changed
+            throw ValidationException::withMessages([$field => array_map(
+                static fn (DefinitionViolation $violation): string => (string) __("surveys::messages.definition_errors.{$violation->messageKey}"),
+                $exception->violations,
+            )]);
         }
     }
 

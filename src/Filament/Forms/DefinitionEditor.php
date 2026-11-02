@@ -8,6 +8,7 @@ use App\Filament\Forms\Components\TimePicker;
 use Closure;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -20,6 +21,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Modules\Surveys\Domain\Enums\FileKind;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Enums\SurveyKind;
 use Modules\Surveys\Domain\Services\SurveyDefinitionValidator;
@@ -162,6 +164,34 @@ final class DefinitionEditor
     {
         if ($type === QuestionType::Availability) {
             return [self::slotList($locked)];
+        }
+
+        if ($type === QuestionType::File) {
+            return [
+                Grid::make(2)->schema([
+                    CheckboxList::make('file_accept')
+                        ->label(__('surveys::filament.definition.file_accept'))
+                        ->helperText(__('surveys::filament.definition.file_accept_help'))
+                        ->options(array_combine(
+                            array_map(static fn (FileKind $kind): string => $kind->value, FileKind::cases()),
+                            array_map(static fn (FileKind $kind): string => (string) __("surveys::filament.definition.file_kinds.{$kind->value}"), FileKind::cases()),
+                        ))
+                        ->default(['image'])
+                        ->required()
+                        ->disabled($locked)
+                        ->dehydrated(),
+                    TextInput::make('file_max_mb')
+                        ->label(__('surveys::filament.definition.file_max_mb'))
+                        ->integer()
+                        ->minValue(SurveyDefinitionValidator::FILE_MB_MIN)
+                        ->maxValue(SurveyDefinitionValidator::FILE_MB_MAX)
+                        ->suffix('MB')
+                        ->default(5)
+                        ->required()
+                        ->disabled($locked)
+                        ->dehydrated(),
+                ]),
+            ];
         }
 
         if ($type === QuestionType::Ranking) {
@@ -419,8 +449,7 @@ final class DefinitionEditor
 
         return array_values(array_filter(
             QuestionType::cases(),
-            // File questions get their editor fields in a later change
-            static fn (QuestionType $type): bool => $type !== QuestionType::File && ($type === QuestionType::Availability) === $availability,
+            static fn (QuestionType $type): bool => ($type === QuestionType::Availability) === $availability,
         ));
     }
 

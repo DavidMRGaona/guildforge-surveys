@@ -764,6 +764,14 @@ final class DevelopmentSeeder extends Seeder
             }
         }
 
+        // Photos of painted armies: files only reach the results once someone sends one
+        $contest = $this->store($this->survey('general.painting.open', 'Concurso de pintura: tu mejor miniatura', SurveyStatus::Open, definition: SurveyDefinition::fromArray(['sections' => [['id' => 'main', 'title' => null, 'description' => null, 'questions' => [
+            ['id' => 'photo', 'key' => null, 'type' => 'file', 'title' => 'Foto de la miniatura', 'help' => 'De frente y con buena luz.', 'required' => true, 'file' => ['accept' => ['image'], 'max_mb' => 5]],
+            ['id' => 'army_list', 'key' => null, 'type' => 'file', 'title' => 'Lista del ejército (opcional)', 'help' => null, 'required' => false, 'file' => ['accept' => ['image', 'pdf'], 'max_mb' => 2]],
+            ['id' => 'name', 'key' => null, 'type' => 'short_text', 'title' => '¿Cómo se llama?', 'help' => null, 'required' => false],
+        ]]]]), anonymous: false, opensAt: $this->at(-1, '18:00'), openDays: 10, audienceSize: count($everyone), createdBy: $admin));
+        $this->addRecipients($contest, $everyone);
+
         // A named quiz still open, its leaderboard with a shared place, and an anonymous one closed
         $quiz = $this->store($this->survey('general.quiz.open', 'Cuestionario: ¿cuánto sabes de rol?', SurveyStatus::Open, definition: $this->quizDefinition(), anonymous: false, opensAt: $this->at(-2, '18:00'), openDays: 7, audienceSize: count($everyone), liveResults: true, createdBy: $admin));
         $this->addRecipients($quiz, $everyone);

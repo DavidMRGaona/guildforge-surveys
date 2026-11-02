@@ -54,6 +54,7 @@ return [
         'grid' => 'Cuadrícula de opción única',
         'ranking' => 'Ordenar',
         'availability' => 'Disponibilidad',
+        'file' => 'Archivo',
     ],
 
     'definition' => [
@@ -79,6 +80,13 @@ return [
         'add_option' => 'Añadir opción',
         'ranking_options_help' => 'Quien responde las ordena todas, de la que más le gusta a la que menos. Como mucho, :max opciones.',
         'allow_other' => 'Permitir «Otra» con texto libre',
+        'file_accept' => 'Archivos que admite',
+        'file_accept_help' => 'Se comprueba el contenido, no el nombre. Las fotos se guardan sin sus datos ocultos (lugar, cámara). Una encuesta anónima solo admite imágenes.',
+        'file_kinds' => [
+            'image' => 'Imágenes (JPEG, PNG o WebP)',
+            'pdf' => 'PDF',
+        ],
+        'file_max_mb' => 'Tamaño máximo',
         'quiz' => 'Es un cuestionario',
         'quiz_help' => 'Marca las respuestas correctas de las preguntas de opción y cuántos puntos da cada una. Una pregunta solo puntúa si se eligen exactamente sus opciones correctas.',
         'quiz_show_correct_answers' => 'Mostrar qué acertó al enviar',

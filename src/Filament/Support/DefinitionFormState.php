@@ -39,7 +39,12 @@ final class DefinitionFormState
         'scale.max_label' => 'scale_max_label',
         'grid.rows' => 'grid_rows',
         'grid.columns' => 'grid_columns',
+        'file.accept' => 'file_accept',
+        'file.max_mb' => 'file_max_mb',
     ];
+
+    /** What a new file question takes until someone says otherwise. */
+    private const array FILE_DEFAULTS = ['accept' => ['image'], 'max_mb' => 5];
 
     /** Slot field => its editor field. */
     private const array SLOT_FIELDS = [
@@ -173,6 +178,10 @@ final class DefinitionFormState
         if (in_array($tokens[0] ?? null, ['id', 'type'], true)) {
             $path[] = 'title';
             $tokens = [];
+        } elseif ($tokens === ['file']) {
+            // The question's file settings as a whole: on what it takes
+            $path[] = 'file_accept';
+            $tokens = [];
         } elseif (($tokens[0] ?? null) === 'correct_option_ids') {
             // The correct options are marked on the options
             $path[] = 'options';
@@ -275,6 +284,8 @@ final class DefinitionFormState
             'slots' => self::keyedSlots($question->slots),
             // A question that gives no points yet starts at one, ready for a correct option
             'points' => $question->points ?? 1,
+            'file_accept' => $question->file?->toArray()['accept'] ?? self::FILE_DEFAULTS['accept'],
+            'file_max_mb' => $question->file->maxMb ?? self::FILE_DEFAULTS['max_mb'],
         ];
     }
 
@@ -353,6 +364,10 @@ final class DefinitionFormState
             'slots' => $type === QuestionType::Availability ? self::slotList($data['slots'] ?? []) : [],
             'correct_option_ids' => $correct,
             'points' => $correct === [] ? null : self::int($data['points'] ?? null),
+            'file' => $type === QuestionType::File ? [
+                'accept' => array_values(array_filter(is_array($data['file_accept'] ?? null) ? $data['file_accept'] : [], is_string(...))),
+                'max_mb' => self::int($data['file_max_mb'] ?? null),
+            ] : null,
         ];
     }
 

@@ -57,6 +57,7 @@ describe('answers of an availability question', () => {
         next_by_option: [],
         correct_option_ids: [],
         points: null,
+        file: null,
         slots: ['d-1', 'd-2'].map((id) => ({
             id,
             date: '2030-01-12',
@@ -84,3 +85,49 @@ describe('answers of an availability question', () => {
         expect(toPayload(definition, { 'q-1': emptyDraft() })).toEqual({ 'q-1': {} });
     });
 });
+
+describe('answers of a file question', () => {
+    const asked: SurveyQuestion = {
+        ...emptyQuestion(),
+        id: 'q-photo',
+        type: 'file',
+        required: true,
+        file: { accept: ['image'], max_mb: 5 },
+    };
+    const definition: SurveyDefinition = {
+        quiz: null,
+        sections: [{ id: 's-1', title: null, description: null, next: null, questions: [asked] }],
+    };
+
+    it('sends the file chosen and asks for one while it is required', () => {
+        const photo = new File(['x'], 'ejercito.jpg', { type: 'image/jpeg' });
+
+        expect(
+            toPayload(definition, { 'q-photo': { ...emptyDraft(), file: photo } })['q-photo']
+        ).toBe(photo);
+        expect(toPayload(definition, { 'q-photo': emptyDraft() })).toEqual({});
+        expect(missingAnswer(asked, emptyDraft())).toBe('required');
+        expect(missingAnswer(asked, { ...emptyDraft(), file: photo })).toBeNull();
+    });
+});
+
+function emptyQuestion(): SurveyQuestion {
+    return {
+        id: '',
+        key: null,
+        type: 'short_text',
+        title: 'Foto del ejército',
+        help: null,
+        required: false,
+        options: [],
+        allow_other: false,
+        scale: null,
+        stars: null,
+        grid: null,
+        next_by_option: [],
+        slots: [],
+        correct_option_ids: [],
+        points: null,
+        file: null,
+    };
+}

@@ -42,6 +42,7 @@ function definition(name: string): SurveyDefinition {
                 slots: [],
                 correct_option_ids: [],
                 points: null,
+                file: null,
                 ...question,
             })),
         })),

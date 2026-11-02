@@ -14,7 +14,24 @@ export type QuestionType =
     | 'time'
     | 'grid'
     | 'ranking'
-    | 'availability';
+    | 'availability'
+    | 'file';
+
+/** What a file question takes (FileKind on the server). */
+export type FileKind = 'image' | 'pdf';
+
+export const FILE_KINDS: FileKind[] = ['image', 'pdf'];
+
+/** Content types of each kind, as FileKind::contentTypes() on the server. */
+export const FILE_CONTENT_TYPES: Record<FileKind, string[]> = {
+    image: ['image/jpeg', 'image/png', 'image/webp'],
+    pdf: ['application/pdf'],
+};
+
+export interface FileSettings {
+    accept: FileKind[];
+    max_mb: number;
+}
 
 export interface SurveyOption {
     id: string;
@@ -62,6 +79,8 @@ export interface SurveyQuestion {
     correct_option_ids: string[];
     /** What a scored question gives, 1 to 100; null when it scores nothing. */
     points: number | null;
+    /** Only on file questions. */
+    file: FileSettings | null;
 }
 
 export interface OptionJump {
@@ -230,6 +249,8 @@ export interface AnswerDraft {
     number: number | null;
     /** A grid's column by row id, or an availability answer by slot id. */
     cells: Record<string, string>;
+    /** The file chosen for a file question: never kept in the saved draft. */
+    file: File | null;
 }
 
 /** Option id that stands for "Other", as Submission::OTHER on the server. */

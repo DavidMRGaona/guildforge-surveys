@@ -77,6 +77,64 @@ describe('Respond', () => {
         );
     });
 
+    it('sends the file chosen with the answers and refuses one the question does not take', async () => {
+        vi.mocked(router.post).mockClear();
+        const photo = new File(['x'], 'ejercito.jpg', { type: 'image/jpeg' });
+        const wrapper = mountPage({
+            definition: {
+                quiz: null,
+                sections: [
+                    {
+                        id: 's-1',
+                        title: null,
+                        description: null,
+                        next: null,
+                        questions: [
+                            {
+                                id: 'q-photo',
+                                key: null,
+                                type: 'file',
+                                title: 'Foto del ejército',
+                                help: null,
+                                required: true,
+                                options: [],
+                                allow_other: false,
+                                scale: null,
+                                stars: null,
+                                grid: null,
+                                next_by_option: [],
+                                slots: [],
+                                correct_option_ids: [],
+                                points: null,
+                                file: { accept: ['image'], max_mb: 5 },
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+        const input = wrapper.find('input[type="file"]');
+        expect(input.attributes('accept')).toBe('image/jpeg,image/png,image/webp');
+
+        Object.defineProperty(input.element, 'files', {
+            value: [new File(['x'], 'lista.pdf', { type: 'application/pdf' })],
+            configurable: true,
+        });
+        await input.trigger('change');
+        expect(wrapper.text()).toContain('Este archivo no vale');
+
+        Object.defineProperty(input.element, 'files', { value: [photo], configurable: true });
+        await input.trigger('change');
+        expect(wrapper.get('[data-testid="chosen-file"]').text()).toContain('ejercito.jpg');
+        await wrapper.find('form').trigger('submit');
+
+        expect(router.post).toHaveBeenCalledWith(
+            '/encuestas/survey-1',
+            { answers: { 'q-photo': photo } },
+            expect.objectContaining({ preserveScroll: true })
+        );
+    });
+
     it('shows the error of a question next to it', async () => {
         vi.mocked(router.post).mockImplementationOnce((_url, _data, options) => {
             options?.onError?.({ 'answers.q-short': 'Esta pregunta es obligatoria.' });

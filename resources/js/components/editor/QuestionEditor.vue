@@ -3,12 +3,20 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FormCheckbox, FormNumberInput, FormSelect } from '@/components/form';
 import type { EditorLocks } from '../../types/Editor';
-import type { QuestionType, SurveyOption, SurveyQuestion } from '../../types/Respond';
+import {
+    FILE_KINDS,
+    type FileKind,
+    type QuestionType,
+    type SurveyOption,
+    type SurveyQuestion,
+} from '../../types/Respond';
 import {
     allowsOther,
     canBeScored,
     canBranch,
     changeType,
+    FILE_MB_MAX,
+    FILE_MB_MIN,
     hasOptions,
     POINTS_MAX,
     POINTS_MIN,
@@ -73,6 +81,19 @@ function setScale(field: 'min' | 'max', value: number | null): void {
 function setScaleLabel(field: 'min_label' | 'max_label', value: string): void {
     const scale = question.value.scale ?? { min: 1, max: 5, min_label: null, max_label: null };
     set('scale', { ...scale, [field]: value === '' ? null : value });
+}
+
+function setFileKind(kind: FileKind, accepted: boolean): void {
+    const file = question.value.file ?? { accept: [], max_mb: 5 };
+    const accept = FILE_KINDS.filter((other) =>
+        other === kind ? accepted : file.accept.includes(other)
+    );
+    set('file', { ...file, accept });
+}
+
+function setFileSize(maxMb: number | null): void {
+    const file = question.value.file ?? { accept: ['image'], max_mb: 5 };
+    set('file', { ...file, max_mb: maxMb ?? file.max_mb });
 }
 
 function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
@@ -319,6 +340,49 @@ function setGrid(field: 'rows' | 'columns', value: SurveyOption[]): void {
             <p v-if="error('stars')" class="mt-1 text-sm text-error">
                 {{ error('stars') }}
             </p>
+        </div>
+
+        <div v-else-if="question.type === 'file' && question.file" class="space-y-3">
+            <fieldset>
+                <legend class="text-sm font-medium text-base-primary">
+                    {{ t('surveys.editor.file_accept') }}
+                </legend>
+                <div class="mt-2 flex flex-col gap-2">
+                    <FormCheckbox
+                        v-for="kind in FILE_KINDS"
+                        :id="`${fieldId}-file-${kind}`"
+                        :key="kind"
+                        :model-value="question.file.accept.includes(kind)"
+                        :label="t(`surveys.editor.file_kinds.${kind}`)"
+                        :disabled="props.locks.structure"
+                        @update:model-value="setFileKind(kind, $event)"
+                    />
+                </div>
+                <p v-if="error('file.accept') ?? error('file')" class="mt-1 text-sm text-error">
+                    {{ error('file.accept') ?? error('file') }}
+                </p>
+            </fieldset>
+            <p class="text-sm text-base-secondary">{{ t('surveys.editor.file_hint') }}</p>
+            <div class="max-w-xs">
+                <label
+                    :for="`${fieldId}-file-size`"
+                    class="block text-sm font-medium text-base-primary"
+                >
+                    {{ t('surveys.editor.file_max_mb') }}
+                </label>
+                <FormNumberInput
+                    :id="`${fieldId}-file-size`"
+                    :model-value="question.file.max_mb"
+                    :min="FILE_MB_MIN"
+                    :max="FILE_MB_MAX"
+                    :disabled="props.locks.structure"
+                    :error="error('file.max_mb')"
+                    @update:model-value="setFileSize"
+                />
+                <p v-if="error('file.max_mb')" class="mt-1 text-sm text-error">
+                    {{ error('file.max_mb') }}
+                </p>
+            </div>
         </div>
 
         <div

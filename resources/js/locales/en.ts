@@ -120,7 +120,16 @@ export default {
                 grid: 'Cuadrícula de opción única',
                 ranking: 'Ordenar',
                 availability: 'Disponibilidad',
+                file: 'Archivo',
             },
+            file_accept: 'Archivos que admite',
+            file_kinds: {
+                image: 'Imágenes (JPEG, PNG o WebP)',
+                pdf: 'PDF',
+            },
+            file_hint:
+                'Se comprueba el contenido, no el nombre. Las fotos se guardan sin sus datos ocultos (lugar, cámara). Una encuesta anónima solo admite imágenes.',
+            file_max_mb: 'Tamaño máximo (MB)',
             slots: 'Fechas propuestas',
             slots_hint:
                 'Sin hora, la fecha vale para todo el día. Si «Hasta» es anterior a «Desde», la franja acaba al día siguiente.',
@@ -294,6 +303,18 @@ export default {
             thanks_availability_title: '¡Gracias! Ya sabemos qué días puedes',
             thanks_description: 'Tus respuestas se han guardado.',
             thanks_anonymous: 'Tus respuestas se han guardado sin tu nombre.',
+            file: {
+                choose: 'Elegir archivo',
+                change: 'Cambiar archivo',
+                remove: 'Quitar',
+                kinds: {
+                    image: 'imagen (JPEG, PNG o WebP)',
+                    pdf: 'PDF',
+                },
+                hint: 'Un archivo: {kinds}, de hasta {max} MB. Si recargas la página, tendrás que volver a elegirlo.',
+                wrong_type: 'Este archivo no vale: tiene que ser {kinds}.',
+                too_large: 'El archivo pasa de {max} MB.',
+            },
             quiz: {
                 title: 'Tu nota',
                 score: '{points} de {max} puntos',

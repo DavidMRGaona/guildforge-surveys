@@ -203,4 +203,16 @@ describe('definition utils', () => {
             [[], null],
         ]);
     });
+
+    it('starts a file question with images up to 5 MB and drops it on another type', () => {
+        const file = newQuestion('file');
+        expect(file.file).toEqual({ accept: ['image'], max_mb: 5 });
+
+        const changed = changeType({ ...file, file: { accept: ['pdf'], max_mb: 2 } }, 'short_text');
+        expect(changed.file).toBeNull();
+        expect(changeType(newQuestion('short_text'), 'file').file).toEqual({
+            accept: ['image'],
+            max_mb: 5,
+        });
+    });
 });

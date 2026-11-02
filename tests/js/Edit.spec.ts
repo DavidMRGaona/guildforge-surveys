@@ -45,6 +45,7 @@ function definition(): SurveyDefinition {
                         slots: [],
                         correct_option_ids: [],
                         points: null,
+                        file: null,
                     },
                     {
                         id: 'q-2',
@@ -62,6 +63,7 @@ function definition(): SurveyDefinition {
                         slots: [],
                         correct_option_ids: [],
                         points: null,
+                        file: null,
                     },
                 ],
             },
@@ -91,6 +93,7 @@ function jumping(firstQuestion: Partial<SurveyQuestion> = {}): SurveyDefinition 
         slots: [],
         correct_option_ids: [],
         points: null,
+        file: null,
         ...extra,
     });
     const options = [
@@ -508,6 +511,7 @@ describe('Edit', () => {
                             slots: [],
                             correct_option_ids: [],
                             points: null,
+                            file: null,
                         },
                     ],
                 },
@@ -577,6 +581,7 @@ describe('Edit', () => {
                             next_by_option: [],
                             correct_option_ids: [],
                             points: null,
+                            file: null,
                             slots: [slot('d-1', '2030-01-12'), slot('d-2', '')],
                         },
                     ],
@@ -657,6 +662,7 @@ describe('Edit', () => {
                                         slots: [],
                                         correct_option_ids: [],
                                         points: null,
+                                        file: null,
                                     },
                                 ],
                             },
@@ -873,6 +879,35 @@ describe('Edit', () => {
             const wrapper = mount(Edit, { props: props({}, { kind: 'poll' }) });
 
             expect(checkbox(wrapper, 'survey-quiz')).toBeUndefined();
+        });
+    });
+
+    describe('a file question', () => {
+        it('says what it takes and sends it', async () => {
+            vi.mocked(router.put).mockClear();
+            const wrapper = mount(Edit, {
+                props: props({
+                    definition: jumping({
+                        type: 'file',
+                        options: [],
+                        file: { accept: ['image'], max_mb: 5 },
+                    }),
+                }),
+            });
+
+            checkbox(wrapper, 'question-q-1-file-pdf')?.vm.$emit('update:modelValue', true);
+            await nextTick();
+            wrapper
+                .findAllComponents(FormNumberInput)
+                .find((field) => field.props('id') === 'question-q-1-file-size')
+                ?.vm.$emit('update:modelValue', 8);
+            await nextTick();
+            await wrapper.find('form').trigger('submit');
+
+            expect(sentDefinition().sections[0]?.questions[0]?.file).toEqual({
+                accept: ['image', 'pdf'],
+                max_mb: 8,
+            });
         });
     });
 });
