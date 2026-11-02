@@ -7,7 +7,8 @@ namespace Modules\Surveys\Domain\ValueObjects\Definition;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyDefinitionException;
 
 /**
- * The content of a survey or template: sections holding questions.
+ * The content of a survey or template: sections holding questions, and the quiz settings when it
+ * is a quiz (its scored questions carry their correct options and points).
  *
  * fromArray() only checks the shape (types and known question types); business rules
  * live in SurveyDefinitionValidator, the single validator every editor goes through.
@@ -17,7 +18,10 @@ final readonly class SurveyDefinition
     /**
      * @param  list<Section>  $sections
      */
-    public function __construct(public array $sections) {}
+    public function __construct(
+        public array $sections,
+        public ?QuizSettings $quiz = null,
+    ) {}
 
     /**
      * @param  array<mixed>  $data
@@ -30,11 +34,32 @@ final readonly class SurveyDefinition
     }
 
     /**
-     * @return array{sections: list<array<string, mixed>>}
+     * @return array{sections: list<array<string, mixed>>, quiz: array{show_correct_answers: bool}|null}
      */
     public function toArray(): array
     {
-        return ['sections' => array_map(static fn (Section $section): array => $section->toArray(), $this->sections)];
+        return [
+            'sections' => array_map(static fn (Section $section): array => $section->toArray(), $this->sections),
+            'quiz' => $this->quiz?->toArray(),
+        ];
+    }
+
+    /**
+     * The definition without what whoever answers must not see: the correct options and points.
+     */
+    public function withoutAnswers(): self
+    {
+        $data = $this->toArray();
+        foreach ($data['sections'] as $s => $section) {
+            /** @var list<array<string, mixed>> $questions */
+            $questions = $section['questions'];
+            foreach (array_keys($questions) as $q) {
+                $data['sections'][$s]['questions'][$q]['correct_option_ids'] = [];
+                $data['sections'][$s]['questions'][$q]['points'] = null;
+            }
+        }
+
+        return self::fromArray($data);
     }
 
     /**

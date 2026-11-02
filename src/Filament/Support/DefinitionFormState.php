@@ -198,13 +198,15 @@ final class DefinitionFormState
                             $question->nextByOption,
                         ),
                         slots: $question->slots,
+                        correctOptionIds: $question->correctOptionIds,
+                        points: $question->points,
                     ),
                     $section->questions,
                 ),
                 next: $renamed($section->next),
             ),
             $definition->sections,
-        ));
+        ), $definition->quiz);
     }
 
     /**

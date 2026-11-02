@@ -13,7 +13,9 @@ use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
+use Modules\Surveys\Notifications\SurveyClosingSummary;
 use Modules\Surveys\Tests\Support\AnswersExampleSurveys;
+use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\ModuleTestCase;
 
@@ -158,6 +160,30 @@ final class ClosingSummaryServiceTest extends ModuleTestCase
         $this->assertSame([], $question->topOptions);
         $this->assertSame(0, $question->answered);
         $this->assertSame(0, $summary->responses);
+    }
+
+    public function test_a_quiz_gives_its_mean_score_and_the_mail_says_it(): void
+    {
+        [$id] = $this->openExample(SurveyKind::Form, SurveyDefinition::fromArray(QuizDefinitionTest::data()), false, ResultsSettings::defaultsFor(SurveyKind::Form));
+        $this->answer($id, 0, ['q-capital' => 'o-b', 'q-colours' => ['o-blue', 'o-red']]);
+        $this->answer($id, 1, ['q-capital' => 'o-b', 'q-colours' => ['o-green']]);
+        $this->close($id);
+
+        $summary = $this->summaries->for($id);
+
+        $this->assertSame(3.5, $summary->quizMean);
+        $this->assertSame(5, $summary->quizMaxPoints);
+        $mail = new SurveyClosingSummary($summary, $id->value, inPanel: false, siteName: 'Asociación de ejemplo');
+        $this->assertStringContainsString(__('surveys::emails.closing_summary.quiz_mean', ['mean' => '3,5', 'max' => 5]), implode("\n", $mail->toMail($this->people[0])->introLines));
+    }
+
+    public function test_a_survey_that_is_not_a_quiz_has_no_mean_score(): void
+    {
+        [$id] = $this->openForm(anonymous: false);
+        $this->answer($id, 0);
+        $this->close($id);
+
+        $this->assertNull($this->summaries->for($id)->quizMean);
     }
 
     private function close(SurveyId $id): void

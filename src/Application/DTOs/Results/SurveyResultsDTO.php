@@ -16,6 +16,7 @@ final readonly class SurveyResultsDTO
      * @param  float|null  $rate  responses / audience, null when the survey has no fixed audience
      * @param  string|null  $hiddenReason  why the results are not visible (one of the constants)
      * @param  list<QuestionResultDTO>  $questions  empty while the results are not visible
+     * @param  ?QuizResultDTO  $quiz  the scores of a quiz, never for respondents
      */
     public function __construct(
         public int $responses,
@@ -24,5 +25,6 @@ final readonly class SurveyResultsDTO
         public bool $visible,
         public ?string $hiddenReason,
         public array $questions = [],
+        public ?QuizResultDTO $quiz = null,
     ) {}
 }

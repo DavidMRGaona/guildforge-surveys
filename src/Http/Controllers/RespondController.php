@@ -24,8 +24,10 @@ use Modules\Surveys\Domain\Exceptions\NotInvitedException;
 use Modules\Surveys\Domain\Exceptions\SurveyNotAcceptingResponsesException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
 use Modules\Surveys\Domain\ValueObjects\SubjectSnapshot;
+use Modules\Surveys\Domain\ValueObjects\Submission\QuizScore;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Http\Requests\RequestPublicLinkRequest;
+use Modules\Surveys\Http\Support\QuizFeedbackPayload;
 use Modules\Surveys\Http\Support\ResultsPayload;
 
 /**
@@ -40,6 +42,9 @@ final class RespondController extends Controller
 
     /** The survey the flashed result belongs to, so it never stands for another one. */
     public const string RESULT_SURVEY_KEY = 'surveys.result_survey';
+
+    /** The score of a quiz just sent, flashed for the page that follows. */
+    public const string QUIZ_KEY = 'surveys.quiz';
 
     public function __construct(
         private readonly SurveyRepositoryInterface $surveys,
@@ -128,9 +133,14 @@ final class RespondController extends Controller
         }
 
         if ($survey instanceof Survey && $state === SubmissionService::STATE_OPEN) {
-            $props['definition'] = $this->slots->presentDefinition($survey->definition());
+            $props['definition'] = $this->slots->presentDefinition($survey->definition()->withoutAnswers());
             $props['submitUrl'] = $submitUrl;
             $props['draftScope'] = $this->draftScope($id, $respondent);
+        }
+
+        $quiz = session(self::QUIZ_KEY);
+        if ($survey instanceof Survey && is_array($quiz) && session(self::RESULT_SURVEY_KEY) === $id->value) {
+            $props['quiz'] = $quiz;
         }
 
         if ($state === SubmissionService::STATE_VERIFY_EMAIL && $requestUrl !== null) {
@@ -188,7 +198,7 @@ final class RespondController extends Controller
         $answers = $request->input('answers', []);
 
         try {
-            $this->submissions->submit(SurveyId::fromString($surveyId), $respondent, is_array($answers) ? $answers : []);
+            $score = $this->submissions->submit(SurveyId::fromString($surveyId), $respondent, is_array($answers) ? $answers : []);
         } catch (InvalidSubmissionException $exception) {
             $errors = [];
             foreach ($exception->errors as $questionId => $key) {
@@ -204,6 +214,13 @@ final class RespondController extends Controller
             return back()->withErrors(['survey' => __('surveys::messages.response.not_invited')]);
         }
 
-        return redirect($pageUrl)->with(self::RESULT_KEY, 'submitted')->with(self::RESULT_SURVEY_KEY, $surveyId);
+        $redirect = redirect($pageUrl)->with(self::RESULT_KEY, 'submitted')->with(self::RESULT_SURVEY_KEY, $surveyId);
+        if (! $score instanceof QuizScore) {
+            return $redirect;
+        }
+
+        $survey = $this->surveys->find(SurveyId::fromString($surveyId));
+
+        return $survey instanceof Survey ? $redirect->with(self::QUIZ_KEY, QuizFeedbackPayload::for($survey->definition(), $score)) : $redirect;
     }
 }

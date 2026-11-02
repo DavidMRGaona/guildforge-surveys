@@ -31,11 +31,15 @@ final class DefinitionArrayReader
             $sections[] = $this->section($section, "sections.{$index}");
         }
 
+        $quiz = $this->nullableMap($data, 'quiz', '');
+
         if ($this->violations !== []) {
             throw InvalidSurveyDefinitionException::withViolations($this->violations);
         }
 
-        return new SurveyDefinition($sections);
+        return new SurveyDefinition($sections, $quiz === null ? null : new QuizSettings(
+            showCorrectAnswers: ($quiz['show_correct_answers'] ?? true) !== false,
+        ));
     }
 
     /**
@@ -103,6 +107,8 @@ final class DefinitionArrayReader
             ),
             nextByOption: $this->jumps($data, "{$path}.next_by_option"),
             slots: $this->slots($data, "{$path}.slots"),
+            correctOptionIds: $this->stringList($data, 'correct_option_ids', "{$path}.correct_option_ids"),
+            points: $this->nullableInt($data, 'points', $path),
         );
     }
 
@@ -157,6 +163,40 @@ final class DefinitionArrayReader
         }
 
         return $options;
+    }
+
+    /**
+     * A list of strings; anything else is malformed.
+     *
+     * @param  array<mixed>  $data
+     * @return list<string>
+     */
+    private function stringList(array $data, string $key, string $path): array
+    {
+        $value = $data[$key] ?? [];
+        if (! is_array($value) || ! array_is_list($value) || ! array_all($value, static fn (mixed $item): bool => is_string($item))) {
+            $this->violate($path, 'malformed');
+
+            return [];
+        }
+
+        /** @var list<string> $value */
+        return $value;
+    }
+
+    /**
+     * @param  array<mixed>  $data
+     */
+    private function nullableInt(array $data, string $key, string $path): ?int
+    {
+        $value = $data[$key] ?? null;
+        if ($value === null || is_int($value)) {
+            return $value;
+        }
+
+        $this->violate("{$path}.{$key}", 'malformed');
+
+        return null;
     }
 
     /**

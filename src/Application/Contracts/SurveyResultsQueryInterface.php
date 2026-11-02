@@ -93,10 +93,12 @@ interface SurveyResultsQueryInterface
 
     /**
      * Every response with its values for the given questions (none when it left them all
-     * unanswered): what SectionNavigator needs to know the sections each response reached.
+     * unanswered): what SectionNavigator needs to know the sections each response reached, and
+     * what a quiz is scored from. The name (the account's current one or the guest's) is only
+     * there on named surveys.
      *
      * @param  list<string>  $questionIds
-     * @return list<array{verified: bool, values: list<AnswerValue>}>
+     * @return list<array{verified: bool, name: ?string, values: list<AnswerValue>}>
      */
     public function responseValues(SurveyId $surveyId, array $questionIds): array;
 }

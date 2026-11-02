@@ -762,6 +762,30 @@ final class DevelopmentSeeder extends Seeder
             }
         }
 
+        // A named quiz still open, its leaderboard with a shared place, and an anonymous one closed
+        $quiz = $this->store($this->survey('general.quiz.open', 'Cuestionario: ¿cuánto sabes de rol?', SurveyStatus::Open, definition: $this->quizDefinition(), anonymous: false, opensAt: $this->at(-2, '18:00'), openDays: 7, audienceSize: count($everyone), liveResults: true, createdBy: $admin));
+        $this->addRecipients($quiz, $everyone);
+        $picks = [
+            'john' => ['dice' => 'd20', 'year' => '1974', 'roles' => ['dm', 'player'], 'favourite' => 'Mazmorras sin fin'],
+            'jane' => ['dice' => 'd20', 'year' => '1974', 'roles' => ['dm', 'player']],
+            'richard' => ['dice' => 'd20', 'year' => '1981', 'roles' => ['dm', 'player', 'npc']],
+            'p01' => ['dice' => 'd6', 'year' => '1974', 'roles' => ['dm']],
+            'p02' => ['dice' => 'd20', 'year' => '1991', 'roles' => ['dm', 'player']],
+            'p03' => ['dice' => 'd10', 'year' => '1981', 'roles' => ['player']],
+        ];
+        foreach ($picks as $person => $answers) {
+            $this->respond($quiz, $person, $answers, $this->at(-1, '20:00'));
+        }
+
+        $closedQuiz = $this->store($this->survey('general.quiz.closed', 'Cuestionario de la jornada de iniciación', SurveyStatus::Closed, definition: $this->quizDefinition(showCorrectAnswers: false), opensAt: $this->monthsAgo(1, 6, '18:00'), openDays: 5, audienceSize: 20, createdBy: $admin));
+        foreach ($this->respondents(9) as $i => $person) {
+            $this->respond($closedQuiz, $person, [
+                'dice' => ['d20', 'd20', 'd6', 'd20'][$i % 4],
+                'year' => ['1974', '1981', '1974'][$i % 3],
+                'roles' => [['dm', 'player'], ['dm'], ['dm', 'player'], ['player', 'npc']][$i % 4],
+            ], $this->monthsAgo(1, 7));
+        }
+
         $closedPoll = $this->store($this->survey('general.poll.closed', '¿Pasamos la tarde de juego al jueves?', SurveyStatus::Closed, definition: $this->pollDefinition('thursday', '¿Pasamos la tarde de juego al jueves?', ['yes' => 'Sí', 'no' => 'No', 'any' => 'Me da igual']), kind: SurveyKind::Poll, opensAt: $this->monthsAgo(1, 20, '20:00'), openDays: 3, audienceSize: 20, liveResults: true, createdBy: $admin));
         foreach ($this->respondents(14) as $i => $person) {
             $this->respond($closedPoll, $person, ['thursday' => ['yes', 'yes', 'no', 'any', 'yes'][$i % 5]], $this->monthsAgo(1, 21));
@@ -940,6 +964,26 @@ final class DevelopmentSeeder extends Seeder
         return new SurveyDefinition([new Section('main', null, null, [
             new Question('when', null, QuestionType::Availability, $title, null, true, slots: $proposed),
         ])]);
+    }
+
+    /**
+     * A quiz: a single choice for 2 points, a dropdown for 1 and checkboxes for 3, plus an
+     * unscored question so the results show both.
+     */
+    private function quizDefinition(bool $showCorrectAnswers = true): SurveyDefinition
+    {
+        $options = static fn (array $labels): array => array_map(static fn (string $id, string $label): array => ['id' => $id, 'label' => $label], array_keys($labels), array_values($labels));
+        $question = static fn (string $id, string $type, string $title, array $extra = []): array => ['id' => $id, 'key' => null, 'type' => $type, 'title' => $title, 'help' => null, 'required' => true, ...$extra];
+
+        return SurveyDefinition::fromArray([
+            'sections' => [['id' => 'main', 'title' => null, 'description' => null, 'questions' => [
+                $question('dice', 'single_choice', '¿Qué dado se tira para atacar en D&D?', ['options' => $options(['d6' => 'd6', 'd10' => 'd10', 'd20' => 'd20']), 'correct_option_ids' => ['d20'], 'points' => 2]),
+                $question('year', 'dropdown', '¿En qué año salió el primer D&D?', ['options' => $options(['1974' => '1974', '1981' => '1981', '1991' => '1991']), 'correct_option_ids' => ['1974'], 'points' => 1]),
+                $question('roles', 'multiple_choice', '¿Quiénes se sientan a la mesa en una partida de rol?', ['options' => $options(['dm' => 'Quien dirige', 'player' => 'Quien juega', 'npc' => 'Los personajes no jugadores']), 'correct_option_ids' => ['dm', 'player'], 'points' => 3]),
+                $question('favourite', 'short_text', '¿Cuál es tu módulo favorito?', ['required' => false]),
+            ]]],
+            'quiz' => ['show_correct_answers' => $showCorrectAnswers],
+        ]);
     }
 
     /**

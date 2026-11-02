@@ -14,6 +14,7 @@ final readonly class ClosingSummaryDTO
      * @param  float|null  $rate  responses / audience, null without a fixed audience or while hidden
      * @param  list<SummaryQuestionDTO>  $questions
      * @param  int  $otherQuestions  questions on the results page the summary does not sum up
+     * @param  ?float  $quizMean  a quiz's mean score, null when it is not a quiz or its scores are withheld
      */
     public function __construct(
         public string $surveyTitle,
@@ -24,5 +25,7 @@ final readonly class ClosingSummaryDTO
         public ?float $rate = null,
         public array $questions = [],
         public int $otherQuestions = 0,
+        public ?float $quizMean = null,
+        public ?int $quizMaxPoints = null,
     ) {}
 }

@@ -12,6 +12,8 @@ use Modules\Surveys\Domain\Enums\QuestionType;
  * it, so trends can compare them over time. $nextByOption sends
  * the respondent elsewhere after this question's section depending on the option chosen;
  * only types that canBranch() use it. $slots are the dates an availability question proposes.
+ * In a quiz, a choice question with $correctOptionIds is scored and gives $points when exactly
+ * those options are chosen.
  */
 final readonly class Question
 {
@@ -19,6 +21,7 @@ final readonly class Question
      * @param  list<Option>  $options
      * @param  list<OptionJump>  $nextByOption
      * @param  list<Slot>  $slots
+     * @param  list<string>  $correctOptionIds
      */
     public function __construct(
         public string $id,
@@ -34,7 +37,17 @@ final readonly class Question
         public ?GridSettings $grid = null,
         public array $nextByOption = [],
         public array $slots = [],
+        public array $correctOptionIds = [],
+        public ?int $points = null,
     ) {}
+
+    /**
+     * Whether the question counts towards a quiz's score.
+     */
+    public function isScored(): bool
+    {
+        return $this->correctOptionIds !== [];
+    }
 
     /**
      * Where the given option leads, or null when it follows its section.
@@ -69,6 +82,8 @@ final readonly class Question
             'grid' => $this->grid?->toArray(),
             'next_by_option' => array_map(static fn (OptionJump $jump): array => $jump->toArray(), $this->nextByOption),
             'slots' => array_map(static fn (Slot $slot): array => $slot->toArray(), $this->slots),
+            'correct_option_ids' => $this->correctOptionIds,
+            'points' => $this->points,
         ];
     }
 }

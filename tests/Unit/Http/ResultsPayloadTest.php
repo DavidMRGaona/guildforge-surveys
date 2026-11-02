@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Modules\Surveys\Tests\Unit\Http;
 
 use Modules\Surveys\Application\DTOs\Results\QuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizQuestionResultDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizResultDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizScoreCountDTO;
+use Modules\Surveys\Application\DTOs\Results\QuizStandingDTO;
 use Modules\Surveys\Application\DTOs\Results\RankedOptionDTO;
 use Modules\Surveys\Application\DTOs\Results\RankingResultDTO;
 use Modules\Surveys\Application\DTOs\Results\SurveyResultsDTO;
@@ -36,5 +40,28 @@ final class ResultsPayloadTest extends TestCase
             ],
         ], $question['ranking']);
         $this->assertNull(ResultsPayload::forOrganizer($results)['questions'][1]['ranking']);
+    }
+
+    public function test_the_organizer_gets_a_quiz_scores_and_each_question_how_it_went_but_respondents_do_not(): void
+    {
+        $quiz = new QuizResultDTO(5, 2.5, [new QuizScoreCountDTO(0, 1), new QuizScoreCountDTO(5, 1)], [new QuizStandingDTO('Persona A', 5, 1), new QuizStandingDTO('Persona B', 0, 2)]);
+        $results = new SurveyResultsDTO(2, 2, 1.0, true, null, [
+            new QuestionResultDTO('q-capital', 'Capital', QuestionType::SingleChoice, ChartType::Bar, false, 2, quiz: new QuizQuestionResultDTO(['o-b'], 2, 1, 0.5)),
+            new QuestionResultDTO('q-notes', 'Notas', QuestionType::ShortText, ChartType::List, false, 2),
+        ], $quiz);
+
+        $organizer = ResultsPayload::forOrganizer($results);
+
+        $this->assertSame([
+            'maxPoints' => 5,
+            'mean' => 2.5,
+            'belowMinimum' => false,
+            'distribution' => [['points' => 0, 'responses' => 1], ['points' => 5, 'responses' => 1]],
+            'leaderboard' => [['name' => 'Persona A', 'points' => 5, 'rank' => 1], ['name' => 'Persona B', 'points' => 0, 'rank' => 2]],
+        ], $organizer['quiz']);
+        $this->assertSame(['correctOptionIds' => ['o-b'], 'points' => 2, 'correct' => 1, 'rate' => 0.5], $organizer['questions'][0]['quiz']);
+        $this->assertNull($organizer['questions'][1]['quiz']);
+        $this->assertArrayNotHasKey('quiz', ResultsPayload::forRespondents($results, withVoters: false));
+        $this->assertArrayNotHasKey('quiz', ResultsPayload::forRespondents($results, withVoters: false)['questions'][0]);
     }
 }

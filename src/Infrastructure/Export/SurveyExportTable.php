@@ -18,6 +18,7 @@ use Modules\Surveys\Domain\Enums\AvailabilityAnswer;
 use Modules\Surveys\Domain\Enums\QuestionType;
 use Modules\Surveys\Domain\Exceptions\ResultsNotAvailableException;
 use Modules\Surveys\Domain\Repositories\SurveyRepositoryInterface;
+use Modules\Surveys\Domain\Services\QuizScorer;
 use Modules\Surveys\Domain\Services\SectionNavigator;
 use Modules\Surveys\Domain\ValueObjects\Definition\GridSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\Option;
@@ -31,7 +32,8 @@ use Modules\Surveys\Domain\ValueObjects\SurveyId;
  * A survey's responses as a table: one row per response, ordered by its random id, and one
  * column per question (a grid has one per row, an availability question one per slot). Date and person only on named surveys: on an
  * anonymous one the day could single out whoever answered it. Anonymous surveys follow the rules
- * of the results page, the minimum per question included.
+ * of the results page, the minimum per question included. A quiz ends each row with its score,
+ * left out while a scored question is withheld (the score would give its answer away).
  */
 final readonly class SurveyExportTable
 {
@@ -83,21 +85,29 @@ final readonly class SurveyExportTable
             $headers[] = $question->title;
         }
 
+        $withheld = $this->withheldQuestions($survey);
+        $scorer = new QuizScorer;
+        $scored = array_map(static fn (Question $question): string => $question->id, $scorer->scoredQuestions($survey->definition()));
+        $withScore = $scored !== [] && array_intersect($scored, $withheld) === [];
+        if ($withScore) {
+            $headers[] = __('surveys::messages.export.score', ['max' => $scorer->maxPoints($survey->definition())]);
+        }
+
         return new ExportTable(
             array_map(static fn (mixed $header): string => is_string($header) ? $header : '', $headers),
-            $this->rows($survey, $columns),
+            $this->rows($survey, $columns, $withheld, $withScore),
             Str::slug($survey->title()).'-'.$this->timezone->today()->format('Y-m-d'),
         );
     }
 
     /**
      * @param  list<array{Question, ?Option}>  $columns
+     * @param  list<string>  $withheld
      * @return Generator<int, list<string|int|null>>
      */
-    private function rows(Survey $survey, array $columns): Generator
+    private function rows(Survey $survey, array $columns, array $withheld, bool $withScore): Generator
     {
         $named = ! $survey->isAnonymous();
-        $withheld = $this->withheldQuestions($survey);
         // "Not reached" would give away, row by row, a withheld answer that decided the way
         $marksReach = $survey->definition()->hasBranching()
             && array_intersect($survey->definition()->branchingQuestionIds(), $withheld) === [];
@@ -114,13 +124,13 @@ final readonly class SurveyExportTable
             $batch[] = $response;
 
             if (count($batch) === self::BATCH) {
-                yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null);
+                yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null, $withScore ? $survey->definition() : null);
                 $batch = [];
             }
         }
 
         if ($batch !== []) {
-            yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null);
+            yield from $this->batch($batch, $columns, $named, $withheld, $marksReach ? $survey->definition() : null, $withScore ? $survey->definition() : null);
         }
     }
 
@@ -129,9 +139,10 @@ final readonly class SurveyExportTable
      * @param  list<array{Question, ?Option}>  $columns
      * @param  list<string>  $withheld
      * @param  ?SurveyDefinition  $definition  set when cells of questions a response did not reach say so
+     * @param  ?SurveyDefinition  $quiz  set when each row ends with its score
      * @return Generator<int, list<string|int|null>>
      */
-    private function batch(array $responses, array $columns, bool $named, array $withheld, ?SurveyDefinition $definition): Generator
+    private function batch(array $responses, array $columns, bool $named, array $withheld, ?SurveyDefinition $definition, ?SurveyDefinition $quiz): Generator
     {
         $notReached = __('surveys::messages.export.not_reached');
         $notReached = is_string($notReached) ? $notReached : '';
@@ -159,6 +170,10 @@ final readonly class SurveyExportTable
                     $reached !== null && ! in_array($question->id, $reached, true) => $notReached,
                     default => $this->value($question, $part, $answers[$responseId][$question->id] ?? []),
                 };
+            }
+
+            if ($quiz instanceof SurveyDefinition) {
+                $row[] = (new QuizScorer)->score($quiz, new Submission($this->answerValues($answers[$responseId] ?? [])))->points;
             }
 
             yield $row;
@@ -245,6 +260,15 @@ final readonly class SurveyExportTable
      */
     private function reached(SurveyDefinition $definition, array $answers): array
     {
+        return (new SectionNavigator)->reachedQuestionIds($definition, new Submission($this->answerValues($answers)));
+    }
+
+    /**
+     * @param  array<string, list<object>>  $answers  question id => answer rows
+     * @return list<AnswerValue>
+     */
+    private function answerValues(array $answers): array
+    {
         $values = [];
         foreach ($answers as $questionId => $rows) {
             foreach ($rows as $answer) {
@@ -258,7 +282,7 @@ final readonly class SurveyExportTable
             }
         }
 
-        return (new SectionNavigator)->reachedQuestionIds($definition, new Submission($values));
+        return $values;
     }
 
     /**

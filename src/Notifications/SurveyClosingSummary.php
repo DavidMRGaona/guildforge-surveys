@@ -64,6 +64,13 @@ final class SurveyClosingSummary extends Notification implements ShouldQueue
         $mail->line($this->responsesLine());
 
         if ($summary->responses > 0) {
+            if ($summary->quizMean !== null) {
+                $mail->line(__('surveys::emails.closing_summary.quiz_mean', [
+                    'mean' => number_format($summary->quizMean, 1, ',', '.'),
+                    'max' => $summary->quizMaxPoints,
+                ]));
+            }
+
             foreach ($summary->questions as $question) {
                 $mail->line($this->questionLine($question));
             }
