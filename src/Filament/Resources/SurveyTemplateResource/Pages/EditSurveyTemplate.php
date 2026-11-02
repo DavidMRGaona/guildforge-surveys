@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources\SurveyTemplateResource\Pages;
 
+use App\Filament\Concerns\HasKnowledgeGuideAction;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +19,7 @@ use Modules\Surveys\Filament\Support\DefinitionFormState;
 final class EditSurveyTemplate extends EditRecord
 {
     use HandlesDefinitionErrors;
+    use HasKnowledgeGuideAction;
 
     protected static string $resource = SurveyTemplateResource::class;
 
@@ -25,6 +27,7 @@ final class EditSurveyTemplate extends EditRecord
     {
         return [
             DeleteAction::make(),
+            ...array_filter([$this->knowledgeGuideAction('surveys.panel.templates')]),
         ];
     }
 

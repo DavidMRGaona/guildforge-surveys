@@ -4,9 +4,9 @@ title: Ajustes de encuestas
 summary: Elige la plantilla que sale al terminar cada actividad, el mínimo de respuestas de las anónimas, la revisión y los valores por defecto.
 category: content
 audience: panel
-order: 63
+order: 73
 keywords: [ajustes, configuración, encuesta al terminar, plantilla por tipo, sistema de juego, envío automático, enviar sola, retraso, mínimo de respuestas, anonimato, revisión, archivos, valores por defecto, resumen al cerrar]
-related: [surveys.panel.templates, surveys.panel.review]
+related: [surveys.panel.end-survey-field, surveys.panel.templates, surveys.panel.anonymity, surveys.panel.review]
 conditions:
   permissions:
     all: ['surveys:surveys.manage']
@@ -26,7 +26,7 @@ En **Encuestas al terminar** hay una parte por cada tipo de actividad que ofrece
 3. Activa **Enviar sola al terminar** para que salga sin esperar a nadie, y elige en **Enviar a las … horas de terminar** cuándo (con 0, en cuanto termina). Si no, se avisa a quien la organiza para que la envíe con un clic.
 4. Elige los **Días abierta** de sus encuestas y marca **Anónima** si no deben guardar quién respondió qué.
 
-Lo que se elija en el campo **Encuesta al terminar** del formulario de cada actividad manda sobre estos ajustes.
+Lo que se elija en el campo **Encuesta al terminar** del formulario de cada actividad manda sobre estos ajustes (mira la guía de la encuesta al terminar).
 
 ## Resultados y archivos
 

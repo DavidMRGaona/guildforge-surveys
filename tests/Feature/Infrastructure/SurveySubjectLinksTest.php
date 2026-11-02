@@ -72,6 +72,7 @@ final class SurveySubjectLinksTest extends ModuleTestCase
 
         $this->assertSame(route('surveys.subject', [ExampleThingSource::TYPE, 'thing-1']), $links->manageUrl);
         $this->assertSame([], $links->surveys);
+        $this->assertSame('surveys.organizer-end-survey', $links->guideId);
     }
 
     public function test_a_participant_does_not_get_the_surveys_page(): void
@@ -88,6 +89,7 @@ final class SurveySubjectLinksTest extends ModuleTestCase
         $links = $this->links->forSubject(ExampleThingSource::TYPE, 'thing-1', $this->people[0]->id);
 
         $this->assertEquals([new SurveyLinkDTO('Encuesta de ejemplo', route('surveys.respond', $id->value), SurveyLinkAction::Respond)], $links->surveys);
+        $this->assertSame('surveys.answer-survey', $links->guideId);
     }
 
     public function test_after_answering_a_survey_that_shares_its_results_they_are_linked(): void

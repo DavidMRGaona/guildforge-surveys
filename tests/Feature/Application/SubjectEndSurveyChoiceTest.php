@@ -110,6 +110,7 @@ final class SubjectEndSurveyChoiceTest extends ModuleTestCase
         $this->assertSame('type-default', $choice->selected);
         $this->assertFalse($choice->locked);
         $this->assertNull($choice->editUrl);
+        $this->assertSame('surveys.panel.end-survey-field', $choice->guideId);
         $this->assertSame([
             'type-default' => 'Plantilla del tipo: «Valoración de ejemplo»',
             'template:'.$this->otherTemplate->id()->value => 'Torneo de ejemplo',
@@ -157,6 +158,7 @@ final class SubjectEndSurveyChoiceTest extends ModuleTestCase
 
         $this->assertInstanceOf(EndSurveyChoiceDTO::class, $choice);
         $this->assertSame('type-default', $choice->selected);
+        $this->assertSame('surveys.panel.end-survey-field', $choice->guideId);
     }
 
     public function test_nothing_is_offered_to_a_stranger_or_for_an_unknown_subject_or_type(): void

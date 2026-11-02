@@ -50,7 +50,7 @@ final class ListSurveys extends ListRecords
             $this->quickPollAction(),
             $this->quickAvailabilityAction(),
             CreateAction::make(),
-            ...array_filter([$this->knowledgeGuideAction('surveys.panel.create-survey')]),
+            ...array_filter([$this->knowledgeGuideAction('surveys.panel.overview')]),
         ];
     }
 

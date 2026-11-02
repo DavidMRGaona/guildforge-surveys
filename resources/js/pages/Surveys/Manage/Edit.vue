@@ -127,7 +127,7 @@ function submit(send: boolean): void {
             :title="heading"
             :back-url="props.backUrl"
             :back-label="t('surveys.editor.back', { title: props.subject.title })"
-            guide="surveys.organizer-polls"
+            guide="surveys.organizer-questions"
         />
 
         <p

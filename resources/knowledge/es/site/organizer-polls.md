@@ -4,9 +4,9 @@ title: Sondeos y encuestas para tu gente
 summary: Pregunta lo que quieras a quienes participan en lo que organizas, con un sondeo rápido, una encuesta o un sondeo para cuadrar fechas.
 category: community
 audience: site
-order: 42
+order: 43
 keywords: [sondeo, sondeo rápido, votación, preguntar, nueva encuesta, cuadrar fechas, qué día, disponibilidad, duplicar encuesta, copiar encuesta, cerrar encuesta, cuestionario, preguntas, secciones]
-related: [surveys.organizer-end-survey, surveys.organizer-results]
+related: [surveys.organizer-questions, surveys.organizer-end-survey, surveys.organizer-results]
 conditions:
   capabilities: [surveys.organizes_surveys]
   modules: [surveys]
@@ -21,8 +21,8 @@ Además de la encuesta al terminar, puedes preguntar a tu gente cuando quieras, 
    - **Nueva encuesta**: un formulario completo, desde cero.
    - **Cuadrar fechas**: un sondeo de disponibilidad para elegir día.
 3. Escribe el **Título** y, si quieres, la **Descripción**.
-4. Añade las preguntas con **Añadir pregunta** y elige su **Tipo**. Marca **Obligatoria** en las que no se pueden dejar en blanco.
-5. En una encuesta puedes dividir las preguntas con **Añadir sección** y, en una pregunta de opción única o desplegable, usar **Ir a una sección según la respuesta** para saltar partes.
+4. Añade las preguntas con **Añadir pregunta**. La guía de preguntas, secciones y saltos explica cada tipo, cómo repartirlas en secciones y cómo hacer un cuestionario.
+5. Marca **Obligatoria** en las que no se pueden dejar en blanco.
 6. Revisa los **Ajustes**: **Días abierta**, **Recordatorio (horas antes del cierre)**, **Anónima**, **Quien responde ve los resultados** y **Resumen por correo al cerrar**.
 7. Pulsa **Guardar borrador**. Cuando la tengas lista, pulsa **Enviar** en la lista.
 
@@ -54,4 +54,4 @@ Sin **Días abierta**, la encuesta queda abierta hasta que la cierres a mano.
 - **No aparece «Pregunta a tu gente»**: la actividad se ha cancelado y ya no admite encuestas nuevas.
 - **La encuesta queda «En revisión»**: la organización revisa lo que se cambia en la web. Sale cuando la aprueben.
 
-[[action:profile.show|Ver mis encuestas]]
+[[action:profile.show?tab=surveys|Ver mis encuestas]]

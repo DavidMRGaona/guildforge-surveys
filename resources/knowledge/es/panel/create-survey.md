@@ -1,51 +1,52 @@
 ---
 id: surveys.panel.create-survey
-title: Crear una encuesta o un sondeo
-summary: Crea una encuesta con sus secciones y preguntas, o un sondeo rápido de una sola pregunta.
+title: Crear una encuesta
+summary: Prepara una encuesta paso a paso, desde cero o a partir de una plantilla, y déjala lista para abrirla.
 category: content
 audience: panel
-order: 60
-keywords: [encuesta, crear encuesta, nueva encuesta, sondeo, sondeo rápido, votación, disponibilidad, cuadrar fechas, preguntas, secciones, saltos, cuestionario, plantilla, formulario]
-related: [surveys.panel.open-share-close, surveys.panel.templates]
+order: 61
+keywords: [crear encuesta, nueva encuesta, hacer una encuesta, formulario, preguntas, plantilla, partir de una plantilla, borrador, encuesta general, cuestionario]
+related: [surveys.panel.question-types, surveys.panel.sections-and-jumps, surveys.panel.open-share-close, surveys.panel.polls, surveys.panel.overview]
 conditions:
   permissions:
     all: ['surveys:surveys.manage']
 ---
-Las encuestas se crean como borrador: nadie las recibe hasta que las abres. Puedes hacer un formulario completo, un sondeo rápido de una pregunta o un sondeo de disponibilidad para cuadrar fechas.
+Una encuesta nueva se guarda como **Borrador**: nadie la recibe hasta que la abres, así que puedes prepararla con calma. Si solo necesitas una votación o cuadrar una fecha, mira antes la guía de sondeos rápidos y de disponibilidad.
 
-## Crear una encuesta
+## Antes de empezar
+
+Piensa tres cosas:
+
+- **A quién va**: a todas las personas con cuenta, solo a los socios o a algunos roles. Las encuestas de una mesa, un torneo o un evento suelen salir solas al terminar (mira la guía de la encuesta al terminar).
+- **Si será anónima**: decídelo ahora, porque una encuesta anónima nunca deja de serlo.
+- **Si hay una plantilla que te sirva**: ahorra trabajo y, si es la misma plantilla de otras veces, podrás comparar los resultados en las tendencias.
+
+## Crear la encuesta
 
 1. En el menú lateral, abre **Encuestas** y elige **Encuestas**.
 2. Pulsa **Crear encuesta**.
-3. Si quieres, elige una plantilla en **Partir de una plantilla**: copia sus preguntas y después puedes cambiarlas.
-4. Escribe el **Título** y, si quieres, la **Descripción**.
-5. Decide si es **Anónima**. Una encuesta anónima no guarda quién respondió qué y nunca deja de serlo.
-6. En **Preguntas**, pulsa **Añadir pregunta** y elige su tipo: **Respuesta corta**, **Párrafo**, **Opción única**, **Casillas**, **Desplegable**, **Escala lineal**, **Valoración con estrellas**, **Fecha**, **Hora**, **Cuadrícula de opción única**, **Ordenar** o **Archivo**.
-7. Rellena la **Pregunta**, el **Texto de ayuda** si hace falta, y marca **Obligatoria** si no se puede dejar en blanco. En las de opciones, añade las **Opciones** y, si quieres, **Permitir «Otra» con texto libre**.
-8. Completa a quién va, el plazo y los resultados (lo explica la guía de abrir y compartir) y pulsa **Crear**.
+3. Si quieres, elige en **Partir de una plantilla**. Se copian sus preguntas y después puedes cambiarlas.
+4. Escribe el **Título** y, si quieres, la **Descripción**. Los dos se ven al responder y en los correos.
+5. Decide si es **Anónima**.
+6. En **Preguntas**, pulsa **Añadir pregunta**, elige el tipo y escribe la **Pregunta**. Añade un **Texto de ayuda** si hace falta aclararla y marca **Obligatoria** si no se puede dejar en blanco.
+7. Si la encuesta es larga, repártela en secciones con **Añadir sección**. Puedes hacer que unas respuestas salten secciones (mira la guía de secciones y saltos).
+8. Rellena **A quién va dirigida**, **Plazo**, **Resultados** y **Enlace público**. La guía de abrir, compartir y cerrar explica cada campo.
+9. Pulsa **Crear**.
 
-## Secciones y saltos
+La encuesta queda en **Borradores**. Cuando esté lista, ábrela con **Abrir**.
 
-Con **Añadir sección** divides la encuesta en partes. Quien responde ve una sección por página.
+> [!TIP]
+> Para comprobar cómo se ve, ábrela con una audiencia pequeña (por ejemplo, un rol de prueba) y respóndela tú. Después duplícala para la audiencia de verdad.
 
-- **Después de esta sección** dice adónde ir: la siguiente, una sección posterior o **Enviar el formulario**.
-- En una pregunta de **Opción única** o **Desplegable**, **Ir a una sección según la respuesta** manda cada opción a otra sección. Solo una pregunta por sección puede decidir el salto.
+## Cambiarla después
 
-Solo se salta hacia delante. Las preguntas de las secciones que se salten no se piden.
+Mientras es un borrador puedes cambiarlo todo. Con la encuesta abierta, las preguntas se pueden seguir editando hasta que llega la primera respuesta. A partir de ahí solo se pueden cambiar los textos de ayuda y la fecha de cierre, para que todas las respuestas contesten a lo mismo.
 
-## Cuestionarios y archivos
+## Si algo no sale bien
 
-- Activa **Es un cuestionario** para puntuar: marca la opción **Correcta** de cada pregunta de opción y sus **Puntos**. Con **Mostrar qué acertó al enviar**, cada persona ve qué acertó.
-- En una pregunta de **Archivo**, elige los **Archivos que admite** y su **Tamaño máximo**. Una encuesta anónima solo admite imágenes.
-
-## Sondeos rápidos
-
-- **Sondeo rápido**: una **Pregunta** con sus opciones. Activa **Permitir elegir varias opciones** si se puede votar más de una.
-- **Sondeo de disponibilidad**: una **Pregunta** y sus **Fechas propuestas**. Cada persona marca **Sí**, **Si hace falta** o **No** en cada fecha.
-
-Los dos botones están arriba, en la lista de encuestas.
-
-> [!IMPORTANT]
-> Las preguntas que vienen de una plantilla tienen **Clave estable** y no pueden cambiar de tipo, para que sus resultados se puedan comparar en las tendencias. Cuando una encuesta tiene respuestas, solo se pueden cambiar los textos de ayuda y la fecha de cierre.
+- **«Añade al menos una pregunta.»**: una encuesta necesita una pregunta como mínimo.
+- **«Añade al menos dos opciones.»**: las preguntas de opciones necesitan dos o más.
+- **«Esta pregunta tiene clave estable: no puede cambiar de tipo.»**: viene de una plantilla. Crea otra pregunta si necesitas otro tipo.
+- **«No se puede abrir: su fecha de cierre ya ha pasado o ya no es un borrador.»**: cambia el **Cierre** a una fecha futura, o duplícala si ya se abrió.
 
 [[action:filament.admin.resources.surveys.create|Crear una encuesta]]

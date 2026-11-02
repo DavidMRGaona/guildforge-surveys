@@ -4,9 +4,9 @@ title: Resultados y tendencias de lo que organizas
 summary: Consulta los resultados de las encuestas de lo que organizas y cómo evolucionan con el tiempo.
 category: community
 audience: site
-order: 43
+order: 45
 keywords: [resultados, respuestas, gráfica, gráficas, participación, tasa de respuesta, tendencias, evolución, comparar, media, anónima, ocultar pregunta, resumen por correo]
-related: [surveys.organizer-end-survey, surveys.organizer-polls]
+related: [surveys.organizer-end-survey, surveys.organizer-polls, surveys.anonymous-surveys]
 conditions:
   capabilities: [surveys.organizes_surveys]
   modules: [surveys]
