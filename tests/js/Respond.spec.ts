@@ -126,6 +126,8 @@ describe('Respond', () => {
         Object.defineProperty(input.element, 'files', { value: [photo], configurable: true });
         await input.trigger('change');
         expect(wrapper.get('[data-testid="chosen-file"]').text()).toContain('ejercito.jpg');
+        // However small, a file chosen never reads as weighing nothing
+        expect(wrapper.get('[data-testid="chosen-file"]').text()).toContain('1 KB');
         await wrapper.find('form').trigger('submit');
 
         expect(router.post).toHaveBeenCalledWith(

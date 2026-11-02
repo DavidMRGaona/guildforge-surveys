@@ -36,7 +36,7 @@ function size(bytes: number): string {
 
     return megabytes >= 1
         ? `${new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }).format(megabytes)} MB`
-        : `${new Intl.NumberFormat(locale.value, { maximumFractionDigits: 0 }).format(bytes / 1024)} KB`;
+        : `${new Intl.NumberFormat(locale.value).format(Math.max(1, Math.ceil(bytes / 1024)))} KB`;
 }
 
 /** A first check in the browser; the server reads the contents and decides. */
