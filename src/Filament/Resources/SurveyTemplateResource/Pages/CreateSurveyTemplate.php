@@ -27,11 +27,9 @@ final class CreateSurveyTemplate extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        $sections = is_array($data['sections'] ?? null) ? $data['sections'] : [];
-
-        $template = $this->withDefinitionErrors(static function () use ($data, $sections): SurveyTemplate {
+        $template = $this->withDefinitionErrors(static function () use ($data): SurveyTemplate {
             $kind = SurveyKind::from((string) $data['kind']);
-            $definition = DefinitionFormState::toDefinition($sections);
+            $definition = DefinitionFormState::fromFormData($data);
             (new SurveyDefinitionValidator)->assertValid($definition, $kind);
 
             return new SurveyTemplate(

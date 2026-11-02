@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { router } from '@inertiajs/vue3';
-import { FormDatePicker, FormSelect, FormTimePicker } from '@/components/form';
+import {
+    FormCheckbox,
+    FormDatePicker,
+    FormNumberInput,
+    FormSelect,
+    FormTimePicker,
+} from '@/components/form';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import Edit from '../../resources/js/pages/Surveys/Manage/Edit.vue';
 import type { EditSurveyProps } from '../../resources/js/types/Editor';
@@ -15,6 +21,7 @@ import {
 
 function definition(): SurveyDefinition {
     return {
+        quiz: null,
         sections: [
             {
                 id: 's-1',
@@ -36,6 +43,8 @@ function definition(): SurveyDefinition {
                         grid: null,
                         next_by_option: [],
                         slots: [],
+                        correct_option_ids: [],
+                        points: null,
                     },
                     {
                         id: 'q-2',
@@ -51,6 +60,8 @@ function definition(): SurveyDefinition {
                         grid: null,
                         next_by_option: [],
                         slots: [],
+                        correct_option_ids: [],
+                        points: null,
                     },
                 ],
             },
@@ -78,6 +89,8 @@ function jumping(firstQuestion: Partial<SurveyQuestion> = {}): SurveyDefinition 
         grid: null,
         next_by_option: [],
         slots: [],
+        correct_option_ids: [],
+        points: null,
         ...extra,
     });
     const options = [
@@ -86,6 +99,7 @@ function jumping(firstQuestion: Partial<SurveyQuestion> = {}): SurveyDefinition 
     ];
 
     return {
+        quiz: null,
         sections: [
             {
                 id: 's-1',
@@ -120,6 +134,13 @@ function select(
     id: string
 ): VueWrapper<InstanceType<typeof FormSelect>> | undefined {
     return wrapper.findAllComponents(FormSelect).find((field) => field.props('id') === id);
+}
+
+function checkbox(
+    wrapper: VueWrapper,
+    id: string
+): VueWrapper<InstanceType<typeof FormCheckbox>> | undefined {
+    return wrapper.findAllComponents(FormCheckbox).find((field) => field.props('id') === id);
 }
 
 function sentDefinition(): SurveyDefinition {
@@ -181,6 +202,7 @@ describe('Edit', () => {
                 duration_days: 7,
                 closes_at: null,
                 definition: expect.objectContaining({
+                    quiz: null,
                     sections: [
                         expect.objectContaining({
                             questions: [
@@ -459,6 +481,7 @@ describe('Edit', () => {
     it('creates a new poll whose title is its question', async () => {
         vi.mocked(router.post).mockClear();
         const poll: SurveyDefinition = {
+            quiz: null,
             sections: [
                 {
                     id: 's-1',
@@ -483,6 +506,8 @@ describe('Edit', () => {
                             grid: null,
                             next_by_option: [],
                             slots: [],
+                            correct_option_ids: [],
+                            points: null,
                         },
                     ],
                 },
@@ -529,6 +554,7 @@ describe('Edit', () => {
             label: '',
         });
         const availability: SurveyDefinition = {
+            quiz: null,
             sections: [
                 {
                     id: 's-1',
@@ -549,6 +575,8 @@ describe('Edit', () => {
                             stars: null,
                             grid: null,
                             next_by_option: [],
+                            correct_option_ids: [],
+                            points: null,
                             slots: [slot('d-1', '2030-01-12'), slot('d-2', '')],
                         },
                     ],
@@ -605,6 +633,7 @@ describe('Edit', () => {
             props: props(
                 {
                     definition: {
+                        quiz: null,
                         sections: [
                             {
                                 id: 's-1',
@@ -626,6 +655,8 @@ describe('Edit', () => {
                                         grid: null,
                                         next_by_option: [],
                                         slots: [],
+                                        correct_option_ids: [],
+                                        points: null,
                                     },
                                 ],
                             },
@@ -755,6 +786,93 @@ describe('Edit', () => {
             const poll = mount(Edit, { props: props({}, { kind: 'poll' }) });
 
             expect(poll.text()).not.toContain('Después de esta sección');
+        });
+    });
+
+    describe('a quiz', () => {
+        it('marks the correct options of each choice question and sends them with their points', async () => {
+            vi.mocked(router.put).mockClear();
+            const wrapper = mount(Edit, { props: props({ definition: jumping() }) });
+            expect(checkbox(wrapper, 'sections-0-questions-0-options-0-correct')).toBeUndefined();
+
+            checkbox(wrapper, 'survey-quiz')?.vm.$emit('update:modelValue', true);
+            await nextTick();
+            checkbox(wrapper, 'sections-0-questions-0-options-1-correct')?.vm.$emit(
+                'update:modelValue',
+                true
+            );
+            await nextTick();
+            checkbox(wrapper, 'sections-0-questions-1-options-0-correct')?.vm.$emit(
+                'update:modelValue',
+                true
+            );
+            await nextTick();
+            checkbox(wrapper, 'sections-0-questions-1-options-1-correct')?.vm.$emit(
+                'update:modelValue',
+                true
+            );
+            await nextTick();
+            wrapper
+                .findAllComponents(FormNumberInput)
+                .find((field) => field.props('id') === 'question-q-2-points')
+                ?.vm.$emit('update:modelValue', 3);
+            await nextTick();
+            checkbox(wrapper, 'survey-quiz-show')?.vm.$emit('update:modelValue', false);
+            await nextTick();
+            await wrapper.find('form').trigger('submit');
+
+            const sent = sentDefinition();
+            expect(sent.quiz).toEqual({ show_correct_answers: false });
+            expect(
+                sent.sections[0]?.questions.map((q) => [q.correct_option_ids, q.points])
+            ).toEqual([
+                [['o-2'], 1],
+                [['o-1', 'o-2'], 3],
+            ]);
+            // Free text questions are never scored
+            expect(checkbox(wrapper, 'sections-1-questions-0-options-0-correct')).toBeUndefined();
+        });
+
+        it('sends no marks once the quiz is off again', async () => {
+            vi.mocked(router.put).mockClear();
+            const quiz = jumping({ correct_option_ids: ['o-1'], points: 2 });
+            const wrapper = mount(Edit, {
+                props: props({ definition: { ...quiz, quiz: { show_correct_answers: true } } }),
+            });
+
+            checkbox(wrapper, 'survey-quiz')?.vm.$emit('update:modelValue', false);
+            await nextTick();
+            await wrapper.find('form').trigger('submit');
+
+            expect(sentDefinition().quiz).toBeNull();
+            expect(sentDefinition().sections[0]?.questions[0]?.correct_option_ids).toEqual([]);
+            expect(sentDefinition().sections[0]?.questions[0]?.points).toBeNull();
+        });
+
+        it('shows the quiz errors on the switch and on the question', async () => {
+            const errors = {
+                'definition.quiz': 'Marca la respuesta correcta de al menos una pregunta.',
+                'definition.sections.0.questions.0.points':
+                    'Una pregunta puntuada da entre 1 y 100 puntos.',
+            };
+            vi.mocked(router.put).mockImplementationOnce((_url, _data, options) => {
+                options?.onError?.(errors);
+            });
+            const quiz = jumping({ correct_option_ids: ['o-1'], points: 200 });
+            const wrapper = mount(Edit, {
+                props: props({ definition: { ...quiz, quiz: { show_correct_answers: true } } }),
+            });
+
+            await wrapper.find('form').trigger('submit');
+
+            expect(wrapper.text()).toContain(errors['definition.quiz']);
+            expect(wrapper.text()).toContain(errors['definition.sections.0.questions.0.points']);
+        });
+
+        it('is not offered on polls', () => {
+            const wrapper = mount(Edit, { props: props({}, { kind: 'poll' }) });
+
+            expect(checkbox(wrapper, 'survey-quiz')).toBeUndefined();
         });
     });
 });

@@ -7,6 +7,7 @@ import BaseButton from '@/components/ui/BaseButton.vue';
 import { VENUE_TIMEZONE } from '@/utils/datetime';
 import QuestionField from '../../components/QuestionField.vue';
 import ResultsSummary from '../../components/ResultsSummary.vue';
+import QuizFeedback from '../../components/respond/QuizFeedback.vue';
 import type { AnswerDraft, RespondProps } from '../../types/Respond';
 import { allAnswers, draftsFor, emptyDraft, missingAnswer, toPayload } from '../../utils/answers';
 import {
@@ -437,6 +438,13 @@ const secondaryLinkClass =
         >
             <p>{{ stateMessage }}</p>
         </div>
+
+        <QuizFeedback
+            v-if="submitted && quiz"
+            :quiz="quiz"
+            :anonymous="survey?.anonymous ?? true"
+            class="mt-6"
+        />
 
         <ResultsSummary v-if="results && !showForm" :results="results" class="mt-8" />
 

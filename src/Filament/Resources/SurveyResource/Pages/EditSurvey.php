@@ -58,10 +58,8 @@ final class EditSurvey extends EditRecord
         $surveys = app(SurveyRepositoryInterface::class);
         $survey = $surveys->findOrFail(SurveyId::fromString((string) $record->getKey()));
         $hasResponses = $surveys->hasResponses($survey->id());
-        $sections = is_array($data['sections'] ?? null) ? $data['sections'] : [];
-
-        $this->withDefinitionErrors(static function () use ($survey, $sections, $hasResponses): void {
-            $survey->replaceDefinition(DefinitionFormState::toDefinition($sections), $hasResponses, new SurveyDefinitionValidator);
+        $this->withDefinitionErrors(static function () use ($survey, $data, $hasResponses): void {
+            $survey->replaceDefinition(DefinitionFormState::fromFormData($data), $hasResponses, new SurveyDefinitionValidator);
         });
 
         $this->onField('data.title', fn () => $survey->editDetails(

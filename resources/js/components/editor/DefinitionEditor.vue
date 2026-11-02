@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import { FormCheckbox } from '@/components/form';
 import type { EditorLocks } from '../../types/Editor';
 import type { SurveyDefinition, SurveySection } from '../../types/Respond';
 import { move, newSection, withoutSection } from '../../utils/definition';
@@ -24,6 +25,15 @@ function setSections(sections: SurveySection[]): void {
 function setSection(index: number, section: SurveySection): void {
     setSections(definition.value.sections.map((current, i) => (i === index ? section : current)));
 }
+
+/** Turning the quiz off keeps the marks in the editor; only a quiz sends them (definitionToSave). */
+function setQuiz(quiz: boolean): void {
+    definition.value = { ...definition.value, quiz: quiz ? { show_correct_answers: true } : null };
+}
+
+function setShowCorrectAnswers(show: boolean): void {
+    definition.value = { ...definition.value, quiz: { show_correct_answers: show } };
+}
 </script>
 
 <template>
@@ -31,6 +41,33 @@ function setSection(index: number, section: SurveySection): void {
         <p v-if="props.errors['definition.sections']" class="text-sm text-error" role="alert">
             {{ props.errors['definition.sections'] }}
         </p>
+
+        <div
+            v-if="!props.locks.poll"
+            class="space-y-3 rounded-lg border border-default bg-muted p-3 sm:p-6"
+        >
+            <div>
+                <FormCheckbox
+                    id="survey-quiz"
+                    :model-value="definition.quiz !== null"
+                    :label="t('surveys.editor.quiz')"
+                    :disabled="props.locks.structure"
+                    @update:model-value="setQuiz"
+                />
+                <p class="mt-1 text-sm text-base-secondary">{{ t('surveys.editor.quiz_hint') }}</p>
+            </div>
+            <FormCheckbox
+                v-if="definition.quiz"
+                id="survey-quiz-show"
+                :model-value="definition.quiz.show_correct_answers"
+                :label="t('surveys.editor.quiz_show_correct_answers')"
+                :disabled="props.locks.structure"
+                @update:model-value="setShowCorrectAnswers"
+            />
+            <p v-if="props.errors['definition.quiz']" class="text-sm text-error" role="alert">
+                {{ props.errors['definition.quiz'] }}
+            </p>
+        </div>
 
         <section
             v-for="(section, index) in definition.sections"
@@ -83,6 +120,7 @@ function setSection(index: number, section: SurveySection): void {
                 :errors="props.errors"
                 :path="`sections.${index}`"
                 :sections="definition.sections"
+                :quiz="definition.quiz !== null"
                 @update:model-value="setSection(index, $event)"
             />
         </section>

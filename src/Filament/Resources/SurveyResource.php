@@ -112,7 +112,7 @@ final class SurveyResource extends BaseResource
                     ->visible(static fn (?SurveyModel $record): bool => $record instanceof SurveyModel && self::publicLinkUrl($record) !== null),
                 Section::make(__('surveys::filament.definition.title'))
                     ->description(static fn (?SurveyModel $record): ?string => $hasResponses($record) ? (string) __('surveys::filament.survey.locked_by_responses') : null)
-                    ->schema([DefinitionEditor::make(contentLocked: $hasResponses)]),
+                    ->schema([...DefinitionEditor::quizFields(contentLocked: $hasResponses), DefinitionEditor::make(contentLocked: $hasResponses)]),
                 Section::make(__('surveys::filament.survey.sections.audience'))
                     ->schema([
                         Toggle::make('anonymous')
@@ -361,6 +361,8 @@ final class SurveyResource extends BaseResource
             return;
         }
 
-        $set('sections', DefinitionFormState::fromDefinition(DefinitionFormState::withFreshQuestionIds($template->definition())));
+        foreach (DefinitionFormState::formFill(DefinitionFormState::withFreshQuestionIds($template->definition())) as $field => $value) {
+            $set($field, $value);
+        }
     }
 }

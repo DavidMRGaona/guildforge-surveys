@@ -40,6 +40,10 @@ export const RANKING_OPTIONS_MAX = 10;
 export const SLOTS_MIN = 2;
 export const SLOTS_MAX = 30;
 
+/** As SurveyDefinitionValidator::POINTS_MIN and POINTS_MAX on the server. */
+export const POINTS_MIN = 1;
+export const POINTS_MAX = 100;
+
 /** Whether the question has a list of options: to pick from, or to put in order. */
 export function hasOptions(type: QuestionType): boolean {
     return CHOICES.includes(type) || type === 'ranking';
@@ -47,6 +51,11 @@ export function hasOptions(type: QuestionType): boolean {
 
 /** Whether the question may offer "Other", as QuestionType::allowsOther(). */
 export function allowsOther(type: QuestionType): boolean {
+    return CHOICES.includes(type);
+}
+
+/** Whether a quiz may mark the question's correct options, as QuestionType::isChoice(). */
+export function canBeScored(type: QuestionType): boolean {
     return CHOICES.includes(type);
 }
 
@@ -96,6 +105,8 @@ export function newQuestion(type: QuestionType): SurveyQuestion {
         grid: null,
         next_by_option: [],
         slots: [],
+        correct_option_ids: [],
+        points: null,
     };
 
     return withSettingsFor(question, type);
@@ -107,6 +118,13 @@ export function newQuestion(type: QuestionType): SurveyQuestion {
  */
 export function changeType(question: SurveyQuestion, type: QuestionType): SurveyQuestion {
     const keepsOptions = hasOptions(question.type) && hasOptions(type);
+    const scored = keepsOptions && canBeScored(type);
+    // A single answer keeps one correct option, the first marked
+    const correct = !scored
+        ? []
+        : type === 'multiple_choice'
+          ? question.correct_option_ids
+          : question.correct_option_ids.slice(0, 1);
 
     return withSettingsFor(
         {
@@ -119,6 +137,8 @@ export function changeType(question: SurveyQuestion, type: QuestionType): Survey
             grid: null,
             next_by_option: canBranch(type) && keepsOptions ? question.next_by_option : [],
             slots: [],
+            correct_option_ids: correct,
+            points: correct.length > 0 ? question.points : null,
         },
         type
     );
@@ -163,6 +183,62 @@ export function pruneJumps(question: SurveyQuestion): SurveyQuestion {
     return {
         ...question,
         next_by_option: question.next_by_option.filter((jump) => ids.includes(jump.option_id)),
+    };
+}
+
+/**
+ * Marks an option as correct or not. A question with a single answer keeps one correct option;
+ * the marks follow the order of the options. Marking the first one starts the points at one.
+ */
+export function setCorrect(
+    question: SurveyQuestion,
+    optionId: string,
+    correct: boolean
+): SurveyQuestion {
+    const kept = question.type === 'multiple_choice' || !correct ? question.correct_option_ids : [];
+    const ids = correct ? [...kept, optionId] : kept.filter((id) => id !== optionId);
+    const ordered = question.options.map((option) => option.id).filter((id) => ids.includes(id));
+
+    return {
+        ...question,
+        correct_option_ids: ordered,
+        points: ordered.length > 0 ? (question.points ?? POINTS_MIN) : question.points,
+    };
+}
+
+/** Leaves out the correct marks of options the question no longer has. */
+export function pruneCorrect(question: SurveyQuestion): SurveyQuestion {
+    const ids = question.options.map((option) => option.id);
+
+    return {
+        ...question,
+        correct_option_ids: question.correct_option_ids.filter((id) => ids.includes(id)),
+    };
+}
+
+/**
+ * The definition as the server takes it: the editor keeps the marks while the quiz switch is
+ * off (so switching it back restores them), but only a quiz sends them, and only a question with
+ * a correct option sends its points.
+ */
+export function definitionToSave(definition: SurveyDefinition): SurveyDefinition {
+    return {
+        ...definition,
+        sections: definition.sections.map((section) => ({
+            ...section,
+            questions: section.questions.map((question) => {
+                const correct =
+                    definition.quiz !== null && canBeScored(question.type)
+                        ? question.correct_option_ids
+                        : [];
+
+                return {
+                    ...question,
+                    correct_option_ids: correct,
+                    points: correct.length > 0 ? (question.points ?? POINTS_MIN) : null,
+                };
+            }),
+        })),
     };
 }
 

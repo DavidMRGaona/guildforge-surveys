@@ -55,6 +55,8 @@ describe('answers of an availability question', () => {
         stars: null,
         grid: null,
         next_by_option: [],
+        correct_option_ids: [],
+        points: null,
         slots: ['d-1', 'd-2'].map((id) => ({
             id,
             date: '2030-01-12',
@@ -67,6 +69,7 @@ describe('answers of an availability question', () => {
         })),
     };
     const definition: SurveyDefinition = {
+        quiz: null,
         sections: [{ id: 's-1', title: null, description: null, next: null, questions: [asked] }],
     };
 

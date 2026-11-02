@@ -27,6 +27,7 @@ use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ListSurveys;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
+use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
 use Tests\Support\Modules\InteractsWithModulePanel;
 use Tests\Support\Modules\ModuleTestCase;
@@ -72,6 +73,35 @@ final class SurveyResourceTest extends ModuleTestCase
         $this->assertTrue($survey->isAnonymous());
         $this->assertTrue($survey->results()->liveResults);
         $this->assertCount(11, $survey->definition()->questions());
+    }
+
+    public function test_creates_a_quiz_and_shows_its_correct_options_only_while_it_is_one(): void
+    {
+        $fill = DefinitionFormState::formFill(SurveyDefinition::fromArray(QuizDefinitionTest::data()));
+        $form = ['title' => 'Cuestionario', 'anonymous' => false, 'audience_type' => 'all_users', 'closes_at' => '2030-01-10 20:00:00'];
+
+        Livewire::test(CreateSurvey::class)
+            ->fillForm([...$form, 'sections' => $fill['sections']])
+            ->assertFormFieldIsHidden('quiz_show_correct_answers')
+            ->fillForm(['quiz' => true, 'quiz_show_correct_answers' => false])
+            ->assertFormFieldIsVisible('quiz_show_correct_answers')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $quiz = $this->stored()->definition();
+        $this->assertFalse($quiz->quiz?->showCorrectAnswers);
+        $this->assertSame(['o-blue', 'o-red'], $quiz->questions()[1]->correctOptionIds);
+        $this->assertSame(3, $quiz->questions()[1]->points);
+    }
+
+    public function test_a_quiz_without_a_correct_option_says_so_on_its_switch(): void
+    {
+        $fill = DefinitionFormState::formFill(SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()));
+
+        Livewire::test(CreateSurvey::class)
+            ->fillForm(['title' => 'Cuestionario', 'anonymous' => false, 'audience_type' => 'all_users', 'closes_at' => '2030-01-10 20:00:00', 'sections' => $fill['sections'], 'quiz' => true])
+            ->call('create')
+            ->assertHasFormErrors(['quiz']);
     }
 
     public function test_the_public_link_asks_for_an_email_unless_it_is_made_open(): void

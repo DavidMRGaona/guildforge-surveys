@@ -23,6 +23,8 @@ function question(
         grid: null,
         next_by_option: [],
         slots: [],
+        correct_option_ids: [],
+        points: null,
         ...extra,
     };
 }
@@ -34,6 +36,7 @@ const options = [
 
 /** One question of each of the eleven types, as SurveyDefinition::toArray() sends them. */
 export const everyType: SurveyDefinition = {
+    quiz: null,
     sections: [
         {
             id: 's-1',
@@ -84,6 +87,7 @@ export const everyType: SurveyDefinition = {
  * straight to s-end, skipping s-part. The first two questions are required.
  */
 export const branching: SurveyDefinition = {
+    quiz: null,
     sections: [
         {
             id: 's-intro',

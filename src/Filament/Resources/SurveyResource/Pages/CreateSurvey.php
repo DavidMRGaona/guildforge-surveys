@@ -30,10 +30,8 @@ final class CreateSurvey extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        $sections = is_array($data['sections'] ?? null) ? $data['sections'] : [];
-
-        $survey = $this->withDefinitionErrors(static function () use ($data, $sections): Survey {
-            $definition = DefinitionFormState::toDefinition($sections);
+        $survey = $this->withDefinitionErrors(static function () use ($data): Survey {
+            $definition = DefinitionFormState::fromFormData($data);
             (new SurveyDefinitionValidator)->assertValid($definition, SurveyKind::Form);
             $templateId = is_string($data['template_id'] ?? null) && $data['template_id'] !== '' ? $data['template_id'] : null;
 

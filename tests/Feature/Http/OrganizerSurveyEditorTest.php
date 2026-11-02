@@ -139,6 +139,28 @@ final class OrganizerSurveyEditorTest extends ModuleTestCase
             ->assertSessionHasErrors(['definition.sections.0.questions.0.title']);
     }
 
+    public function test_the_editor_turns_a_form_into_a_quiz_and_shows_it_back(): void
+    {
+        $survey = $this->offered();
+        $definition = $survey->definition()->toArray();
+        $definition['quiz'] = ['show_correct_answers' => false];
+        $definition['sections'][0]['questions'][3]['correct_option_ids'] = ['o-1'];
+        $definition['sections'][0]['questions'][3]['points'] = 4;
+
+        $this->actingAs($this->organizer)
+            ->put(route('surveys.manage.update', $survey->id()->value), $this->payload($survey, ['definition' => $definition]))
+            ->assertSessionHasNoErrors();
+
+        $saved = $this->surveys->findOrFail($survey->id())->definition();
+        $this->assertFalse($saved->quiz?->showCorrectAnswers);
+        $this->assertSame(['o-1'], $saved->questions()[3]->correctOptionIds);
+        $this->assertSame(4, $saved->questions()[3]->points);
+        $this->actingAs($this->organizer)->get(route('surveys.manage.edit', $survey->id()->value))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('definition.quiz.show_correct_answers', false)
+                ->where('definition.sections.0.questions.3.correct_option_ids', ['o-1']));
+    }
+
     public function test_with_a_response_the_content_comes_back_locked(): void
     {
         $survey = $this->offered();

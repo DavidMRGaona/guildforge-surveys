@@ -35,9 +35,8 @@ final class EditSurveyTemplate extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $definition = is_array($data['definition'] ?? null) ? $data['definition'] : ['sections' => []];
-        $data['sections'] = DefinitionFormState::fromDefinition(SurveyDefinition::fromArray($definition));
 
-        return $data;
+        return [...$data, ...DefinitionFormState::formFill(SurveyDefinition::fromArray($definition))];
     }
 
     /**
@@ -47,10 +46,8 @@ final class EditSurveyTemplate extends EditRecord
     {
         $templates = app(SurveyTemplateRepositoryInterface::class);
         $template = $templates->findOrFail(SurveyTemplateId::fromString((string) $record->getKey()));
-        $sections = is_array($data['sections'] ?? null) ? $data['sections'] : [];
-
-        $this->withDefinitionErrors(static function () use ($template, $sections): void {
-            $template->replaceDefinition(DefinitionFormState::toDefinition($sections), new SurveyDefinitionValidator);
+        $this->withDefinitionErrors(static function () use ($template, $data): void {
+            $template->replaceDefinition(DefinitionFormState::fromFormData($data), new SurveyDefinitionValidator);
         });
         $template->rename((string) $data['name'], is_string($data['description'] ?? null) ? $data['description'] : null);
         $template->changeUses(SurveyTemplateResource::usesFrom($data));
