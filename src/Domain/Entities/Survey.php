@@ -478,6 +478,12 @@ final class Survey
             throw InvalidSurveyStateException::audienceFixed($this->id->value);
         }
 
+        // A subject's participants come from its source: a general survey never takes them,
+        // and a subject's survey never goes to a general audience
+        if (($type === AudienceType::Subject) !== ($this->audienceType === AudienceType::Subject)) {
+            throw InvalidSurveyStateException::subjectAudienceFixed($this->id->value);
+        }
+
         $this->assertFileRules($this->definition, $this->anonymous, $publicLinkEnabled, $publicLinkMode);
         $this->audienceType = $type;
         $this->audienceRoles = $roles;

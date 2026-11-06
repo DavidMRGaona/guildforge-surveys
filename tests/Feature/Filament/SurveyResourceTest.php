@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Tests\Feature\Filament;
 
+use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use DateTimeImmutable;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -28,6 +29,7 @@ use Modules\Surveys\Filament\Resources\SurveyResource\Pages\ListSurveys;
 use Modules\Surveys\Filament\Support\DefinitionFormState;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
+use Modules\Surveys\Tests\Support\ExampleThingSource;
 use Modules\Surveys\Tests\Unit\Domain\Services\FileQuestionDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\Services\QuizDefinitionTest;
 use Modules\Surveys\Tests\Unit\Domain\ValueObjects\Definition\SurveyDefinitionTest;
@@ -49,6 +51,7 @@ final class SurveyResourceTest extends ModuleTestCase
         parent::setUp();
 
         $this->registerOnAdminPanel([SurveyResource::class]);
+        $this->app->make(SurveySubjectSourceRegistryInterface::class)->register(ExampleThingSource::class);
         $this->surveys = $this->app->make(SurveyRepositoryInterface::class);
         $this->actingAsPanelAdmin();
     }
@@ -338,6 +341,37 @@ final class SurveyResourceTest extends ModuleTestCase
             ->assertFormFieldIsHidden('announce_in_channels');
     }
 
+    public function test_a_draft_subject_survey_saves_with_its_audience_shown_and_fixed(): void
+    {
+        $survey = $this->subjectDraft();
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->assertFormFieldIsDisabled('audience_type')
+            ->assertFormFieldExists('audience_type', static fn (Select $field): bool => $field->getOptions() === [
+                AudienceType::Subject->value => 'Participantes (Cosa de ejemplo)',
+            ])
+            ->fillForm(['title' => 'Encuesta renombrada', 'public_link_enabled' => true])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $stored = $this->stored();
+        $this->assertSame('Encuesta renombrada', $stored->title());
+        $this->assertSame(AudienceType::Subject, $stored->audienceType());
+        $this->assertTrue($stored->isPublicLinkEnabled());
+    }
+
+    public function test_a_forged_audience_never_turns_a_subject_survey_into_a_general_one(): void
+    {
+        $survey = $this->subjectDraft();
+
+        Livewire::test(EditSurvey::class, ['record' => $survey->id()->value])
+            ->set('data.audience_type', AudienceType::AllUsers->value)
+            ->call('save')
+            ->assertHasFormErrors(['audience_type']);
+
+        $this->assertSame(AudienceType::Subject, $this->stored()->audienceType());
+    }
+
     public function test_a_quick_poll_can_be_announced(): void
     {
         Livewire::test(ListSurveys::class)
@@ -426,6 +460,21 @@ final class SurveyResourceTest extends ModuleTestCase
             $survey->close(new DateTimeImmutable('2030-01-02T10:00:00+00:00'));
         }
         $this->surveys->save($survey);
+
+        return $survey;
+    }
+
+    /**
+     * A draft about a subject of the example source, as its organizers prepare one.
+     */
+    private function subjectDraft(): Survey
+    {
+        $survey = $this->survey(open: false);
+        SurveyModel::query()->whereKey($survey->id()->value)->update([
+            'subject_type' => ExampleThingSource::TYPE,
+            'subject_id' => 'thing-1',
+            'audience_type' => AudienceType::Subject->value,
+        ]);
 
         return $survey;
     }

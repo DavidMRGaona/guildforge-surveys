@@ -20,7 +20,7 @@ En **Audiencia** eliges quién la recibe y puede responderla con su cuenta:
 - **Todas las personas con cuenta**.
 - **Solo socios**: quienes tienen el rol de {{association_role}}.
 - **Algunos roles**: eliges los **Roles** en la lista. Recibe la encuesta quien tenga cualquiera de ellos.
-- **Participantes del sujeto**: en las encuestas de una mesa, un torneo o un evento, quienes participaron. Lo decide el módulo de la actividad (por ejemplo, las personas inscritas y confirmadas). Si entre ellas hay invitados sin cuenta, les llega un enlace personal por correo.
+- **Participantes**, con el tipo entre paréntesis (por ejemplo, «Participantes (Evento)»): en las encuestas de una mesa, un torneo o un evento, quienes participaron. Lo decide el módulo de la actividad (por ejemplo, las personas inscritas y confirmadas). Si entre ellas hay invitados sin cuenta, les llega un enlace personal por correo. Esta audiencia es la única posible en esas encuestas, así que se muestra bloqueada, y las encuestas generales no pueden elegirla.
 
 La audiencia se fija al abrir: quien entre después en un rol no la recibe. Si necesitas llegar a más gente, usa el enlace público.
 
