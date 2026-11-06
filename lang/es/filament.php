@@ -38,7 +38,7 @@ return [
         'all_users' => 'Todas las personas con cuenta',
         'association_members' => 'Solo socios',
         'roles' => 'Algunos roles',
-        'subject' => 'Participantes del sujeto',
+        'subject' => 'Participantes (:type)',
     ],
 
     'question_types' => [
