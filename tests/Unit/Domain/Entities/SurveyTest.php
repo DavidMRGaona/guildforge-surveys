@@ -170,6 +170,26 @@ final class SurveyTest extends TestCase
         $survey->changeAudience(AudienceType::AssociationMembers, [], publicLinkEnabled: true);
     }
 
+    public function test_a_subject_survey_keeps_going_to_its_participants(): void
+    {
+        $survey = $this->survey(audienceType: AudienceType::Subject);
+        $survey->changeAudience(AudienceType::Subject, [], publicLinkEnabled: true);
+        $this->assertTrue($survey->isPublicLinkEnabled(), 'Its other audience settings still change while it is a draft.');
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+    }
+
+    public function test_a_general_survey_never_goes_to_a_subject_participants(): void
+    {
+        $survey = $this->survey();
+
+        $this->expectException(InvalidSurveyStateException::class);
+
+        $survey->changeAudience(AudienceType::Subject, [], publicLinkEnabled: false);
+    }
+
     public function test_a_public_link_asks_for_an_email_unless_told_otherwise(): void
     {
         $this->assertSame(PublicLinkMode::VerifiedEmail, $this->survey()->publicLinkMode());
@@ -293,7 +313,7 @@ final class SurveyTest extends TestCase
         $this->assertEquals($settings, ResultsSettings::fromArray($settings->toArray()));
     }
 
-    private function survey(bool $anonymous = true, ?DateTimeImmutable $closesAt = null): Survey
+    private function survey(bool $anonymous = true, ?DateTimeImmutable $closesAt = null, AudienceType $audienceType = AudienceType::AllUsers): Survey
     {
         return new Survey(
             id: SurveyId::generate(),
@@ -303,7 +323,7 @@ final class SurveyTest extends TestCase
             definition: SurveyDefinition::fromArray(SurveyDefinitionTest::everyTypeDefinition()),
             anonymous: $anonymous,
             results: ResultsSettings::defaultsFor(SurveyKind::Form),
-            audienceType: AudienceType::AllUsers,
+            audienceType: $audienceType,
             closesAt: $closesAt,
         );
     }

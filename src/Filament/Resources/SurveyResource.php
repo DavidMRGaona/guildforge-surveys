@@ -121,14 +121,18 @@ final class SurveyResource extends BaseResource
                             ->default(static fn (): bool => app(SurveySettings::class)->anonymousByDefault())
                             ->live()
                             ->disabled(static fn (?SurveyModel $record): bool => $record instanceof SurveyModel && ($record->anonymous || $hasResponses($record))),
+                        // A subject's survey shows its audience and keeps it: still sent while a
+                        // draft, so the public link beside it can change and the only option
+                        // accepted is the subject's participants
                         Select::make('audience_type')
                             ->label(__('surveys::filament.survey.fields.audience'))
-                            ->options(self::audienceOptions())
+                            ->options(static fn (?SurveyModel $record): array => self::audienceOptions($record))
                             ->default(AudienceType::AllUsers->value)
                             ->required()
                             ->native(false)
                             ->live()
-                            ->disabled($notDraft),
+                            ->disabled(static fn (?SurveyModel $record): bool => $notDraft($record) || self::isSubjectSurvey($record))
+                            ->dehydrated(static fn (?SurveyModel $record): bool => ! $notDraft($record)),
                         Select::make('audience_roles')
                             ->label(__('surveys::filament.survey.fields.audience_roles'))
                             ->options(static fn (): array => RoleModel::query()->orderBy('display_name')->pluck('display_name', 'name')->all())
@@ -333,18 +337,33 @@ final class SurveyResource extends BaseResource
     }
 
     /**
-     * The audiences a survey made in the panel may have: a subject's audience comes from its source.
+     * The audiences a survey made in the panel may have. A subject's survey has only its own,
+     * the subject's participants, which come from its source.
      *
      * @return array<string, string>
      */
-    public static function audienceOptions(): array
+    public static function audienceOptions(?SurveyModel $record = null): array
     {
+        if (self::isSubjectSurvey($record)) {
+            return [AudienceType::Subject->value => (string) __('surveys::filament.audiences.subject', [
+                'type' => SubjectTypeOptions::label((string) $record->subject_type),
+            ])];
+        }
+
         $options = [];
         foreach ([AudienceType::AllUsers, AudienceType::AssociationMembers, AudienceType::Roles] as $type) {
             $options[$type->value] = __("surveys::filament.audiences.{$type->value}");
         }
 
         return $options;
+    }
+
+    /**
+     * @phpstan-assert-if-true SurveyModel $record
+     */
+    private static function isSubjectSurvey(?SurveyModel $record): bool
+    {
+        return $record instanceof SurveyModel && $record->subject_type !== null;
     }
 
     /**
