@@ -99,7 +99,7 @@ final class ListSurveys extends ListRecords
                     ->maxLength(500),
                 Repeater::make('options')
                     ->label(__('surveys::filament.definition.options'))
-                    ->schema([TextInput::make('label')->hiddenLabel()->required()->maxLength(255)])
+                    ->schema([TextInput::make('label')->label(__('surveys::filament.definition.option_text'))->hiddenLabel()->required()->maxLength(255)])
                     ->minItems(2)
                     ->defaultItems(2)
                     ->addActionLabel(__('surveys::filament.definition.add_option')),

@@ -196,7 +196,7 @@ final class DefinitionEditor
 
         if ($type === QuestionType::Ranking) {
             return [
-                self::optionList('options', 'surveys::filament.definition.options', 2, $locked)
+                self::optionList('options', 'surveys::filament.definition.options', 'surveys::filament.definition.option_text', 2, $locked)
                     ->maxItems(SurveyDefinitionValidator::RANKING_OPTIONS_MAX)
                     ->helperText(__('surveys::filament.definition.ranking_options_help', ['max' => SurveyDefinitionValidator::RANKING_OPTIONS_MAX])),
             ];
@@ -204,7 +204,7 @@ final class DefinitionEditor
 
         if ($type->hasOptions()) {
             $fields = [
-                self::optionList('options', 'surveys::filament.definition.options', 2, $locked, withTargets: $type->canBranch(), withCorrect: true),
+                self::optionList('options', 'surveys::filament.definition.options', 'surveys::filament.definition.option_text', 2, $locked, withTargets: $type->canBranch(), withCorrect: true),
                 TextInput::make('points')
                     ->label(__('surveys::filament.definition.points'))
                     ->helperText(__('surveys::filament.definition.points_help'))
@@ -281,8 +281,8 @@ final class DefinitionEditor
             ],
             QuestionType::Grid => [
                 Grid::make(2)->schema([
-                    self::optionList('grid_rows', 'surveys::filament.definition.grid_rows', 1, $locked),
-                    self::optionList('grid_columns', 'surveys::filament.definition.grid_columns', 2, $locked),
+                    self::optionList('grid_rows', 'surveys::filament.definition.grid_rows', 'surveys::filament.definition.row_text', 1, $locked),
+                    self::optionList('grid_columns', 'surveys::filament.definition.grid_columns', 'surveys::filament.definition.column_text', 2, $locked),
                 ]),
             ],
             default => [],
@@ -328,12 +328,14 @@ final class DefinitionEditor
     }
 
     /**
+     * @param  string  $itemLabelKey  each item's text field, hidden from sight but read out by screen readers
      * @param  bool  $withTargets  options of a question that may jump get the select of where each leads
      * @param  bool  $withCorrect  options of a choice question are marked correct in a quiz
      */
-    private static function optionList(string $name, string $labelKey, int $minItems, Closure|bool $locked, bool $withTargets = false, bool $withCorrect = false): Repeater
+    private static function optionList(string $name, string $labelKey, string $itemLabelKey, int $minItems, Closure|bool $locked, bool $withTargets = false, bool $withCorrect = false): Repeater
     {
         $label = TextInput::make('label')
+            ->label(__($itemLabelKey))
             ->hiddenLabel()
             ->required()
             ->maxLength(255)
