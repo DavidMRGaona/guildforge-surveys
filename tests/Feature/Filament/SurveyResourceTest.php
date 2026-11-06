@@ -6,6 +6,7 @@ namespace Modules\Surveys\Tests\Feature\Filament;
 
 use DateTimeImmutable;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Livewire\Livewire;
 use Modules\Surveys\Domain\Entities\Survey;
 use Modules\Surveys\Domain\Entities\SurveyTemplate;
@@ -216,6 +217,21 @@ final class SurveyResourceTest extends ModuleTestCase
         $question = $poll->definition()->questions()[0];
         $this->assertSame(QuestionType::MultipleChoice, $question->type);
         $this->assertSame(['Viernes', 'Sábado', 'Domingo'], array_map(static fn ($option): string => $option->label, $question->options));
+    }
+
+    public function test_each_quick_poll_option_has_a_label_for_screen_readers(): void
+    {
+        $page = Livewire::test(ListSurveys::class)->mountAction('quick_poll');
+        $options = $page->get('mountedActions.0.data.options');
+        $this->assertIsArray($options);
+        $this->assertNotSame([], $options);
+
+        foreach (array_keys($options) as $key) {
+            $page->assertFormFieldExists(
+                "options.{$key}.label",
+                static fn (TextInput $field): bool => $field->getLabel() === 'Texto de la opción' && $field->isLabelHidden(),
+            );
+        }
     }
 
     public function test_creates_a_quick_poll_after_another_action_was_mounted(): void

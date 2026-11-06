@@ -10,6 +10,7 @@ use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Livewire;
@@ -181,6 +182,49 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
         $stored = $this->app->make(SurveyTemplateRepositoryInterface::class)->findOrFail($template->id());
         $this->assertSame('Plantilla renombrada', $stored->name());
         $this->assertEquals($this->definition(), $stored->definition());
+    }
+
+    public function test_each_option_row_and_column_has_a_label_for_screen_readers(): void
+    {
+        $this->actingAsPanelAdmin();
+        $template = $this->template('Plantilla', []);
+        $page = Livewire::test(EditSurveyTemplate::class, ['record' => $template->id()->value]);
+
+        $expected = [
+            'q-single' => ['options' => 'Texto de la opción'],
+            'q-rank' => ['options' => 'Texto de la opción'],
+            'q-grid' => ['grid_rows' => 'Texto de la fila', 'grid_columns' => 'Texto de la columna'],
+        ];
+        foreach ($this->questionPaths($page->get('data.sections')) as $questionId => $path) {
+            foreach ($expected[$questionId] ?? [] as $list => $label) {
+                $items = $page->get("data.{$path}.data.{$list}");
+                $this->assertIsArray($items);
+                $page->assertFormFieldExists(
+                    "{$path}.data.{$list}.".array_key_first($items).'.label',
+                    static fn (TextInput $field): bool => $field->getLabel() === $label && $field->isLabelHidden(),
+                );
+                unset($expected[$questionId][$list]);
+            }
+        }
+
+        $this->assertSame([], array_filter($expected), 'Every question looked for is in the form.');
+    }
+
+    /**
+     * Each question's state path in the editor, by question id.
+     *
+     * @return array<string, string>
+     */
+    private function questionPaths(mixed $sections): array
+    {
+        $paths = [];
+        foreach (is_array($sections) ? $sections : [] as $sectionKey => $section) {
+            foreach (is_array($section['questions'] ?? null) ? $section['questions'] : [] as $questionKey => $question) {
+                $paths[(string) ($question['data']['id'] ?? '')] = "sections.{$sectionKey}.questions.{$questionKey}";
+            }
+        }
+
+        return $paths;
     }
 
     public function test_saves_what_a_template_is_for(): void
