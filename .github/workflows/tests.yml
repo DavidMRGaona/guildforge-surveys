@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   test:
-    uses: DavidMRGaona/GuildForge/.github/workflows/reusable-module-tests.yml@main
+    uses: DavidMRGaona/GuildForge/.github/workflows/reusable-module-tests.yml@feat/352-module-node-cache
     with:
       module_name: 'surveys'
       # Host branch, tag or SHA to test against (main when the variable is unset)
