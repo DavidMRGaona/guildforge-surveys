@@ -6,6 +6,7 @@ namespace Modules\Surveys\Filament\Resources;
 
 use App\Filament\Actions\RowDetailsAction;
 use App\Filament\Resources\BaseResource;
+use App\Filament\Support\PanelNavigationGroup;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use BackedEnum;
 use Filament\Actions\ActionGroup;
@@ -50,11 +51,16 @@ final class SurveyResource extends BaseResource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationGroup(): string
     {
-        return __('surveys::filament.navigation_group');
+        return PanelNavigationGroup::Communication->getLabel();
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('surveys::filament.survey.plural_label');
     }
 
     public static function getModelLabel(): string

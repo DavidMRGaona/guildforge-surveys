@@ -29,6 +29,7 @@ return [
         'anonymous_by_default_help' => 'Una encuesta anónima no guarda quién respondió qué y nunca puede dejar de serlo.',
         'announce_in_channels_by_default' => 'Anunciar en los canales por defecto',
         'announce_in_channels_by_default_help' => 'Marca de entrada «Anunciar en los canales» en las encuestas generales nuevas. Necesita el módulo de notificaciones a canales con el tipo «Encuestas» activo en cada canal.',
+        'navigation' => 'Encuestas',
         'title' => 'Ajustes de encuestas',
         'saved' => 'Ajustes guardados',
         'closing_summary' => 'Resumen al cerrar',

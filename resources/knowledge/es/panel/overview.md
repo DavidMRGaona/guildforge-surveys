@@ -62,7 +62,7 @@ Ninguno de los tres permisos se concede solo: se dan a cada rol en **Roles**.
 
 ## Dónde está cada cosa
 
-- En el menú lateral, el grupo **Encuestas** tiene **Encuestas**, **Plantillas**, **Tendencias** y **Ajustes de encuestas**.
+- En el menú lateral, el grupo **Comunicación** tiene **Encuestas**; **Plantillas** y **Tendencias** aparecen debajo de **Encuestas**. Los ajustes están en **Sistema** → **Configuración** → **Encuestas**.
 - En el escritorio, el widget **Encuestas pendientes de revisión** avisa de lo que espera un moderador.
 - En el formulario de cada mesa, campaña, torneo o evento, el campo **Encuesta al terminar** elige qué encuesta sale cuando acaba.
 

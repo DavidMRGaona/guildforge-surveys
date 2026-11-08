@@ -15,7 +15,7 @@ Los ajustes deciden cómo se comportan todas las encuestas: qué sale cuando ter
 
 ## Abrir los ajustes
 
-En el menú lateral, abre **Encuestas** y elige **Ajustes de encuestas**. Al terminar, pulsa **Guardar**.
+En el menú lateral, abre **Sistema**, elige **Configuración** y después **Encuestas**. La página se llama **Ajustes de encuestas**. Al terminar, pulsa **Guardar**.
 
 ## Encuestas al terminar
 
@@ -44,4 +44,4 @@ Con **Las encuestas cambiadas fuera del panel requieren revisión**, lo que los 
 > [!IMPORTANT]
 > Desactivar la revisión no aprueba lo que ya está pendiente: hay que revisarlo igualmente.
 
-[[action:filament.admin.pages.surveys-settings|Abrir los ajustes de encuestas]]
+[[action:filament.admin.configuracion.pages.surveys-settings|Abrir los ajustes de encuestas]]

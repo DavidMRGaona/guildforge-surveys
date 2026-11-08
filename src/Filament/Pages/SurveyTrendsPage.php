@@ -7,6 +7,7 @@ namespace Modules\Surveys\Filament\Pages;
 use App\Filament\Concerns\ChecksPermissions;
 use App\Filament\Concerns\HasKnowledgeGuideAction;
 use App\Filament\Concerns\SafeModuleNavigation;
+use App\Filament\Support\PanelNavigationGroup;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -26,6 +27,7 @@ use Modules\Surveys\Application\DTOs\Trends\TrendFilters;
 use Modules\Surveys\Application\DTOs\Trends\TrendPeriod;
 use Modules\Surveys\Application\Services\TrendsService;
 use Modules\Surveys\Domain\ValueObjects\SurveyTemplateId;
+use Modules\Surveys\Filament\Resources\SurveyResource;
 
 /**
  * How each keyed question of a template evolves across its surveys, with filters and
@@ -44,7 +46,7 @@ final class SurveyTrendsPage extends Page implements HasForms
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static ?int $navigationSort = 90;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $slug = 'survey-trends';
 
@@ -57,7 +59,12 @@ final class SurveyTrendsPage extends Page implements HasForms
 
     public static function getNavigationGroup(): string
     {
-        return __('surveys::filament.navigation_group');
+        return PanelNavigationGroup::Communication->getLabel();
+    }
+
+    public static function getNavigationParentItem(): string
+    {
+        return SurveyResource::getNavigationLabel();
     }
 
     public static function getNavigationLabel(): string

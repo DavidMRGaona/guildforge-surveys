@@ -6,6 +6,7 @@ namespace Modules\Surveys\Filament\Resources;
 
 use App\Filament\Actions\RowDetailsAction;
 use App\Filament\Resources\BaseResource;
+use App\Filament\Support\PanelNavigationGroup;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -36,7 +37,7 @@ final class SurveyTemplateResource extends BaseResource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document-duplicate';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     /**
      * The filter value for templates meant for anything: never a kind of subject, which is kebab-case.
@@ -45,7 +46,12 @@ final class SurveyTemplateResource extends BaseResource
 
     public static function getNavigationGroup(): string
     {
-        return __('surveys::filament.navigation_group');
+        return PanelNavigationGroup::Communication->getLabel();
+    }
+
+    public static function getNavigationParentItem(): string
+    {
+        return SurveyResource::getNavigationLabel();
     }
 
     public static function getModelLabel(): string

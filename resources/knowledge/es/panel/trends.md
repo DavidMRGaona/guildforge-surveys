@@ -15,7 +15,7 @@ Las tendencias juntan las respuestas de todas las encuestas hechas con una plant
 
 ## Ver las tendencias
 
-1. En el menú lateral, abre **Encuestas** y elige **Tendencias**. También puedes pulsar **Tendencias** en el menú **⋯** de una plantilla de la lista de plantillas.
+1. En el menú lateral, abre **Comunicación** → **Encuestas** y elige **Tendencias**. También puedes pulsar **Tendencias** en el menú **⋯** de una plantilla de la lista de plantillas.
 2. Elige la **Plantilla**.
 3. Si quieres, acota por **Tipo de sujeto**, **Organizador**, **Sistema de juego** y fechas (**Desde** y **Hasta**).
 4. Elige cómo **Agrupar por**: **Mes**, **Trimestre** o **Año**, según la fecha de la actividad (en las encuestas generales, la de apertura).
