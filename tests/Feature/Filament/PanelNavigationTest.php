@@ -10,7 +10,6 @@ use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Resources\SurveyResource;
 use Modules\Surveys\Filament\Resources\SurveyTemplateResource;
-use Modules\Surveys\SurveysServiceProvider;
 use Tests\Support\Modules\InteractsWithModulePanel;
 use Tests\Support\Modules\ModuleTestCase;
 
@@ -67,11 +66,6 @@ final class PanelNavigationTest extends ModuleTestCase
         $this->assertNull(SurveySettingsPage::getNavigationGroup());
         $this->assertSame('Sistema', SettingsCluster::getNavigationGroup());
         $this->assertStringStartsWith('/admin/configuracion/', (string) parse_url(SurveySettingsPage::getUrl(), PHP_URL_PATH));
-    }
-
-    public function test_the_module_declares_no_navigation_group_of_its_own(): void
-    {
-        $this->assertSame([], (new SurveysServiceProvider($this->app))->registerNavigationGroups());
     }
 
     public function test_the_panel_menu_shows_surveys_under_the_communication_group(): void

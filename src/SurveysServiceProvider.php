@@ -325,17 +325,6 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * Register Filament navigation groups provided by this module.
-     * Groups will only be added if they don't already exist in core.
-     *
-     * @return array<string, array{icon?: string, sort?: int}> Map of group label to options
-     */
-    public function registerNavigationGroups(): array
-    {
-        return [];
-    }
-
-    /**
      * Register permissions provided by this module.
      *
      * They are stored as "{module}:{name}", the key the generated policies check
