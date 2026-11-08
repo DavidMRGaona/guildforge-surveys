@@ -38,17 +38,24 @@ final class PendingSurveyReviewsWidget extends BaseWidget
             ->columns([
                 TextColumn::make('title')
                     ->label(__('surveys::filament.survey.fields.title'))
-                    ->limit(40),
+                    ->limit(40)
+                    ->wrap(),
                 TextColumn::make('subject')
                     ->label(__('surveys::filament.widgets.pending_reviews.subject'))
                     ->state(static fn (SurveyModel $record): ?string => is_string($record->subject_snapshot['title'] ?? null) ? $record->subject_snapshot['title'] : null)
-                    ->limit(40),
+                    ->limit(40)
+                    ->visibleFrom('md')
+                    ->wrapHeader(),
                 TextColumn::make('submitted_by')
                     ->label(__('surveys::filament.widgets.pending_reviews.sent_by'))
-                    ->formatStateUsing(static fn (?string $state): ?string => $state === null ? null : UserModel::query()->whereKey($state)->value('name')),
+                    ->formatStateUsing(static fn (?string $state): ?string => $state === null ? null : UserModel::query()->whereKey($state)->value('name'))
+                    ->visibleFrom('md')
+                    ->wrapHeader(),
                 TextColumn::make('submitted_for_review_at')
                     ->label(__('surveys::filament.widgets.pending_reviews.sent_at'))
-                    ->dateTime('d/m/Y H:i'),
+                    ->dateTime('d/m/Y H:i')
+                    ->visibleFrom('xl')
+                    ->wrapHeader(),
             ])
             ->recordActions([
                 Action::make('review')
