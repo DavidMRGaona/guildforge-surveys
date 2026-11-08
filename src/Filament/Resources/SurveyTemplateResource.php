@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources;
 
+use App\Filament\Actions\RowDetailsAction;
 use App\Filament\Resources\BaseResource;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -117,6 +118,7 @@ final class SurveyTemplateResource extends BaseResource
                     ->wrapHeader(),
                 TextColumn::make('questions_count')
                     ->label(__('surveys::filament.fields.questions_count'))
+                    ->alignCenter()
                     ->state(static fn (SurveyTemplateModel $record): int => self::questionCount($record->definition))
                     ->visibleFrom('md')
                     ->wrapHeader(),
@@ -157,6 +159,7 @@ final class SurveyTemplateResource extends BaseResource
             ->recordActions([
                 // One menu: 3 labelled actions made the table overflow its container
                 ActionGroup::make([
+                    RowDetailsAction::make(),
                     Action::make('trends')
                         ->label(__('surveys::filament.trends.action'))
                         ->icon('heroicon-o-chart-bar')

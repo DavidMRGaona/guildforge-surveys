@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modules\Surveys\Filament\Widgets;
 
 use App\Application\Services\DashboardWidgetConfigServiceInterface;
+use App\Filament\Actions\RowDetailsAction;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -58,10 +60,13 @@ final class PendingSurveyReviewsWidget extends BaseWidget
                     ->wrapHeader(),
             ])
             ->recordActions([
-                Action::make('review')
-                    ->label(__('surveys::filament.widgets.pending_reviews.review'))
-                    ->icon('heroicon-o-eye')
-                    ->url(static fn (SurveyModel $record): string => SurveyResource::getUrl('view', ['record' => $record])),
+                ActionGroup::make([
+                    RowDetailsAction::make(),
+                    Action::make('review')
+                        ->label(__('surveys::filament.widgets.pending_reviews.review'))
+                        ->icon('heroicon-o-eye')
+                        ->url(static fn (SurveyModel $record): string => SurveyResource::getUrl('view', ['record' => $record])),
+                ]),
             ])
             ->paginated([$this->limit()])
             ->defaultPaginationPageOption($this->limit());
