@@ -30,7 +30,7 @@ Puedes cambiarlas o borrarlas: una plantilla que hayas cambiado nunca se pisa, y
 
 ## Crear una plantilla
 
-1. En el menú lateral, abre **Encuestas** y elige **Plantillas**.
+1. En el menú lateral, abre **Comunicación** → **Encuestas** y elige **Plantillas**.
 2. Pulsa **Crear plantilla**.
 3. Escribe el **Nombre** y, si quieres, la **Descripción**.
 4. En **Para**, marca para qué encuestas sirve: encuestas generales o uno o varios tipos de actividad. Sin marcar, sirve para cualquiera. Los selectores de plantilla ofrecen primero las que son para cada caso y el resto debajo, en **Otras**.

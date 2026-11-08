@@ -11,6 +11,7 @@ use App\Application\Surveys\Contracts\SurveySubjectAttributeValuesInterface;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
 use App\Application\Surveys\Services\SurveySubjectSourceRegistryInterface;
 use App\Domain\Modules\ValueObjects\ModuleName;
+use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Concerns\ChecksPermissions;
 use App\Filament\Concerns\HasKnowledgeGuideAction;
 use App\Filament\Concerns\SafeModuleNavigation;
@@ -51,7 +52,9 @@ final class SurveySettingsPage extends Page implements HasForms
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static ?int $navigationSort = 99;
+    protected static ?string $cluster = SettingsCluster::class;
+
+    protected static ?int $navigationSort = 120;
 
     protected static ?string $slug = 'surveys-settings';
 
@@ -62,14 +65,9 @@ final class SurveySettingsPage extends Page implements HasForms
      */
     public ?array $data = [];
 
-    public static function getNavigationGroup(): string
-    {
-        return __('surveys::filament.navigation_group');
-    }
-
     public static function getNavigationLabel(): string
     {
-        return __('surveys::messages.settings.title');
+        return __('surveys::messages.settings.navigation');
     }
 
     public function getTitle(): string

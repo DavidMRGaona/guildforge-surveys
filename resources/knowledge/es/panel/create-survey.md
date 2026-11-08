@@ -23,7 +23,7 @@ Piensa tres cosas:
 
 ## Crear la encuesta
 
-1. En el menú lateral, abre **Encuestas** y elige **Encuestas**.
+1. En el menú lateral, abre **Comunicación** y elige **Encuestas**.
 2. Pulsa **Crear encuesta**.
 3. Si quieres, elige en **Partir de una plantilla**. Se copian sus preguntas y después puedes cambiarlas.
 4. Escribe el **Título** y, si quieres, la **Descripción**. Los dos se ven al responder y en los correos.
