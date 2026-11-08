@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Tests\Feature\Filament;
 
+use App\Filament\Actions\RowDetailsAction;
 use Filament\Actions\ActionGroup;
+use Filament\Support\Enums\Alignment;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -62,12 +64,35 @@ final class PanelTablesFitTest extends ModuleTestCase
         $this->assertInstanceOf(ActionGroup::class, $actions[0]);
     }
 
-    public function test_the_review_widget_keeps_its_single_action(): void
+    public function test_the_review_widget_groups_row_details_with_its_review_link(): void
     {
         $actions = $this->tableOf(PendingSurveyReviewsWidget::class)->getRecordActions();
 
         $this->assertCount(1, $actions);
-        $this->assertNotInstanceOf(ActionGroup::class, $actions[0]);
+        $this->assertInstanceOf(ActionGroup::class, $actions[0]);
+        $this->assertSame([RowDetailsAction::NAME, 'review'], array_keys($actions[0]->getFlatActions()));
+    }
+
+    /**
+     * «Ver detalles» (core#399) opens the menu of every table that hides columns.
+     *
+     * @param  class-string<HasTable>  $page
+     */
+    #[DataProvider('tablesWithSeveralActions')]
+    public function test_row_details_is_first_in_the_menu(string $page): void
+    {
+        $table = $this->tableOf($page);
+        $group = $table->getRecordActions()[0];
+
+        $this->assertInstanceOf(ActionGroup::class, $group);
+        $this->assertSame(RowDetailsAction::NAME, array_key_first($group->getFlatActions()));
+        $this->assertNotNull($table->getAction(RowDetailsAction::NAME));
+    }
+
+    public function test_counters_are_centred(): void
+    {
+        $this->assertSame(Alignment::Center, $this->tableOf(ListSurveys::class)->getColumn('responses_count')?->getAlignment());
+        $this->assertSame(Alignment::Center, $this->tableOf(ListSurveyTemplates::class)->getColumn('questions_count')?->getAlignment());
     }
 
     /**

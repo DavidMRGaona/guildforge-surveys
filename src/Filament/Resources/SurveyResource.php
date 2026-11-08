@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Filament\Resources;
 
+use App\Filament\Actions\RowDetailsAction;
 use App\Filament\Resources\BaseResource;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use BackedEnum;
@@ -256,6 +257,7 @@ final class SurveyResource extends BaseResource
                     ->wrapHeader(),
                 TextColumn::make('responses_count')
                     ->label(__('surveys::filament.survey.fields.responses'))
+                    ->alignCenter()
                     ->numeric()
                     ->visibleFrom('sm')
                     ->wrapHeader(),
@@ -282,6 +284,7 @@ final class SurveyResource extends BaseResource
             ->recordActions([
                 // One menu: 10 labelled actions made the table overflow its container
                 ActionGroup::make([
+                    RowDetailsAction::make(),
                     // Moderators without surveys.manage read the survey they review here
                     ViewAction::make()->visible(static fn (SurveyModel $record): bool => auth()->user()?->can('update', $record) !== true),
                     EditAction::make(),
