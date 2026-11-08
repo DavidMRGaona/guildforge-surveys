@@ -46,18 +46,18 @@ Mientras la encuesta admite respuestas, su ficha muestra el **Enlace para compar
 
 ## Abrir
 
-1. Revisa la encuesta y pulsa **Abrir**.
+1. Revisa la encuesta y pulsa **Abrir**, en su ficha o en el menú **⋯** de la lista.
 2. Confirma. La encuesta pasa a **Abiertas** y se envía el correo a su audiencia.
 
 Una encuesta general (sin mesa, torneo ni evento) también puede anunciarse en los canales de mensajería de la asociación con **Anunciar en los canales**, si tu web tiene instalado el módulo de notificaciones a canales. Se marca mientras es un borrador y solo se anuncia la primera apertura.
 
 ## Cerrar
 
-La encuesta se cierra sola en su fecha de **Cierre**. Para cerrarla antes, pulsa **Cerrar** y confirma. Una encuesta cerrada no se puede volver a abrir; si hace falta, duplícala.
+La encuesta se cierra sola en su fecha de **Cierre**. Para cerrarla antes, pulsa **Cerrar** (en su ficha o en el menú **⋯** de la lista) y confirma. Una encuesta cerrada no se puede volver a abrir; si hace falta, duplícala.
 
 ## Encontrar, repetir y borrar
 
-- La lista se agrupa en **Abiertas**, **Pendientes de revisión**, **Borradores**, **Cerradas** y **Todas**. La columna **De** dice de qué mesa, torneo o evento es cada una, o **General**.
+- La lista se agrupa en **Abiertas**, **Pendientes de revisión**, **Borradores**, **Cerradas** y **Todas**. La columna **De** dice de qué mesa, torneo o evento es cada una, o **General**. En una pantalla estrecha ves solo el **Título** y el **Estado**: el resto de columnas aparecen según el ancho. Las acciones de cada encuesta están en su menú **⋯**, entre ellas las tres siguientes.
 - **Duplicar** crea un borrador con las mismas preguntas y ajustes, sin respuestas, sin audiencia fijada y con un enlace público nuevo. Una encuesta de una actividad se copia para la misma actividad.
 - **Guardar como plantilla** crea una plantilla con sus preguntas: escribe el nombre y pulsa **Crear plantilla**.
 - **Borrar** elimina la encuesta, todas sus respuestas y sus archivos: marca la casilla para confirmarlo.

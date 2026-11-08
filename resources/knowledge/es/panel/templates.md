@@ -55,7 +55,7 @@ Desde una encuesta, **Guardar como plantilla** crea una plantilla con sus pregun
 - Al crear una encuesta, en **Partir de una plantilla**.
 - En **Ajustes de encuestas**, como encuesta al terminar de cada tipo de actividad y de cada sistema de juego.
 - En el campo **Encuesta al terminar** del formulario de cada actividad.
-- En **Tendencias**: la acción **Tendencias** de la lista abre las de esa plantilla.
+- En **Tendencias**: la acción **Tendencias** del menú **⋯** de cada plantilla de la lista abre las de esa plantilla. En una pantalla estrecha la lista muestra solo el **Nombre**: el resto de columnas aparecen según el ancho.
 
 Si borras una plantilla, las encuestas hechas con ella no cambian, y las actividades que la tenían elegida usan la plantilla por defecto.
 

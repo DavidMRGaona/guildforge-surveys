@@ -7,6 +7,7 @@ namespace Modules\Surveys\Filament\Resources;
 use App\Filament\Resources\BaseResource;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use BackedEnum;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
@@ -206,7 +207,9 @@ final class SurveyResource extends BaseResource
                 TextColumn::make('title')
                     ->label(__('surveys::filament.survey.fields.title'))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->wrapHeader(),
                 // From the snapshot, so it outlives the subject and the module that offered it
                 TextColumn::make('subject')
                     ->label(__('surveys::filament.survey.fields.subject'))
@@ -214,11 +217,15 @@ final class SurveyResource extends BaseResource
                         ? $record->subject_snapshot['title']
                         : SubjectTypeOptions::label(TemplateUses::GENERAL))
                     ->description(static fn (SurveyModel $record): ?string => $record->subject_type === null ? null : SubjectTypeOptions::label($record->subject_type))
-                    ->searchable(query: static fn (Builder $query, string $search): Builder => $query->whereLike('subject_snapshot->title', "%{$search}%")),
+                    ->searchable(query: static fn (Builder $query, string $search): Builder => $query->whereLike('subject_snapshot->title', "%{$search}%"))
+                    ->visibleFrom('xl')
+                    ->wrapHeader(),
                 TextColumn::make('kind')
                     ->label(__('surveys::filament.fields.kind'))
                     ->badge()
-                    ->formatStateUsing(static fn (string $state): string => SurveyTemplateResource::kindOptions()[$state] ?? $state),
+                    ->formatStateUsing(static fn (string $state): string => SurveyTemplateResource::kindOptions()[$state] ?? $state)
+                    ->visibleFrom('md')
+                    ->wrapHeader(),
                 TextColumn::make('status')
                     ->label(__('surveys::filament.survey.fields.status'))
                     ->badge()
@@ -234,17 +241,24 @@ final class SurveyResource extends BaseResource
                         ? ($record->send_on_end
                             ? (string) __('surveys::filament.survey.awaiting_end_auto', ['hours' => $record->send_delay_hours])
                             : (string) __('surveys::filament.survey.awaiting_end_one_click'))
-                        : null),
+                        : null)
+                    ->wrapHeader(),
                 IconColumn::make('anonymous')
                     ->label(__('surveys::filament.survey.fields.anonymous'))
-                    ->boolean(),
+                    ->boolean()
+                    ->visibleFrom('2xl')
+                    ->wrapHeader(),
                 TextColumn::make('closes_at')
                     ->label(__('surveys::filament.survey.fields.closes_at'))
                     ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->visibleFrom('xl')
+                    ->wrapHeader(),
                 TextColumn::make('responses_count')
                     ->label(__('surveys::filament.survey.fields.responses'))
-                    ->numeric(),
+                    ->numeric()
+                    ->visibleFrom('sm')
+                    ->wrapHeader(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -266,17 +280,20 @@ final class SurveyResource extends BaseResource
                     ->options(SurveyTemplateResource::kindOptions()),
             ])
             ->recordActions([
-                // Moderators without surveys.manage read the survey they review here
-                ViewAction::make()->visible(static fn (SurveyModel $record): bool => auth()->user()?->can('update', $record) !== true),
-                EditAction::make(),
-                SurveyActions::approve(),
-                SurveyActions::reject(),
-                SurveyActions::results(),
-                SurveyActions::open(),
-                SurveyActions::close(),
-                SurveyActions::duplicate(),
-                SurveyActions::saveAsTemplate(),
-                SurveyActions::delete(),
+                // One menu: 10 labelled actions made the table overflow its container
+                ActionGroup::make([
+                    // Moderators without surveys.manage read the survey they review here
+                    ViewAction::make()->visible(static fn (SurveyModel $record): bool => auth()->user()?->can('update', $record) !== true),
+                    EditAction::make(),
+                    SurveyActions::approve(),
+                    SurveyActions::reject(),
+                    SurveyActions::results(),
+                    SurveyActions::open(),
+                    SurveyActions::close(),
+                    SurveyActions::duplicate(),
+                    SurveyActions::saveAsTemplate(),
+                    SurveyActions::delete(),
+                ]),
             ]);
     }
 

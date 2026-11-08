@@ -15,14 +15,14 @@ Si los ajustes piden revisión, las encuestas que los organizadores escriben o c
 
 ## Encontrar lo pendiente
 
-- En el escritorio, el widget **Encuestas pendientes de revisión** lista cada encuesta con quién la envió y cuándo. Pulsa **Revisar** para abrirla.
+- En el escritorio, el widget **Encuestas pendientes de revisión** lista cada encuesta con quién la envió y cuándo (en una pantalla estrecha, solo el título). Pulsa **Revisar** para abrirla.
 - En **Encuestas**, la pestaña **Pendientes de revisión** las reúne todas.
 
 ## Aprobar o rechazar
 
 1. Abre la encuesta y lee sus preguntas.
-2. Pulsa **Aprobar** si está bien. Si aún no se había enviado, sale ahora a su audiencia y sus días abierta cuentan desde este momento. Si ya estaba abierta, vuelve a admitir respuestas.
-3. Si hay que cambiar algo, pulsa **Rechazar**, explica en **Motivo del rechazo** qué hay que corregir y confirma. Vuelve a quien la organiza, que recibe el motivo por correo.
+2. Pulsa **Aprobar** (en la ficha o en el menú **⋯** de la lista) si está bien. Si aún no se había enviado, sale ahora a su audiencia y sus días abierta cuentan desde este momento. Si ya estaba abierta, vuelve a admitir respuestas.
+3. Si hay que cambiar algo, pulsa **Rechazar** (en el mismo sitio), explica en **Motivo del rechazo** qué hay que corregir y confirma. Vuelve a quien la organiza, que recibe el motivo por correo.
 
 ## Qué pasa por revisión
 

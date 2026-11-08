@@ -16,7 +16,7 @@ Los resultados muestran cuántas personas han respondido y qué ha contestado la
 ## Abrir los resultados
 
 1. En el menú lateral, abre **Encuestas** y elige **Encuestas**.
-2. Pulsa **Resultados** en la encuesta (también está en su ficha).
+2. Abre el menú **⋯** de la encuesta y pulsa **Resultados** (también está en su ficha).
 
 ## Qué hay en la página
 

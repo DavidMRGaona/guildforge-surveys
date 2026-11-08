@@ -7,6 +7,7 @@ namespace Modules\Surveys\Filament\Resources;
 use App\Filament\Resources\BaseResource;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
@@ -98,23 +99,33 @@ final class SurveyTemplateResource extends BaseResource
                 TextColumn::make('name')
                     ->label(__('surveys::filament.survey_template.fields.name'))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->wrapHeader(),
                 TextColumn::make('kind')
                     ->label(__('surveys::filament.fields.kind'))
                     ->badge()
-                    ->formatStateUsing(static fn (string $state): string => self::kindOptions()[$state] ?? $state),
+                    ->formatStateUsing(static fn (string $state): string => self::kindOptions()[$state] ?? $state)
+                    ->visibleFrom('sm')
+                    ->wrapHeader(),
                 TextColumn::make('uses')
                     ->label(__('surveys::filament.survey_template.fields.uses'))
                     ->badge()
                     ->state(static fn (SurveyTemplateModel $record): array => array_map(SubjectTypeOptions::label(...), $record->uses ?? []))
-                    ->placeholder(__('surveys::filament.survey_template.fields.uses_unspecified')),
+                    ->placeholder(__('surveys::filament.survey_template.fields.uses_unspecified'))
+                    ->visibleFrom('xl')
+                    ->wrapHeader(),
                 TextColumn::make('questions_count')
                     ->label(__('surveys::filament.fields.questions_count'))
-                    ->state(static fn (SurveyTemplateModel $record): int => self::questionCount($record->definition)),
+                    ->state(static fn (SurveyTemplateModel $record): int => self::questionCount($record->definition))
+                    ->visibleFrom('md')
+                    ->wrapHeader(),
                 TextColumn::make('updated_at')
                     ->label(__('surveys::filament.survey_template.fields.updated_at'))
                     ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->visibleFrom('xl')
+                    ->wrapHeader(),
             ])
             ->defaultSort('name')
             ->filters([
@@ -144,14 +155,17 @@ final class SurveyTemplateResource extends BaseResource
                     ),
             ])
             ->recordActions([
-                Action::make('trends')
-                    ->label(__('surveys::filament.trends.action'))
-                    ->icon('heroicon-o-chart-bar')
-                    ->color('gray')
-                    ->visible(static fn (): bool => SurveyTrendsPage::canAccess())
-                    ->url(static fn (SurveyTemplateModel $record): string => SurveyTrendsPage::getUrl(['template' => $record->getKey()])),
-                EditAction::make(),
-                DeleteAction::make(),
+                // One menu: 3 labelled actions made the table overflow its container
+                ActionGroup::make([
+                    Action::make('trends')
+                        ->label(__('surveys::filament.trends.action'))
+                        ->icon('heroicon-o-chart-bar')
+                        ->color('gray')
+                        ->visible(static fn (): bool => SurveyTrendsPage::canAccess())
+                        ->url(static fn (SurveyTemplateModel $record): string => SurveyTrendsPage::getUrl(['template' => $record->getKey()])),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ]);
     }
 
