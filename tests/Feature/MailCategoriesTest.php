@@ -62,7 +62,6 @@ final class MailCategoriesTest extends ModuleTestCase
             $this->assertTrue(is_subclass_of($class, HasMailCategory::class), "{$class} must implement HasMailCategory");
 
             $notification = (new ReflectionClass($class))->newInstanceWithoutConstructor();
-            $this->assertInstanceOf(HasMailCategory::class, $notification);
             $this->assertInstanceOf(MailCategoryDTO::class, $registry->find($notification->mailCategory()), "{$class} uses an unregistered category");
             $this->assertSame($notification->mailCategory(), $registry->forNotification($notification)?->key);
         }
