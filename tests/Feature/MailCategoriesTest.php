@@ -187,14 +187,14 @@ final class MailCategoriesTest extends ModuleTestCase
         $user = UserModel::factory()->create();
         $this->disable($user, $key);
 
-        $user->notify($this->bare($class));
+        $user->notify($this->complete($class));
 
         $this->assertSame([$class], $this->sent);
     }
 
     public function test_an_enabled_optional_category_is_sent(): void
     {
-        UserModel::factory()->create()->notify($this->bare(SurveyInvitation::class));
+        UserModel::factory()->create()->notify($this->complete(SurveyInvitation::class));
 
         $this->assertSame([SurveyInvitation::class], $this->sent);
     }
@@ -207,6 +207,25 @@ final class MailCategoriesTest extends ModuleTestCase
     private function bare(string $class): Notification
     {
         return (new ReflectionClass($class))->newInstanceWithoutConstructor();
+    }
+
+    /**
+     * A notification with real data, for the ones that must be rendered and sent.
+     *
+     * @param  class-string<Notification>  $class
+     */
+    private function complete(string $class): Notification
+    {
+        $url = 'https://example.test/encuestas';
+
+        return match ($class) {
+            AvailabilityDateChosen::class => new AvailabilityDateChosen('Encuesta', 'lunes 9', 'Sitio'),
+            SurveyReadyToSend::class => new SurveyReadyToSend('Partida', $url, 'Sitio'),
+            SurveyReviewRejected::class => new SurveyReviewRejected('Encuesta', 'Motivo', $url, 'Sitio'),
+            SurveyAccessLink::class => new SurveyAccessLink('Encuesta', $url, null, false, 'Sitio'),
+            SurveyInvitation::class => new SurveyInvitation('Encuesta', $url, null, false, false, 'Sitio'),
+            default => $this->bare($class),
+        };
     }
 
     private function disable(UserModel $user, string $key): void
