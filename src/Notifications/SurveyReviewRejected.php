@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Notifications;
 
+use App\Application\Mail\Contracts\HasMailCategory;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notification;
 /**
  * Tells the organizer who sent a survey to review that it was rejected, and why, so they can fix it.
  */
-final class SurveyReviewRejected extends Notification implements ShouldQueue
+final class SurveyReviewRejected extends Notification implements HasMailCategory, ShouldQueue
 {
     use Queueable;
 
@@ -23,6 +24,11 @@ final class SurveyReviewRejected extends Notification implements ShouldQueue
         public readonly string $url,
         public readonly string $siteName,
     ) {}
+
+    public function mailCategory(): string
+    {
+        return SurveyMailCategories::ORGANIZER_ACTIONS;
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array

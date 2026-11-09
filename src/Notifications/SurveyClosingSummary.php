@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Notifications;
 
+use App\Application\Mail\Contracts\HasMailCategory;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,7 +19,7 @@ use Modules\Surveys\Filament\Resources\SurveyResource;
  * anonymous survey below the minimum only says so. The link to the panel is built when the mail
  * is sent, where the panel is registered.
  */
-final class SurveyClosingSummary extends Notification implements ShouldQueue
+final class SurveyClosingSummary extends Notification implements HasMailCategory, ShouldQueue
 {
     use Queueable;
 
@@ -28,6 +29,11 @@ final class SurveyClosingSummary extends Notification implements ShouldQueue
         public readonly bool $inPanel,
         public readonly string $siteName,
     ) {}
+
+    public function mailCategory(): string
+    {
+        return SurveyMailCategories::RESULTS;
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array

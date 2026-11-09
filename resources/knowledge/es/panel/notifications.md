@@ -26,6 +26,22 @@ Las encuestas avisan por correo en cada paso importante. Esta tabla resume todos
 | **Resultados de la encuesta** | Quienes organizan y quien la creó (y, si los ajustes lo piden, quien puede ver resultados) | Al cerrarse, si tiene **Resumen por correo al cerrar** |
 | **Fecha elegida** | Quienes recibieron el sondeo de disponibilidad o lo respondieron con su cuenta | Al fijar la fecha |
 
+## Qué correos puede dejar de recibir cada persona
+
+Cada persona elige en la pestaña **Correos** de su perfil (sección **Encuestas**) qué correos optativos recibe, y cada correo trae un enlace para darse de baja de su categoría. Los ajustes de la encuesta y del módulo siguen mandando: si algo está apagado ahí, no sale aunque la persona lo tenga activado.
+
+| Categoría | Correos | ¿Se puede desactivar? |
+|---|---|---|
+| **Invitaciones y recordatorios** | Nueva encuesta y recordatorio | Sí |
+| **Resultados al cerrar** | Resumen de resultados | Sí |
+| **Fechas acordadas** | Fecha elegida | No: cambia los planes |
+| **Encuestas que organizo: acciones pendientes** | Enviar la encuesta, rechazo de la revisión | No: piden una acción |
+| **Encuestas que organizo: avisos** | Programada, aprobada y retirada | Sí |
+| **Encuestas pendientes de revisión** | Aviso a quien revisa (solo la ve quien puede revisar) | Sí |
+| **Enlace para responder** | Tu enlace personal | No: lo ha pedido la persona |
+
+Quien responde sin cuenta, con su enlace personal, sigue recibiéndolo siempre: no hay perfil donde elegir. Estas elecciones no se relacionan con ninguna respuesta, tampoco en las encuestas anónimas.
+
 ## El resumen al cerrar
 
 Lleva la tasa de respuesta, la opción más votada de cada pregunta de opciones, la media de cada escala y de cada valoración con estrellas, y cuántas preguntas más hay en los resultados completos, con el enlace para verlos. Nunca lleva texto libre. Respeta las preguntas ocultas y el mínimo de respuestas: si una encuesta anónima no llega al mínimo, el correo lo dice sin dar ninguna cifra.

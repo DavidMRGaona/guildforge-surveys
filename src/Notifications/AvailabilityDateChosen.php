@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Notifications;
 
+use App\Application\Mail\Contracts\HasMailCategory;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notification;
 /**
  * The date fixed for an availability survey, with a link to what it is about when there is one.
  */
-final class AvailabilityDateChosen extends Notification implements ShouldQueue
+final class AvailabilityDateChosen extends Notification implements HasMailCategory, ShouldQueue
 {
     use Queueable;
 
@@ -24,6 +25,11 @@ final class AvailabilityDateChosen extends Notification implements ShouldQueue
         public readonly ?string $subjectTitle = null,
         public readonly ?string $subjectUrl = null,
     ) {}
+
+    public function mailCategory(): string
+    {
+        return SurveyMailCategories::CHOSEN_DATE;
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array

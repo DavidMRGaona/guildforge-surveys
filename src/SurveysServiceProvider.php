@@ -6,6 +6,7 @@ namespace Modules\Surveys;
 
 use App\Application\Calendar\Contracts\CalendarEntrySourceInterface;
 use App\Application\Knowledge\Contracts\KnowledgeCapabilityInterface;
+use App\Application\Mail\DTOs\MailCategoryDTO;
 use App\Application\Modules\DTOs\ModuleRouteDTO;
 use App\Application\Modules\DTOs\NavigationItemDTO;
 use App\Application\Modules\DTOs\PagePrefixDTO;
@@ -79,6 +80,7 @@ use Modules\Surveys\Infrastructure\Services\SurveySettings;
 use Modules\Surveys\Infrastructure\Services\SurveySubjectLinks;
 use Modules\Surveys\Listeners\OfferSurveyWhenSubjectEnds;
 use Modules\Surveys\Listeners\WithdrawSurveysWhenSubjectIsCancelled;
+use Modules\Surveys\Notifications\SurveyMailCategories;
 use Modules\Surveys\Policies\SurveyPolicy;
 use Modules\Surveys\Policies\SurveyTemplatePolicy;
 
@@ -355,6 +357,16 @@ final class SurveysServiceProvider extends ModuleServiceProvider
             ),
             ['manage', 'view_results', 'moderate'],
         );
+    }
+
+    /**
+     * The categories of the module's mail, shown in each person's profile (Correos).
+     *
+     * @return list<MailCategoryDTO>
+     */
+    public function registerMailCategories(): array
+    {
+        return SurveyMailCategories::all();
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Notifications;
 
+use App\Application\Mail\Contracts\HasMailCategory;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,7 +15,7 @@ use Illuminate\Notifications\Notification;
  * Tells a subject's organizers that its survey will not go out: the subject was cancelled
  * before it ended.
  */
-final class SurveyWithdrawnWithSubject extends Notification implements ShouldQueue
+final class SurveyWithdrawnWithSubject extends Notification implements HasMailCategory, ShouldQueue
 {
     use Queueable;
 
@@ -23,6 +24,11 @@ final class SurveyWithdrawnWithSubject extends Notification implements ShouldQue
         public readonly string $surveyTitle,
         public readonly string $siteName,
     ) {}
+
+    public function mailCategory(): string
+    {
+        return SurveyMailCategories::ORGANIZER_NOTICES;
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array
