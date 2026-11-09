@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Notifications;
 
+use App\Application\Mail\Contracts\HasMailCategory;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -16,7 +17,7 @@ use Illuminate\Notifications\Notification;
  * Accounts get the survey page; guests get their own single-use link. The queued job is
  * encrypted: a guest's link and address never sit in clear in the queue or failed jobs.
  */
-final class SurveyInvitation extends Notification implements ShouldBeEncrypted, ShouldQueue
+final class SurveyInvitation extends Notification implements HasMailCategory, ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
@@ -28,6 +29,11 @@ final class SurveyInvitation extends Notification implements ShouldBeEncrypted, 
         public readonly bool $reminder,
         public readonly string $siteName,
     ) {}
+
+    public function mailCategory(): string
+    {
+        return SurveyMailCategories::INVITATIONS;
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array

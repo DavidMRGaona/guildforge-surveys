@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Notifications;
 
+use App\Application\Mail\Contracts\HasMailCategory;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,7 +15,7 @@ use Illuminate\Notifications\Notification;
  * Tells an organizer when their subject's survey will go out by itself, so they can look at it,
  * send it now or choose not to send it before then.
  */
-final class SurveyScheduled extends Notification implements ShouldQueue
+final class SurveyScheduled extends Notification implements HasMailCategory, ShouldQueue
 {
     use Queueable;
 
@@ -24,6 +25,11 @@ final class SurveyScheduled extends Notification implements ShouldQueue
         public readonly string $url,
         public readonly string $siteName,
     ) {}
+
+    public function mailCategory(): string
+    {
+        return SurveyMailCategories::ORGANIZER_NOTICES;
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array

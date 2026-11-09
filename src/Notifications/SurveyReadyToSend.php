@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys\Notifications;
 
+use App\Application\Mail\Contracts\HasMailCategory;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notification;
 /**
  * Tells an organizer that their subject ended and its survey waits for them to send it.
  */
-final class SurveyReadyToSend extends Notification implements ShouldQueue
+final class SurveyReadyToSend extends Notification implements HasMailCategory, ShouldQueue
 {
     use Queueable;
 
@@ -22,6 +23,11 @@ final class SurveyReadyToSend extends Notification implements ShouldQueue
         public readonly string $url,
         public readonly string $siteName,
     ) {}
+
+    public function mailCategory(): string
+    {
+        return SurveyMailCategories::ORGANIZER_ACTIONS;
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array
