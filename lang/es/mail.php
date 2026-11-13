@@ -38,4 +38,8 @@ return [
             'reason' => 'Lo has pedido tú.',
         ],
     ],
+
+    'subjects' => [
+        'survey' => 'Encuesta',
+    ],
 ];

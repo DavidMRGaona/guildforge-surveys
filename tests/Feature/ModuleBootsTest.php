@@ -22,12 +22,12 @@ final class ModuleBootsTest extends ModuleTestCase
         $this->assertNotNull($this->app->getProvider(SurveysServiceProvider::class));
     }
 
-    public function test_manifest_requires_the_core_with_the_mail_categories(): void
+    public function test_manifest_requires_the_core_with_the_site_notifications(): void
     {
         /** @var array{requires: array{core: string}, storesUtc: bool} $manifest */
         $manifest = json_decode((string) file_get_contents(__DIR__.'/../../module.json'), true, flags: JSON_THROW_ON_ERROR);
 
-        $this->assertSame('^3.47', $manifest['requires']['core']);
+        $this->assertSame('^3.58', $manifest['requires']['core']);
         $this->assertTrue($manifest['storesUtc']);
     }
 }

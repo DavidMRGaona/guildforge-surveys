@@ -12,6 +12,7 @@ Las encuestas de {{site_name}} te piden tu opinión sobre una partida, un torneo
 
 ## Dónde encontrarlas
 
+- **En la campana**: si tienes cuenta, el mismo aviso sale en la campana de la web, con un enlace a la encuesta. Desaparece si la encuesta se cierra o ya la has respondido. Lo activas o desactivas, igual que el correo, en la pestaña **Correos** de tu perfil.
 - **Por correo**: cuando se abre una encuesta para ti, te llega un correo con el enlace. Si no la respondes, puede llegarte un recordatorio antes de que cierre. Puedes dejar de recibir estos correos en la pestaña **Correos** de tu perfil o con el enlace de baja del propio correo.
 - **En tu perfil**: abre la pestaña **Encuestas**. En **Encuestas pendientes** están las que te quedan por responder, con **Cierra pronto** en las que están a punto de cerrar.
 - **En la ficha de la actividad**: después de una mesa, una campaña, un torneo o un evento en el que has participado, su página muestra el bloque **Encuestas** con **Responder «…»** mientras puedas responder y **Resultados de «…»** cuando la encuesta comparte sus resultados.

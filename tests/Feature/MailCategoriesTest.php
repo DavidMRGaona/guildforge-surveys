@@ -46,8 +46,11 @@ final class MailCategoriesTest extends ModuleTestCase
     {
         parent::setUp();
 
+        // The mail filter is what these tests look at: the site channel has its own tests
         Event::listen(NotificationSent::class, function (NotificationSent $event): void {
-            $this->sent[] = $event->notification::class;
+            if ($event->channel === 'mail') {
+                $this->sent[] = $event->notification::class;
+            }
         });
     }
 

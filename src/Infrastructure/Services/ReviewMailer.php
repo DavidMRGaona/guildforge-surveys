@@ -39,7 +39,7 @@ final readonly class ReviewMailer implements ReviewNotifierInterface
 
     public function approved(Survey $survey): void
     {
-        $this->toSender($survey, new SurveyReviewApproved($survey->title(), $this->url($survey), $this->branding->siteName()));
+        $this->toSender($survey, new SurveyReviewApproved($survey->title(), $this->url($survey), $this->branding->siteName(), $survey->id()->value));
     }
 
     public function rejected(Survey $survey): void
@@ -49,6 +49,7 @@ final readonly class ReviewMailer implements ReviewNotifierInterface
             (string) $survey->rejectionReason(),
             $this->url($survey),
             $this->branding->siteName(),
+            $survey->id()->value,
         ));
     }
 

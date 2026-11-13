@@ -98,7 +98,7 @@ final readonly class SurveyInvitationSender implements SurveyNotifierInterface
                     continue;
                 }
 
-                $mail = new SurveyInvitation($survey->title(), $url, $closesAt, $survey->isAnonymous(), $reminder, $siteName);
+                $mail = new SurveyInvitation($survey->title(), $url, $closesAt, $survey->isAnonymous(), $reminder, $siteName, $survey->id()->value);
 
                 if ($recipient->user_id !== null) {
                     $user = UserModel::query()->whereKey($recipient->user_id)->whereNull('anonymized_at')->first();

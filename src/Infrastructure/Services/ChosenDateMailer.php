@@ -45,6 +45,7 @@ final readonly class ChosenDateMailer implements ChosenDateNotifierInterface
             siteName: $this->branding->siteName(),
             subjectTitle: $survey->subject()?->title,
             subjectUrl: $survey->subject()?->url,
+            surveyId: $id,
         );
 
         UserModel::query()
