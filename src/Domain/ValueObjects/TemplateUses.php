@@ -14,7 +14,7 @@ final readonly class TemplateUses
 {
     public const string GENERAL = 'general';
 
-    private const string PATTERN = '/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/';
+    private const string PATTERN = '/^[a-z][a-z0-9]*(-[a-z0-9]+)*\z/';
 
     /** @var list<string> */
     public array $values;

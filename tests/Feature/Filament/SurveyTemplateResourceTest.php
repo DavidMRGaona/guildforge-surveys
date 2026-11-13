@@ -90,6 +90,29 @@ final class SurveyTemplateResourceTest extends ModuleTestCase
         $this->assertSame(0, SurveyTemplateModel::query()->count());
     }
 
+    public function test_a_question_key_with_a_trailing_newline_is_refused(): void
+    {
+        $this->actingAsPanelAdmin();
+        $sections = DefinitionFormState::fromDefinition($this->definition());
+        $path = null;
+        foreach ($sections as $sectionKey => $section) {
+            foreach ($section['questions'] as $questionKey => $question) {
+                if (($question['data']['key'] ?? null) === 'fun') {
+                    $sections[$sectionKey]['questions'][$questionKey]['data']['key'] = "fun\n";
+                    $path = "sections.{$sectionKey}.questions.{$questionKey}.data.key";
+                }
+            }
+        }
+        $this->assertNotNull($path);
+
+        Livewire::test(CreateSurveyTemplate::class)
+            ->fillForm(['name' => 'Con clave rota', 'kind' => 'form', 'sections' => $sections])
+            ->call('create')
+            ->assertHasFormErrors([$path => 'regex']);
+
+        $this->assertSame(0, SurveyTemplateModel::query()->count());
+    }
+
     public function test_a_ranking_takes_up_to_ten_options_and_no_other(): void
     {
         $this->actingAsPanelAdmin();

@@ -106,6 +106,19 @@ final class SubmissionValidatorTest extends TestCase
         yield 'paragraph too long' => [['q-paragraph' => str_repeat('a', 5001)], 'q-paragraph', 'too_long'];
     }
 
+    public function test_a_time_with_a_trailing_newline_is_invalid(): void
+    {
+        $submission = Submission::fromInput($this->definition(), $this->validInput());
+        $values = array_map(
+            static fn (AnswerValue $value): AnswerValue => $value->questionId === 'q-time' ? new AnswerValue('q-time', text: "18:30\n") : $value,
+            $submission->values,
+        );
+
+        $errors = (new SubmissionValidator)->validate($this->definition(), new Submission($values));
+
+        $this->assertSame('invalid_time', $errors['q-time'] ?? null);
+    }
+
     public function test_optional_questions_may_stay_empty(): void
     {
         $data = SurveyDefinitionTest::everyTypeDefinition();

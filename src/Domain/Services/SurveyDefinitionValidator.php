@@ -28,7 +28,7 @@ use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
  */
 final class SurveyDefinitionValidator
 {
-    private const string KEY_PATTERN = '/^[a-z][a-z0-9_]*$/';
+    private const string KEY_PATTERN = '/^[a-z][a-z0-9_]*\z/';
 
     private const array SCALE_MINIMUMS = [0, 1];
 

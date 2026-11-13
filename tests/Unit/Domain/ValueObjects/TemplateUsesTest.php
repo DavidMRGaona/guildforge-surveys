@@ -29,4 +29,11 @@ final class TemplateUsesTest extends TestCase
 
         new TemplateUses(['Game Table']);
     }
+
+    public function test_a_use_with_a_trailing_newline_is_refused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new TemplateUses(["game-table\n"]);
+    }
 }
