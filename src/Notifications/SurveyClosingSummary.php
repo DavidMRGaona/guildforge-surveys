@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Modules\Surveys\Notifications;
 
 use App\Application\Mail\Contracts\HasMailCategory;
+use App\Application\Mail\Contracts\HasMailSubject;
+use App\Application\Mail\DTOs\MailSubjectDTO;
+use App\Application\SiteNotifications\Contracts\HasSiteNotification;
+use App\Application\SiteNotifications\DTOs\SiteNotificationDTO;
 use App\Notifications\Support\EscapesMarkdown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +23,7 @@ use Modules\Surveys\Filament\Resources\SurveyResource;
  * anonymous survey below the minimum only says so. The link to the panel is built when the mail
  * is sent, where the panel is registered.
  */
-final class SurveyClosingSummary extends Notification implements HasMailCategory, ShouldQueue
+final class SurveyClosingSummary extends Notification implements HasMailCategory, HasMailSubject, HasSiteNotification, ShouldQueue
 {
     use Queueable;
 
@@ -38,14 +42,34 @@ final class SurveyClosingSummary extends Notification implements HasMailCategory
     /** @return array<int, string> */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', HasSiteNotification::CHANNEL];
     }
 
-    public function url(): string
+    public function url(bool $absolute = true): string
     {
         return $this->inPanel
-            ? SurveyResource::getUrl('results', ['record' => $this->surveyId])
-            : route('surveys.manage.results', $this->surveyId);
+            ? SurveyResource::getUrl('results', ['record' => $this->surveyId], isAbsolute: $absolute)
+            : route('surveys.manage.results', $this->surveyId, $absolute);
+    }
+
+    public function mailSubject(): ?MailSubjectDTO
+    {
+        return SurveyMailSubjects::survey($this->surveyId, $this->summary->surveyTitle);
+    }
+
+    public function toSiteNotification(object $notifiable): ?SiteNotificationDTO
+    {
+        $path = SiteNoticePath::of($this->url(false));
+        if ($path === null) {
+            return null;
+        }
+
+        return new SiteNotificationDTO(
+            title: __('surveys::notices.results', ['title' => $this->summary->surveyTitle]),
+            url: $path,
+            body: $this->summary->visible ? $this->responsesLine() : __('surveys::emails.closing_summary.below_minimum'),
+            icon: 'chart-bar',
+        );
     }
 
     public function toMail(object $notifiable): MailMessage

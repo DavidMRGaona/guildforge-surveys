@@ -37,7 +37,7 @@ final readonly class OrganizerMailer implements OrganizerNotifierInterface
             return;
         }
 
-        $this->mail($survey, new SurveyReadyToSend($subject->title, $this->url($subject), $this->branding->siteName()));
+        $this->mail($survey, new SurveyReadyToSend($subject->title, $this->url($subject), $this->branding->siteName(), $survey->id()->value));
     }
 
     public function scheduled(Survey $survey): void
@@ -48,7 +48,7 @@ final readonly class OrganizerMailer implements OrganizerNotifierInterface
             return;
         }
 
-        $this->mail($survey, new SurveyScheduled($subject->title, $this->timezone->format($sendsAt), $this->url($subject), $this->branding->siteName()));
+        $this->mail($survey, new SurveyScheduled($subject->title, $this->timezone->format($sendsAt), $this->url($subject), $this->branding->siteName(), $survey->id()->value));
     }
 
     public function withdrawn(Survey $survey): void
@@ -58,7 +58,7 @@ final readonly class OrganizerMailer implements OrganizerNotifierInterface
             return;
         }
 
-        $this->mail($survey, new SurveyWithdrawnWithSubject($subject->title, $survey->title(), $this->branding->siteName()));
+        $this->mail($survey, new SurveyWithdrawnWithSubject($subject->title, $survey->title(), $this->branding->siteName(), $this->url($subject), $survey->id()->value));
     }
 
     private function mail(Survey $survey, BaseNotification $notification): void

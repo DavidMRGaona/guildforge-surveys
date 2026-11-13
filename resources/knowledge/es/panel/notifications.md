@@ -1,11 +1,11 @@
 ---
 id: surveys.panel.notifications
 title: Avisos y correos de las encuestas
-summary: Qué correos envían las encuestas, a quién y cuándo, desde la invitación hasta el resumen al cerrar.
+summary: Qué correos y avisos de la campana envían las encuestas, a quién y cuándo, desde la invitación hasta el resumen al cerrar.
 category: content
 audience: panel
 order: 68
-keywords: [correo, correos, email, aviso, avisos, notificación, invitación, recordatorio, resumen, resumen al cerrar, rechazo, aprobada, fecha elegida, anuncio, canales, no me llega]
+keywords: [correo, correos, email, campana, aviso, avisos, notificación, invitación, recordatorio, resumen, resumen al cerrar, rechazo, aprobada, fecha elegida, anuncio, canales, no me llega]
 related: [surveys.panel.open-share-close, surveys.panel.review, surveys.panel.settings]
 conditions:
   permissions:
@@ -41,6 +41,15 @@ Cada persona elige en la pestaña **Correos** de su perfil (sección **Encuestas
 | **Enlace para responder** | Tu enlace personal | No: lo ha pedido la persona |
 
 Quien responde sin cuenta, con su enlace personal, sigue recibiéndolo siempre: no hay perfil donde elegir. Estas elecciones no se relacionan con ninguna respuesta, tampoco en las encuestas anónimas.
+
+## Avisos en la campana
+
+Todos los correos de la tabla, salvo **Tu enlace para responder**, salen también como aviso en la campana de la web, solo para quien tiene cuenta. Quien responde sin cuenta o con una dirección suelta sigue recibiendo solo el correo con su enlace personal. Cada aviso lleva a la encuesta o a su gestión, nunca a un enlace con clave.
+
+- **Se comprueban al entregarlos**: el aviso de una invitación o un recordatorio no sale si la encuesta ya se cerró, si la persona ya no está en su público o si ya la respondió.
+- **Mismas categorías**: en la pestaña **Correos** del perfil cada categoría tiene un interruptor **En la web** y otro **Por correo**. Las obligatorias (fechas acordadas y acciones pendientes) se ven siempre, con su candado.
+- **Silenciar una encuesta**: el enlace de baja de un correo puede silenciar solo esa encuesta, y deja de avisar también en la campana.
+- **Al borrar una encuesta** desaparecen sus avisos y silencios.
 
 ## El resumen al cerrar
 

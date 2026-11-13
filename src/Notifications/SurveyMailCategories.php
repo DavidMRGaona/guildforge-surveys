@@ -59,9 +59,14 @@ final class SurveyMailCategories
             label: "surveys::mail.categories.{$name}.label",
             description: "surveys::mail.categories.{$name}.description",
             audience: $audience,
+            site: true,
         );
     }
 
+    /**
+     * The access link is the one category that stays mail only: it carries a single-use token
+     * and goes to people who may have no account.
+     */
     private static function mandatory(string $key, string $name): MailCategoryDTO
     {
         return MailCategoryDTO::mandatory(
@@ -70,6 +75,7 @@ final class SurveyMailCategories
             label: "surveys::mail.categories.{$name}.label",
             description: "surveys::mail.categories.{$name}.description",
             reason: "surveys::mail.categories.{$name}.reason",
+            site: $key !== self::ACCESS_LINK,
         );
     }
 }

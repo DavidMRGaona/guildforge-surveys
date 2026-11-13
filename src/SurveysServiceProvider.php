@@ -55,6 +55,7 @@ use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Widgets\PendingSurveyReviewsWidget;
 use Modules\Surveys\Infrastructure\Files\DeletesAnswerFilesWithSurvey;
 use Modules\Surveys\Infrastructure\Files\DiskAnswerFileStore;
+use Modules\Surveys\Infrastructure\Files\ForgetsNoticesWithSurvey;
 use Modules\Surveys\Infrastructure\Knowledge\HasTrendsCapability;
 use Modules\Surveys\Infrastructure\Knowledge\OrganizesSurveysCapability;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
@@ -139,6 +140,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     public function boot(): void
     {
         SurveyModel::observe(DeletesAnswerFilesWithSurvey::class);
+        SurveyModel::observe(ForgetsNoticesWithSurvey::class);
 
         parent::boot();
 
