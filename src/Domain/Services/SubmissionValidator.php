@@ -27,9 +27,9 @@ final class SubmissionValidator
 
     private const int PARAGRAPH_MAX = 5000;
 
-    private const string TIME_PATTERN = '/^([01]\d|2[0-3]):[0-5]\d$/';
+    private const string TIME_PATTERN = '/^([01]\d|2[0-3]):[0-5]\d\z/';
 
-    private const string FILE_ID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
+    private const string FILE_ID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/';
 
     /**
      * @return array<string, string>

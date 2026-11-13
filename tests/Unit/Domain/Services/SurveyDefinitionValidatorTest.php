@@ -54,6 +54,7 @@ final class SurveyDefinitionValidatorTest extends TestCase
         yield 'duplicate section id' => [static fn (array $d): array => self::setSection($d, 1, 'id', 's-1'), 'sections.1.id', 'duplicate_id'];
         yield 'empty title' => [static fn (array $d): array => self::set($d, [0, 1, 'title'], '  '), $q(0, 1).'.title', 'required_title'];
         yield 'bad key' => [static fn (array $d): array => self::set($d, [0, 0, 'key'], 'Nick Name'), $q(0, 0).'.key', 'invalid_key'];
+        yield 'key with a trailing newline' => [static fn (array $d): array => self::set($d, [0, 0, 'key'], "nickname\n"), $q(0, 0).'.key', 'invalid_key'];
         yield 'duplicate key' => [static fn (array $d): array => self::set($d, [1, 0, 'key'], 'nickname'), $q(1, 0).'.key', 'duplicate_key'];
         yield 'one option' => [static fn (array $d): array => self::set($d, [0, 2, 'options'], [['id' => 'o-1', 'label' => 'Uno']]), $q(0, 2).'.options', 'too_few_options'];
         yield 'empty option label' => [static fn (array $d): array => self::set($d, [0, 3, 'options'], [['id' => 'o-1', 'label' => ''], ['id' => 'o-2', 'label' => 'Dos']]), $q(0, 3).'.options.0.label', 'required_label'];

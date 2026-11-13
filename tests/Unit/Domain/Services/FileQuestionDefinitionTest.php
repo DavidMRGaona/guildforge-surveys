@@ -17,6 +17,7 @@ use Modules\Surveys\Domain\ValueObjects\Definition\DefinitionViolation;
 use Modules\Surveys\Domain\ValueObjects\Definition\FileSettings;
 use Modules\Surveys\Domain\ValueObjects\Definition\SurveyDefinition;
 use Modules\Surveys\Domain\ValueObjects\ResultsSettings;
+use Modules\Surveys\Domain\ValueObjects\Submission\AnswerValue;
 use Modules\Surveys\Domain\ValueObjects\Submission\Submission;
 use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -134,6 +135,14 @@ final class FileQuestionDefinitionTest extends TestCase
         $this->assertSame([], $validator->validate($definition, Submission::fromInput($definition, ['q-photo' => self::FILE_ID])));
         $this->assertSame(['q-photo' => 'invalid_file'], $validator->validate($definition, Submission::fromInput($definition, ['q-photo' => 'army.jpg'])));
         $this->assertSame(['q-photo' => 'required'], $validator->validate($definition, Submission::fromInput($definition, [])));
+    }
+
+    public function test_a_file_id_with_a_trailing_newline_is_invalid(): void
+    {
+        $definition = SurveyDefinition::fromArray(self::data());
+        $submission = new Submission([new AnswerValue('q-photo', text: self::FILE_ID."\n")]);
+
+        $this->assertSame(['q-photo' => 'invalid_file'], (new SubmissionValidator)->validate($definition, $submission));
     }
 
     private function survey(bool $anonymous): Survey

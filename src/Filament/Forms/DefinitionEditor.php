@@ -149,7 +149,7 @@ final class DefinitionEditor
                 TextInput::make('key')
                     ->label(__('surveys::filament.definition.key'))
                     ->helperText(__('surveys::filament.definition.key_help'))
-                    ->regex('/^[a-z][a-z0-9_]*$/')
+                    ->regex('/^[a-z][a-z0-9_]*\z/')
                     ->maxLength(64),
             ]);
         }
