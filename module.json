@@ -1,7 +1,7 @@
 {
   "name": "surveys",
   "displayName": "Encuestas",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "repository": "DavidMRGaona/guildforge-surveys",
   "namespace": "Modules\\Surveys",
   "provider": "SurveysServiceProvider",
