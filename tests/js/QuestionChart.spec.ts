@@ -99,6 +99,36 @@ describe('QuestionChart', () => {
         expect(wrapper.get('[role="img"]').attributes('aria-label')).toContain('¿Repetirías?');
     });
 
+    it('heads the numbers in view and fades the answers nobody chose', () => {
+        const wrapper = mount(QuestionChart, {
+            props: {
+                question: question({
+                    type: 'linear_scale',
+                    chartTypes: ['bar'],
+                    texts: [],
+                    answered: 2,
+                    buckets: [
+                        { key: '1', label: '1', count: 0, voters: [] },
+                        { key: '2', label: '2', count: 2, voters: [] },
+                    ],
+                }),
+                chartType: 'bar',
+            },
+        });
+
+        const head = wrapper.get('[data-testid="data-table"] thead');
+        expect(head.classes()).not.toContain('sr-only');
+        expect(head.findAll('th').map((cell) => cell.text())).toEqual([
+            'Respuesta',
+            'Respuestas',
+            'Porcentaje',
+        ]);
+
+        const rows = wrapper.findAll('[data-testid="data-table"] tbody tr');
+        expect(rows[0]?.classes()).toContain('text-base-muted');
+        expect(rows[1]?.classes()).not.toContain('text-base-muted');
+    });
+
     it('draws the points of a ranking best first, with each mean place in the table', () => {
         const wrapper = mount(QuestionChart, {
             props: {
