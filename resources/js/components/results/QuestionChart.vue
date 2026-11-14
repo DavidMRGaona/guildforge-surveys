@@ -417,19 +417,38 @@ onBeforeUnmount(() => {
                             question.title
                         }}
                     </caption>
-                    <thead class="sr-only">
-                        <tr>
-                            <th scope="col">{{ t('surveys.results.answer') }}</th>
-                            <th scope="col">{{ t('surveys.results.answers') }}</th>
-                            <th scope="col">{{ t('surveys.results.share') }}</th>
+                    <!-- Number columns as wide as their content, so each count sits next to its share
+                         and the label takes the rest: spread over the whole card, the eye lost the row -->
+                    <thead>
+                        <tr class="border-b border-line-strong">
+                            <th
+                                scope="col"
+                                class="pb-1.5 pr-3 text-left text-xs font-medium text-base-secondary"
+                            >
+                                {{ t('surveys.results.answer') }}
+                            </th>
+                            <th
+                                scope="col"
+                                class="w-px px-3 pb-1.5 text-right text-xs font-medium whitespace-nowrap text-base-secondary"
+                            >
+                                {{ t('surveys.results.answers') }}
+                            </th>
+                            <th
+                                scope="col"
+                                class="w-px pb-1.5 pl-3 text-right text-xs font-medium whitespace-nowrap text-base-secondary"
+                            >
+                                {{ t('surveys.results.share') }}
+                            </th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr v-for="(bucket, index) in question.buckets" :key="bucket.key">
-                            <th
-                                scope="row"
-                                class="py-1 pr-3 text-left font-normal text-base-primary"
-                            >
+                    <tbody class="divide-y divide-line">
+                        <!-- Answers nobody chose fade, so the ones that count stand out -->
+                        <tr
+                            v-for="(bucket, index) in question.buckets"
+                            :key="bucket.key"
+                            :class="bucket.count === 0 ? 'text-base-muted' : 'text-base-primary'"
+                        >
+                            <th scope="row" class="py-1.5 pr-3 text-left font-normal">
                                 {{ labels[index] }}
                                 <span
                                     v-if="bucket.voters.length > 0"
@@ -442,10 +461,13 @@ onBeforeUnmount(() => {
                                     }}
                                 </span>
                             </th>
-                            <td class="px-2 py-1 text-right tabular-nums text-base-primary">
+                            <td class="px-3 py-1.5 text-right tabular-nums">
                                 {{ bucket.count }}
                             </td>
-                            <td class="py-1 pl-2 text-right tabular-nums text-base-secondary">
+                            <td
+                                class="py-1.5 pl-3 text-right tabular-nums"
+                                :class="bucket.count === 0 ? '' : 'text-base-secondary'"
+                            >
                                 {{
                                     t('surveys.results.percent', {
                                         percent: percent(bucket.count, question.answered),
