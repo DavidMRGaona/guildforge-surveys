@@ -362,7 +362,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * The categories of the module's mail, shown in each person's profile (Correos).
+     * The categories of the module's mail, shown in each person's account settings (Avisos tab).
      *
      * @return list<MailCategoryDTO>
      */

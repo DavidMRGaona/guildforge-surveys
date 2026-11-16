@@ -28,7 +28,7 @@ Las encuestas avisan por correo en cada paso importante. Esta tabla resume todos
 
 ## Qué correos puede dejar de recibir cada persona
 
-Cada persona elige en la pestaña **Correos** de **Ajustes de la cuenta** (sección **Encuestas**) qué correos optativos recibe, y cada correo trae un enlace para darse de baja de su categoría. Los ajustes de la encuesta y del módulo siguen mandando: si algo está apagado ahí, no sale aunque la persona lo tenga activado.
+Cada persona elige en la pestaña **Avisos** de **Ajustes de la cuenta** (sección **Encuestas**) qué correos optativos recibe, y cada correo trae un enlace para darse de baja de su categoría. Los ajustes de la encuesta y del módulo siguen mandando: si algo está apagado ahí, no sale aunque la persona lo tenga activado.
 
 | Categoría | Correos | ¿Se puede desactivar? |
 |---|---|---|
@@ -47,7 +47,7 @@ Quien responde sin cuenta, con su enlace personal, sigue recibiéndolo siempre: 
 Todos los correos de la tabla, salvo **Tu enlace para responder**, salen también como aviso en la campana de la web, solo para quien tiene cuenta. Quien responde sin cuenta o con una dirección suelta sigue recibiendo solo el correo con su enlace personal. Cada aviso lleva a la encuesta o a su gestión, nunca a un enlace con clave.
 
 - **Se comprueban al entregarlos**: el aviso de una invitación o un recordatorio no sale si la encuesta ya se cerró, si la persona ya no está en su público o si ya la respondió.
-- **Mismas categorías**: en la pestaña **Correos** de **Ajustes de la cuenta** cada categoría tiene un interruptor **En la web** y otro **Por correo**. Las obligatorias (fechas acordadas y acciones pendientes) se ven siempre, con su candado.
+- **Mismas categorías**: en la pestaña **Avisos** de **Ajustes de la cuenta** cada categoría tiene un interruptor **En la web** y otro **Por correo**. Las obligatorias (fechas acordadas y acciones pendientes) se ven siempre, con su candado.
 - **Silenciar una encuesta**: el enlace de baja de un correo puede silenciar solo esa encuesta, y deja de avisar también en la campana.
 - **Al borrar una encuesta** desaparecen sus avisos y silencios.
 
