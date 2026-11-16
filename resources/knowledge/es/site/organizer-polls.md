@@ -15,7 +15,7 @@ Además de la encuesta al terminar, puedes preguntar a tu gente cuando quieras, 
 
 ## Crear un sondeo o una encuesta
 
-1. Abre la página **Encuestas de …** desde la ficha de la actividad o desde tu perfil.
+1. Abre la página **Encuestas de …** desde la ficha de la actividad o desde la pestaña **Encuestas** de **Ajustes de la cuenta**.
 2. En **Pregunta a tu gente**, elige:
    - **Nuevo sondeo**: una sola pregunta de opción única o de casillas.
    - **Nueva encuesta**: un formulario completo, desde cero.
