@@ -15,7 +15,7 @@ En cuanto una encuesta de lo que organizas sale, puedes ver sus resultados. Si h
 
 ## Ver los resultados
 
-1. En la página **Encuestas de …** o en tu perfil, pulsa **Resultados** en la encuesta.
+1. En la página **Encuestas de …** o en la pestaña **Encuestas** de **Ajustes de la cuenta**, pulsa **Resultados** en la encuesta.
 2. Arriba está la **Participación**: las **Respuestas** y la **Tasa de respuesta**.
 3. Debajo, cada pregunta tiene su gráfica y una tabla con los datos. Las respuestas de texto salen en una lista.
 
@@ -36,7 +36,7 @@ Las preguntas ocultas salen en **Preguntas ocultas**: desmárcalas y guarda para
 
 Las tendencias muestran cómo evoluciona cada pregunta de una plantilla en las encuestas de lo que has organizado.
 
-1. En tu perfil, pestaña **Encuestas**, pulsa **Ver las tendencias**.
+1. En **Ajustes de la cuenta**, pestaña **Encuestas**, pulsa **Ver las tendencias**.
 2. Elige la **Plantilla**.
 3. Si quieres, abre **Filtros** para acotar por **Tipo de sujeto**, **Sistema de juego** o fechas (**Desde** y **Hasta**).
 4. Elige cómo **Agrupar por** (**Mes**, **Trimestre** o **Año**) y si quieres **Comparar por** sistema de juego o tipo de sujeto.

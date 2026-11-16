@@ -15,7 +15,7 @@ Cuando termina algo que organizas (una mesa, una sesión de campaña, una campa�
 
 ## Dónde verla
 
-- En tu perfil, pestaña **Encuestas**, sección **De lo que organizas**.
+- En **Ajustes de la cuenta**, pestaña **Encuestas**, sección **De lo que organizas**.
 - En la ficha de la actividad, sección **Encuestas**, con el botón **Encuestas de la mesa** (o del evento, del torneo, de la sesión o de la campaña). Abre la página **Encuestas de …** con todas sus encuestas.
 
 Cada encuesta muestra su estado: **Pendiente de enviar**, **Programada**, **En revisión**, **Rechazada**, **Abierta** o **Cerrada**.
