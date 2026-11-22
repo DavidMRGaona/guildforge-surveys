@@ -16,8 +16,6 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-use Modules\Surveys\Application\Contracts\ResponseStoreInterface;
-use Modules\Surveys\Domain\ValueObjects\SurveyId;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
 
@@ -43,7 +41,6 @@ final readonly class ResponseActivitySource implements ActivitySourceInterface
     public function __construct(
         private CountedResponses $counted,
         private TimezoneServiceInterface $timezone,
-        private ResponseStoreInterface $responses,
     ) {}
 
     public function type(): string
@@ -100,9 +97,12 @@ final readonly class ResponseActivitySource implements ActivitySourceInterface
     }
 
     /**
-     * The module's own rule for who may know a survey exists: the page of a survey answers only
-     * whoever it was sent to, and the panel lists it for whoever manages or reads surveys. A
-     * response that does not count is never described, whoever asks.
+     * A response says that this person answered that survey, which the module never shows to the
+     * people a survey went to (not even who answered a form): so it is described only to the person
+     * who gave it (title and link to the survey) and to whoever may read the survey's results in the
+     * panel (the title), with the module's own rule for that. Nobody else, even with a role that
+     * manages surveys but cannot read their results, and a response that does not count is never
+     * described, whoever asks.
      */
     public function describe(array $subjectIds, ?Authenticatable $viewer): array
     {
@@ -115,31 +115,35 @@ final readonly class ResponseActivitySource implements ActivitySourceInterface
             return [];
         }
 
-        $surveyOf = $this->counted->responses()->whereIn('id', $ids)->pluck('survey_id', 'id')->all();
+        $responses = $this->counted->responses()->whereIn('id', $ids)->get(['id', 'survey_id', 'user_id']);
 
-        if ($surveyOf === []) {
+        if ($responses->isEmpty()) {
             return [];
         }
 
-        $surveys = SurveyModel::query()->whereIn('id', array_values(array_unique($surveyOf)))->get(['id', 'title'])->keyBy('id');
+        $surveys = SurveyModel::query()->whereIn('id', $responses->pluck('survey_id')->unique()->all())->get(['id', 'title'])->keyBy('id');
         $viewerId = (string) $viewer->getAuthIdentifier();
+        /** @var array<string, bool> $mayReadResults asked once per survey, however many responses it has */
+        $mayReadResults = [];
         $described = [];
 
-        foreach ($surveyOf as $responseId => $surveyId) {
-            $survey = $surveys->get($surveyId);
+        foreach ($responses as $response) {
+            $survey = $surveys->get($response->survey_id);
 
             if (! $survey instanceof SurveyModel) {
                 continue;
             }
 
-            $invited = $this->responses->isRecipient(SurveyId::fromString($survey->id), $viewerId);
+            if ((string) $response->user_id === $viewerId) {
+                $described[$response->id] = new ActivitySubjectDTO($response->id, $survey->title, route('surveys.respond', $survey->id, false));
 
-            if ($invited || Gate::forUser($viewer)->allows('view', $survey)) {
-                $described[(string) $responseId] = new ActivitySubjectDTO(
-                    (string) $responseId,
-                    $survey->title,
-                    $invited ? route('surveys.respond', $survey->id, false) : null,
-                );
+                continue;
+            }
+
+            $mayReadResults[$survey->id] ??= Gate::forUser($viewer)->allows('viewResults', $survey);
+
+            if ($mayReadResults[$survey->id]) {
+                $described[$response->id] = new ActivitySubjectDTO($response->id, $survey->title);
             }
         }
 

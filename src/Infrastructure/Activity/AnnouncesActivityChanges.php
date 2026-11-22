@@ -6,6 +6,7 @@ namespace Modules\Surveys\Infrastructure\Activity;
 
 use App\Application\Activity\Services\ActivityPublisherInterface;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Surveys\Infrastructure\Jobs\PublishResponseActivityJob;
@@ -58,7 +59,16 @@ final readonly class AnnouncesActivityChanges
     public function responseUpdated(SurveyResponseModel $response): void
     {
         $this->attempt('response updated', function () use ($response): void {
-            if ($response->wasChanged(['user_id', 'survey_id']) && ($response->user_id !== null || $response->getOriginal('user_id') !== null)) {
+            if (! $response->wasChanged(['user_id', 'survey_id'])) {
+                return;
+            }
+
+            // Only if it counted before or counts now: a response moved between surveys that never
+            // count has nothing to say
+            $before = $response->getOriginal('user_id') !== null && $this->surveyCounts((string) $response->getOriginal('survey_id'));
+            $now = $response->user_id !== null && $this->surveyCounts($response->survey_id);
+
+            if ($before || $now) {
                 $this->activity->recorded(ResponseActivitySource::TYPE, $response->id);
             }
         });
@@ -202,7 +212,13 @@ final readonly class AnnouncesActivityChanges
     private function announceInBatches(array $responseIds): void
     {
         foreach (array_chunk($responseIds, PublishResponseActivityJob::BATCH) as $batch) {
-            PublishResponseActivityJob::dispatch($batch)->afterCommit();
+            // Queued once the change commits, and guarded like the rest: a queue that is down
+            // must not turn a save that already happened into an error
+            DB::afterCommit(function () use ($batch): void {
+                $this->attempt('queue batch', static function () use ($batch): void {
+                    Bus::dispatch(new PublishResponseActivityJob($batch));
+                });
+            });
         }
     }
 

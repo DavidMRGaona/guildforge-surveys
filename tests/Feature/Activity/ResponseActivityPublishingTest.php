@@ -8,6 +8,9 @@ use App\Application\Activity\Services\ActivityPublisherInterface;
 use App\Application\Services\UserServiceInterface;
 use App\Domain\Activity\Events\ActivityRecorded;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use Illuminate\Bus\Dispatcher;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -223,6 +226,31 @@ final class ResponseActivityPublishingTest extends ModuleTestCase
         $this->assertSame([], $this->published());
     }
 
+    public function test_a_response_moved_between_surveys_says_something_only_if_either_one_counts(): void
+    {
+        $user = UserModel::factory()->create();
+        $counted = $this->activitySurvey();
+        $other = $this->activitySurvey();
+        $draft = $this->activitySurvey(['status' => 'draft']);
+        $roles = $this->activitySurvey(['audience_type' => 'roles']);
+        $response = $this->activityResponse($draft, $user);
+        $this->fakeActivityEvents();
+
+        $response->update(['survey_id' => $roles->id]);
+        $this->assertSame([], $this->published(), 'Neither survey counts.');
+
+        $response->update(['survey_id' => $counted->id]);
+        $this->assertSame([$response->id], $this->published(), 'It counts now.');
+
+        $this->fakeActivityEvents();
+        $response->update(['survey_id' => $roles->id]);
+        $this->assertSame([$response->id], $this->published(), 'It counted before.');
+
+        $this->fakeActivityEvents();
+        $response->update(['survey_id' => $other->id]);
+        $this->assertSame([$response->id], $this->published(), 'It counts again.');
+    }
+
     /**
      * Each case changes the survey from the one that counts, which holds two named responses and a
      * guest's: only what counted before or counts now is published, and never the guest's.
@@ -320,13 +348,14 @@ final class ResponseActivityPublishingTest extends ModuleTestCase
         $repository = $this->app->make(SurveyRepositoryInterface::class);
         $this->fakeActivityEvents();
 
+        $moderator = UserModel::factory()->create()->id;
         $survey = $repository->findOrFail($id);
-        $survey->submitForReview('moderator-1', now()->toDateTimeImmutable());
+        $survey->submitForReview($moderator, now()->toDateTimeImmutable());
         $repository->save($survey);
         $this->assertActivityPublishedTimes(self::TYPE, $responseId, 1);
 
         $survey = $repository->findOrFail($id);
-        $survey->approve('moderator-1', now()->toDateTimeImmutable());
+        $survey->approve($moderator, now()->toDateTimeImmutable());
         $repository->save($survey);
         $this->assertActivityPublishedTimes(self::TYPE, $responseId, 2);
     }
@@ -447,6 +476,26 @@ final class ResponseActivityPublishingTest extends ModuleTestCase
         $user->delete();
 
         $this->assertSame([], $this->published());
+    }
+
+    public function test_a_queue_that_is_down_never_costs_the_save_or_the_deletion(): void
+    {
+        $survey = $this->activitySurvey();
+        $this->namedResponses($survey);
+        Bus::swap(new class($this->app) extends Dispatcher
+        {
+            public function dispatch($command): never
+            {
+                throw new RuntimeException('The queue is down.');
+            }
+        });
+
+        // In a transaction of its own the batch is queued when it commits, outside the observer
+        DB::transaction(static fn () => $survey->update(['status' => 'pending_review']));
+        $this->assertSame('pending_review', SurveyModel::query()->whereKey($survey->id)->value('status'), 'The survey was saved.');
+
+        DB::transaction(static fn () => $survey->delete());
+        $this->assertFalse(SurveyModel::query()->whereKey($survey->id)->exists(), 'The survey was deleted.');
     }
 
     public function test_a_failure_while_publishing_never_costs_the_response(): void

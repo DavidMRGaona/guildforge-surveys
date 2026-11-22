@@ -461,17 +461,27 @@ final class Survey
     }
 
     /**
-     * Who the survey goes to is fixed when it opens.
+     * Who the survey goes to is fixed when it opens, and never changes once somebody answered:
+     * a survey that opened, took responses and went back to a draft (rejected in review) keeps
+     * the audience those people answered as, so old responses of one audience can never be read
+     * as the responses of another.
      *
      * @param  list<string>  $roles  only kept for AudienceType::Roles
      * @param  PublicLinkMode|null  $publicLinkMode  null keeps the current one
+     *
+     * @throws InvalidSurveyStateException
+     * @throws InvalidSurveyDefinitionException when the new audience does not allow what the survey asks (a file on an open link)
      */
-    public function changeAudience(AudienceType $type, array $roles, bool $publicLinkEnabled, ?PublicLinkMode $publicLinkMode = null): void
+    public function changeAudience(AudienceType $type, array $roles, bool $publicLinkEnabled, bool $hasResponses, ?PublicLinkMode $publicLinkMode = null): void
     {
         $roles = $type === AudienceType::Roles ? $roles : [];
         $publicLinkMode ??= $this->publicLinkMode;
         if ($type === $this->audienceType && $roles === $this->audienceRoles && $publicLinkEnabled === $this->publicLinkEnabled && $publicLinkMode === $this->publicLinkMode) {
             return;
+        }
+
+        if ($hasResponses) {
+            throw InvalidSurveyStateException::audienceLockedByResponses($this->id->value);
         }
 
         if ($this->status !== SurveyStatus::Draft) {

@@ -16,6 +16,7 @@ use App\Infrastructure\Persistence\Eloquent\Models\PermissionModel;
 use App\Infrastructure\Persistence\Eloquent\Models\RoleModel;
 use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Modules\Surveys\Domain\Exceptions\InvalidSurveyStateException;
@@ -393,62 +394,83 @@ final class ResponseActivitySourceTest extends ActivitySourceTestCase
         $this->assertSame($few, $count());
     }
 
-    public function test_describe_names_the_survey_and_links_its_page_for_whoever_was_asked_to_answer(): void
+    public function test_describe_gives_the_person_who_answered_the_title_and_the_link_to_the_survey(): void
     {
-        $viewer = UserModel::factory()->create();
+        $respondent = UserModel::factory()->create();
         $survey = $this->activitySurvey(['title' => 'Jornadas de otoño']);
-        $response = $this->activityResponse($survey, UserModel::factory()->create());
-        $this->invite($survey, $viewer);
+        $response = $this->activityResponse($survey, $respondent);
 
-        $described = $this->activitySource()->describe([$response->id], $viewer);
+        $described = $this->activitySource()->describe([$response->id], $respondent);
 
         $this->assertSame([$response->id], array_keys($described));
         $this->assertSame('Jornadas de otoño', $described[$response->id]->title);
         $this->assertSame('/encuestas/'.$survey->id, $described[$response->id]->url);
     }
 
-    public function test_describe_gives_nothing_to_a_guest_or_to_someone_outside_the_audience(): void
+    public function test_describe_never_tells_somebody_else_who_answered_even_when_they_were_asked_to_answer_too(): void
     {
         $survey = $this->activitySurvey();
         $response = $this->activityResponse($survey, UserModel::factory()->create());
+        $recipient = UserModel::factory()->create();
+        $this->invite($survey, $recipient);
+        $manager = $this->userWith(['surveys:surveys.manage', 'surveys:surveys.moderate']);
 
         $this->assertSame([], $this->activitySource()->describe([$response->id], null));
+        $this->assertSame([], $this->activitySource()->describe([$response->id], $recipient));
         $this->assertSame([], $this->activitySource()->describe([$response->id], UserModel::factory()->create()));
+        // Managing surveys is not reading their results
+        $this->assertSame([], $this->activitySource()->describe([$response->id], $manager));
     }
 
-    public function test_describe_gives_the_title_without_a_link_to_whoever_manages_surveys(): void
+    public function test_describe_gives_the_title_without_a_link_to_whoever_may_read_the_results(): void
     {
-        $manager = $this->userWith(['surveys:surveys.view_results']);
+        $reader = $this->userWith(['surveys:surveys.view_results']);
         $survey = $this->activitySurvey(['title' => 'Jornadas de otoño']);
         $response = $this->activityResponse($survey, UserModel::factory()->create());
 
-        $described = $this->activitySource()->describe([$response->id], $manager);
+        $described = $this->activitySource()->describe([$response->id], $reader);
 
         $this->assertSame('Jornadas de otoño', $described[$response->id]->title);
         $this->assertNull($described[$response->id]->url);
     }
 
-    public function test_describe_never_answers_for_a_response_that_does_not_count(): void
+    public function test_describe_asks_whether_the_results_may_be_read_once_per_survey(): void
     {
-        $viewer = UserModel::factory()->create();
-        $manager = $this->userWith(['surveys:surveys.manage']);
-        $survey = $this->activitySurvey(['anonymous' => true]);
-        $anonymous = $this->activityResponse($survey);
-        $restricted = $this->activityResponse($this->activitySurvey(['audience_type' => 'roles']), UserModel::factory()->create());
-        $this->invite($survey, $viewer);
+        $reader = $this->userWith(['surveys:surveys.view_results']);
+        $survey = $this->activitySurvey();
+        $ids = [];
+        foreach (range(1, 4) as $_) {
+            $ids[] = $this->activityResponse($survey, UserModel::factory()->create())->id;
+        }
+        $asked = 0;
+        Gate::after(function () use (&$asked): void {
+            $asked++;
+        });
 
-        $this->assertSame([], $this->activitySource()->describe([$anonymous->id, $restricted->id], $viewer));
-        $this->assertSame([], $this->activitySource()->describe([$anonymous->id, $restricted->id], $manager));
+        $described = $this->activitySource()->describe($ids, $reader);
+
+        $this->assertCount(4, $described);
+        $this->assertSame(1, $asked);
+    }
+
+    public function test_describe_never_answers_for_a_response_that_does_not_count_not_even_to_its_own_person(): void
+    {
+        $person = UserModel::factory()->create();
+        $reader = $this->userWith(['surveys:surveys.view_results']);
+        $anonymous = $this->activityResponse($this->activitySurvey(['anonymous' => true]));
+        $forced = $this->activityResponse($this->activitySurvey(['anonymous' => true]), $person);
+        $restricted = $this->activityResponse($this->activitySurvey(['audience_type' => 'roles']), $person);
+
+        $this->assertSame([], $this->activitySource()->describe([$anonymous->id, $forced->id, $restricted->id], $person));
+        $this->assertSame([], $this->activitySource()->describe([$anonymous->id, $forced->id, $restricted->id], $reader));
     }
 
     public function test_describe_reads_ids_in_lower_case_and_ignores_the_ones_that_are_not_uuids(): void
     {
-        $viewer = UserModel::factory()->create();
-        $survey = $this->activitySurvey();
-        $response = $this->activityResponse($survey, UserModel::factory()->create());
-        $this->invite($survey, $viewer);
+        $respondent = UserModel::factory()->create();
+        $response = $this->activityResponse($this->activitySurvey(), $respondent);
 
-        $described = $this->activitySource()->describe([strtoupper($response->id), 'nope'], $viewer);
+        $described = $this->activitySource()->describe([strtoupper($response->id), 'nope'], $respondent);
 
         $this->assertSame([$response->id], array_keys($described));
     }

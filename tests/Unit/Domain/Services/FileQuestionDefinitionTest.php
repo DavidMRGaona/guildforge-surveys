@@ -116,7 +116,7 @@ final class FileQuestionDefinitionTest extends TestCase
         }
 
         try {
-            $survey->changeAudience(AudienceType::AllUsers, [], true, PublicLinkMode::Open);
+            $survey->changeAudience(AudienceType::AllUsers, [], true, hasResponses: false, publicLinkMode: PublicLinkMode::Open);
             $this->fail('An open link takes no file.');
         } catch (InvalidSurveyDefinitionException $exception) {
             $this->assertSame('file_needs_verified_link', $exception->violations[0]->messageKey);
