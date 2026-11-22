@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Surveys;
 
+use App\Application\Activity\Contracts\ActivitySourceInterface;
 use App\Application\Calendar\Contracts\CalendarEntrySourceInterface;
 use App\Application\Knowledge\Contracts\KnowledgeCapabilityInterface;
 use App\Application\Mail\DTOs\MailCategoryDTO;
@@ -15,8 +16,10 @@ use App\Application\Modules\DTOs\SlotRegistrationDTO;
 use App\Application\Surveys\Contracts\SubjectEndSurveyChoiceInterface;
 use App\Application\Surveys\Contracts\SurveySubjectLinksInterface;
 use App\Application\Surveys\Contracts\SurveySubjectSourceInterface;
+use App\Domain\Events\UserAnonymized;
 use App\Domain\Surveys\Events\SurveySubjectCancelled;
 use App\Domain\Surveys\Events\SurveySubjectEnded;
+use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use App\Modules\ModuleServiceProvider;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
@@ -53,12 +56,15 @@ use Modules\Surveys\Domain\Repositories\SurveyTemplateRepositoryInterface;
 use Modules\Surveys\Filament\Pages\SurveySettingsPage;
 use Modules\Surveys\Filament\Pages\SurveyTrendsPage;
 use Modules\Surveys\Filament\Widgets\PendingSurveyReviewsWidget;
+use Modules\Surveys\Infrastructure\Activity\AnnouncesActivityChanges;
+use Modules\Surveys\Infrastructure\Activity\ResponseActivitySource;
 use Modules\Surveys\Infrastructure\Files\DeletesAnswerFilesWithSurvey;
 use Modules\Surveys\Infrastructure\Files\DiskAnswerFileStore;
 use Modules\Surveys\Infrastructure\Files\ForgetsNoticesWithSurvey;
 use Modules\Surveys\Infrastructure\Knowledge\HasTrendsCapability;
 use Modules\Surveys\Infrastructure\Knowledge\OrganizesSurveysCapability;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyModel;
+use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyResponseModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Models\SurveyTemplateModel;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentOrganizedSurveysQuery;
 use Modules\Surveys\Infrastructure\Persistence\Eloquent\Repositories\EloquentPendingSurveysQuery;
@@ -84,6 +90,7 @@ use Modules\Surveys\Listeners\WithdrawSurveysWhenSubjectIsCancelled;
 use Modules\Surveys\Notifications\SurveyMailCategories;
 use Modules\Surveys\Policies\SurveyPolicy;
 use Modules\Surveys\Policies\SurveyTemplatePolicy;
+use WeakMap;
 
 final class SurveysServiceProvider extends ModuleServiceProvider
 {
@@ -151,6 +158,7 @@ final class SurveysServiceProvider extends ModuleServiceProvider
         // $this->registerFilamentExtensions();
 
         $this->registerEventListeners();
+        $this->registerActivityPublishing();
 
         $this->registerCommands();
         $this->registerSchedule();
@@ -166,6 +174,46 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     {
         Event::listen(SurveySubjectEnded::class, OfferSurveyWhenSubjectEnds::class);
         Event::listen(SurveySubjectCancelled::class, WithdrawSurveysWhenSubjectIsCancelled::class);
+    }
+
+    /**
+     * What changes the responses the activity source reports is published again for the core's
+     * contract (core#774). Surveys, responses and accounts are saved from many places (services,
+     * panel, plain models), so this listens to the models. A survey's responses go with it through
+     * a foreign key without model events, and an account's are left behind: both are asked while
+     * the rows exist and published once they are gone.
+     */
+    private function registerActivityPublishing(): void
+    {
+        $announcer = fn (): AnnouncesActivityChanges => $this->app->make(AnnouncesActivityChanges::class);
+
+        SurveyResponseModel::created(fn (SurveyResponseModel $response) => $announcer()->responseCreated($response));
+        SurveyResponseModel::updated(fn (SurveyResponseModel $response) => $announcer()->responseUpdated($response));
+        SurveyResponseModel::deleted(fn (SurveyResponseModel $response) => $announcer()->responseDeleted($response));
+        SurveyModel::updated(fn (SurveyModel $survey) => $announcer()->surveyUpdated($survey));
+
+        $ofSurveys = new WeakMap;
+        SurveyModel::deleting(function (SurveyModel $survey) use ($ofSurveys, $announcer): void {
+            $ofSurveys[$survey] = $announcer()->responsesOfDeletedSurvey($survey);
+        });
+        SurveyModel::deleted(function (SurveyModel $survey) use ($ofSurveys, $announcer): void {
+            $responseIds = $ofSurveys[$survey] ?? [];
+            unset($ofSurveys[$survey]);
+            $announcer()->surveyRemoved($responseIds);
+        });
+
+        $ofAccounts = new WeakMap;
+        UserModel::forceDeleting(function (UserModel $user) use ($ofAccounts, $announcer): void {
+            $ofAccounts[$user] = $announcer()->responsesOf($user);
+        });
+        UserModel::forceDeleted(function (UserModel $user) use ($ofAccounts, $announcer): void {
+            $responseIds = $ofAccounts[$user] ?? [];
+            unset($ofAccounts[$user]);
+            $announcer()->accountRemoved($responseIds);
+        });
+
+        // Anonymizing keeps the account row: the core's reader is what drops its facts
+        Event::listen(UserAnonymized::class, fn (UserAnonymized $event) => $announcer()->accountAnonymized($event->userId));
     }
 
     /**
@@ -475,6 +523,17 @@ final class SurveysServiceProvider extends ModuleServiceProvider
     public function registerCalendarSources(): array
     {
         return [];
+    }
+
+    /**
+     * What other modules may learn from the surveys people answered (core#774): only responses to
+     * named surveys sent to every account, as totals nobody can trace back to a restricted audience.
+     *
+     * @return list<class-string<ActivitySourceInterface>>
+     */
+    public function registerActivitySources(): array
+    {
+        return [ResponseActivitySource::class];
     }
 
     /**

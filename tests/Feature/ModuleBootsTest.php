@@ -22,12 +22,13 @@ final class ModuleBootsTest extends ModuleTestCase
         $this->assertNotNull($this->app->getProvider(SurveysServiceProvider::class));
     }
 
-    public function test_manifest_requires_the_core_with_the_site_notifications(): void
+    public function test_manifest_requires_the_core_with_the_activity_contract(): void
     {
         /** @var array{requires: array{core: string}, storesUtc: bool} $manifest */
         $manifest = json_decode((string) file_get_contents(__DIR__.'/../../module.json'), true, flags: JSON_THROW_ON_ERROR);
 
-        $this->assertSame('^3.58', $manifest['requires']['core']);
+        // The activity contract (core#774) arrived in 3.86.0: on an older core the container cannot build the source
+        $this->assertSame('^3.86.0', $manifest['requires']['core']);
         $this->assertTrue($manifest['storesUtc']);
     }
 }
