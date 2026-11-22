@@ -234,6 +234,42 @@ describe('QuestionField', () => {
         expect(rows[1]?.text()).toContain('Mal');
     });
 
+    it('lays the grid out with exclusive phone and matrix classes, so the core cannot override them', () => {
+        const wrapper = mountField(
+            question('grid', {
+                grid: {
+                    rows: [{ id: 'r-1', label: 'Ambiente' }],
+                    columns: [
+                        { id: 'c-1', label: 'Mal' },
+                        { id: 'c-2', label: 'Bien' },
+                        { id: 'c-3', label: 'Muy bien' },
+                    ],
+                },
+            })
+        );
+
+        // The module sheet sits below the core's layer: a base class the core also emits
+        // (flex, mb-2…) would beat an sm: override and pile every cell into one column
+        const cells = wrapper.get('[data-testid="grid-cells"]');
+        expect(cells.classes()).toContain('sm:contents');
+        expect(cells.classes()).toContain('max-sm:flex');
+        expect(cells.classes()).not.toContain('flex');
+        expect(wrapper.get('[data-testid="grid-header"]').classes()).not.toContain('hidden');
+
+        const display = /^(hidden|block|flex|inline-flex|grid|contents)$/;
+        const responsiveDisplay = /^sm:(hidden|block|flex|inline-flex|grid|contents)$/;
+        const responsiveMargin = /^sm:m[btlrxy]?-/;
+        for (const element of wrapper.get('[role="radiogroup"]').findAll('*')) {
+            const classes = element.classes();
+            if (classes.some((name) => responsiveDisplay.test(name))) {
+                expect(classes.filter((name) => display.test(name))).toEqual([]);
+            }
+            if (classes.some((name) => responsiveMargin.test(name))) {
+                expect(classes.filter((name) => /^m[btlrxy]?-/.test(name))).toEqual([]);
+            }
+        }
+    });
+
     it('marks the whole question when it has an error', () => {
         const wrapper = mountField(
             question('short_text', { required: true }),

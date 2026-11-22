@@ -7,6 +7,11 @@ import type { SurveyOption } from '../../types/Respond';
  * its label over the columns as labelled pills; from `sm` up the rows line up as a matrix
  * under one header of columns, and each cell shows only its dot (the column name stays
  * for screen readers).
+ *
+ * Phone and matrix styles use exclusive ranges (`max-sm:` and `sm:`), never a base class
+ * with an `sm:` override: this sheet sits in a lower cascade layer than the core's, so a
+ * base class the core also emits (`flex`, `mb-2`, `rounded-full`…) beats any override
+ * written here, and the cells would all pile up in the first column.
  */
 const props = defineProps<{
     name: string;
@@ -31,7 +36,8 @@ function rowLabelId(rowId: string): string {
 <template>
     <div class="mt-4">
         <div
-            class="hidden gap-2 pb-2 text-center text-sm font-medium text-base-secondary sm:grid"
+            class="gap-2 pb-2 text-center text-sm font-medium text-base-secondary max-sm:hidden sm:grid"
+            data-testid="grid-header"
             :style="layout"
             aria-hidden="true"
         >
@@ -46,18 +52,21 @@ function rowLabelId(rowId: string): string {
             class="border-t border-line py-3 sm:grid sm:items-center sm:gap-2"
             :style="layout"
         >
-            <p :id="rowLabelId(row.id)" class="mb-2 font-medium text-base-primary sm:mb-0">
+            <p :id="rowLabelId(row.id)" class="font-medium text-base-primary max-sm:mb-2">
                 {{ row.label }}
             </p>
-            <div class="flex flex-wrap gap-2 sm:contents">
+            <div
+                class="max-sm:flex max-sm:flex-wrap max-sm:gap-2 sm:contents"
+                data-testid="grid-cells"
+            >
                 <label
                     v-for="column in columns"
                     :key="column.id"
-                    class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border-2 px-4 transition-colors duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500 sm:rounded-lg sm:border-transparent sm:bg-transparent sm:px-0"
+                    class="flex min-h-11 cursor-pointer items-center justify-center gap-2 border-2 transition-colors duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500 max-sm:rounded-full max-sm:px-4 sm:rounded-lg sm:border-transparent"
                     :class="
                         cells[row.id] === column.id
-                            ? 'border-brand bg-brand-light'
-                            : 'border-line bg-surface hover:bg-muted'
+                            ? 'max-sm:border-brand max-sm:bg-brand-light'
+                            : 'max-sm:border-line max-sm:bg-surface max-sm:hover:bg-muted'
                     "
                 >
                     <input
@@ -70,7 +79,7 @@ function rowLabelId(rowId: string): string {
                     />
                     <span
                         aria-hidden="true"
-                        class="hidden h-5 w-5 items-center justify-center rounded-full border-2 sm:flex"
+                        class="h-5 w-5 items-center justify-center rounded-full border-2 max-sm:hidden sm:flex"
                         :class="
                             cells[row.id] === column.id
                                 ? 'border-brand bg-brand'
