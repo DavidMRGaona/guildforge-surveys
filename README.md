@@ -2,7 +2,7 @@
 
 Encuestas para la plataforma GuildForge: formularios al estilo de un formulario web, sondeos rápidos de una pregunta y encuestas al terminar una mesa, una campaña, un torneo o un evento.
 
-Requiere el core de GuildForge `^3.35`.
+Requiere el core de GuildForge `^3.86.0`.
 
 ## Qué hace
 
@@ -98,6 +98,25 @@ Una encuesta anónima guarda sus respuestas sin ningún vínculo con la persona:
 Sus resultados se muestran al cerrarla (o antes, si tiene los resultados en directo, que debilitan el anonimato) y solo con un mínimo de respuestas, que se aplica también a cada pregunta, al texto libre y a la exportación. El mínimo solo cuenta las respuestas con participación (cuentas, invitados y direcciones verificadas): las del enlace público abierto salen en los resultados, pero no ayudan a alcanzarlo, porque alguien podría enviar respuestas de relleno y deducir otra restándolas. La exportación de una encuesta anónima no lleva ni persona ni fecha. Nunca se muestra quién ha respondido.
 
 La garantía es frente a quien usa la aplicación, panel incluido; quien tenga acceso directo a la base de datos queda fuera.
+
+## Actividad para otros módulos
+
+El módulo ofrece al contrato de actividad del core (core#774) la fuente `surveys.response` («Encuestas respondidas», tipo `survey_response`, papel `respondent`), con la que, por ejemplo, el módulo de logros premia a quien da su opinión. Cada respuesta es un sujeto con un único hecho: la persona que respondió, fechado al inicio del día en que respondió (la respuesta solo guarda ese día, nunca la hora).
+
+**Qué cuenta.** Solo lo que cualquier cuenta puede saber que existe y no dice nada restringido de quien responde. Una respuesta cuenta cuando se cumplen las cuatro condiciones:
+
+- La encuesta **no es anónima**. Una encuesta anónima no informa de nada nunca: sus respuestas no guardan persona y las participaciones («ya ha respondido») jamás se leen. Una anónima no puede pasar a nombrada (el dominio lo prohíbe), y aunque alguien cambiase la columna a mano, sus respuestas siguen sin persona y no cuentan. Una nombrada que se vuelve anónima (solo posible mientras no tiene respuestas) deja de contar lo que tuviera.
+- Su público es **todas las cuentas**. Las dirigidas a socios, a unos roles o a las personas de un sujeto (una mesa, un torneo, un evento) no cuentan: responder a una diría que la persona es socia, tiene un rol o participó en algo, y una cuenta ajena a ese público ni siquiera puede saber que la encuesta existe.
+- Está **abierta o cerrada**. Un borrador nunca salió, y una encuesta en revisión está en pausa hasta que alguien la apruebe (cuenta otra vez al aprobarla).
+- Es de una **cuenta** que existe (desactivada incluida; el core descarta las anonimizadas). Las respuestas de invitados y del enlace público nunca cuentan.
+
+Los tres tipos de encuesta (formulario, sondeo y disponibilidad) cuentan igual. **Solo totales:** `respondent` entra en la excepción aceptada de «solo totales», como `player`, `attendee` y `booker`: quien consuma esta fuente solo enseña a los demás cuántas encuestas ha respondido una persona («5 encuestas»), nunca una encuesta concreta, y cada persona puede ocultar sus logros.
+
+**Quién ve el título.** `describe()` relaciona a una persona con una encuesta, así que solo responde a **quien dio la respuesta** (título y enlace a la encuesta) y a quien puede **leer los resultados** (`surveys.view_results`, solo el título). Nadie más: ni quien recibió la encuesta, ni quien solo gestiona encuestas sin ver sus resultados, ni un invitado. Una respuesta que no cuenta no se describe a nadie, tampoco a su propia persona.
+
+**El público no cambia con respuestas.** Una encuesta que ya tiene respuestas no puede cambiar de público (`Survey::changeAudience()` lo rechaza), ni siquiera si volvió a borrador tras rechazarla en revisión. Así las respuestas dadas a un público nunca pasan a leerse como las de otro.
+
+**Cuándo se publica** (`ActivityRecorded`, siempre con el id de la respuesta, sin datos): al responder, al retirar una respuesta, cuando la encuesta empieza o deja de contar (pasa a revisión o se aprueba, se vuelve anónima, cambia de público, vuelve a borrador), al borrarla (sus respuestas se van con ella por la clave foránea, sin eventos de modelo: se piden antes y se publican cuando ya no están) y al eliminar o anonimizar una cuenta. Las encuestas muy grandes se publican en lotes de 500 por trabajo en cola, que se encola al confirmarse el cambio; si la cola no responde, se registra y el guardado no falla. Mover una respuesta de encuesta o de cuenta solo se publica si contaba antes o cuenta ahora. Desactivar una cuenta no publica nada: sus respuestas siguen contando. Un fallo al publicar nunca cuesta la respuesta: se registra por su clase y el consumidor lo corrige al recalcular con `history()`, que recorre todas las respuestas que cuentan en páginas de hasta 500, con cursor opaco. Los cambios hechos con el constructor de consultas no lanzan eventos; el módulo no hace ninguno sobre estas tablas.
 
 ## Tendencias
 

@@ -71,12 +71,12 @@ final class EloquentSurveyRepositoryTest extends ModuleTestCase
     public function test_keeps_the_public_link_mode(): void
     {
         $survey = $this->survey();
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::Open);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false, publicLinkMode: PublicLinkMode::Open);
         $this->surveys->save($survey);
 
         $this->assertSame(PublicLinkMode::Open, $this->surveys->find($survey->id())?->publicLinkMode());
 
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::VerifiedEmail);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false, publicLinkMode: PublicLinkMode::VerifiedEmail);
         $this->surveys->save($survey);
 
         $this->assertSame(PublicLinkMode::VerifiedEmail, $this->surveys->find($survey->id())?->publicLinkMode());

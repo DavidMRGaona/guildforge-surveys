@@ -78,6 +78,7 @@ final class EditSurvey extends EditRecord
                 SurveyFormData::audienceType($data),
                 SurveyFormData::audienceRoles($data),
                 (bool) ($data['public_link_enabled'] ?? $survey->isPublicLinkEnabled()),
+                $hasResponses,
                 array_key_exists('public_link_mode', $data) ? SurveyFormData::publicLinkMode($data) : null,
             ));
         }

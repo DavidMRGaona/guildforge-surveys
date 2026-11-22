@@ -263,4 +263,8 @@ return [
         'no_game_system' => 'Sin sistema de juego',
         'general' => 'Encuesta general',
     ],
+
+    'activity' => [
+        'response_label' => 'Encuestas respondidas',
+    ],
 ];

@@ -155,30 +155,51 @@ final class SurveyTest extends TestCase
     public function test_the_audience_is_fixed_once_open(): void
     {
         $survey = $this->survey();
-        $survey->changeAudience(AudienceType::Roles, ['socios-de-ejemplo'], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::Roles, ['socios-de-ejemplo'], publicLinkEnabled: true, hasResponses: false);
         $this->assertSame(['socios-de-ejemplo'], $survey->audienceRoles());
         $this->assertTrue($survey->isPublicLinkEnabled());
 
-        $survey->changeAudience(AudienceType::AllUsers, ['ignorado'], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::AllUsers, ['ignorado'], publicLinkEnabled: true, hasResponses: false);
         $this->assertSame([], $survey->audienceRoles());
 
         $survey->open($this->now);
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false);
 
         $this->expectException(InvalidSurveyStateException::class);
 
-        $survey->changeAudience(AudienceType::AssociationMembers, [], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::AssociationMembers, [], publicLinkEnabled: true, hasResponses: false);
+    }
+
+    public function test_the_audience_never_changes_once_somebody_answered_even_back_in_a_draft(): void
+    {
+        $survey = $this->survey();
+        $survey->open($this->now);
+        $survey->submitForReview('00000000-0000-4000-8000-000000000001', $this->now);
+        $survey->reject('00000000-0000-4000-8000-000000000002', 'Falta una pregunta', $this->now);
+        $this->assertSame(SurveyStatus::Draft, $survey->status());
+        $this->assertTrue($survey->wasOpened());
+
+        try {
+            $survey->changeAudience(AudienceType::AssociationMembers, [], publicLinkEnabled: false, hasResponses: true);
+            $this->fail('A survey with responses keeps its audience.');
+        } catch (InvalidSurveyStateException $exception) {
+            $this->assertStringContainsString('audience can no longer change', $exception->getMessage());
+        }
+        $this->assertSame(AudienceType::AllUsers, $survey->audienceType());
+
+        // Saying the same again is no change, so a form that sends it back untouched still saves
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: $survey->isPublicLinkEnabled(), hasResponses: true);
     }
 
     public function test_a_subject_survey_keeps_going_to_its_participants(): void
     {
         $survey = $this->survey(audienceType: AudienceType::Subject);
-        $survey->changeAudience(AudienceType::Subject, [], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::Subject, [], publicLinkEnabled: true, hasResponses: false);
         $this->assertTrue($survey->isPublicLinkEnabled(), 'Its other audience settings still change while it is a draft.');
 
         $this->expectException(InvalidSurveyStateException::class);
 
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false);
     }
 
     public function test_a_general_survey_never_goes_to_a_subject_participants(): void
@@ -187,7 +208,7 @@ final class SurveyTest extends TestCase
 
         $this->expectException(InvalidSurveyStateException::class);
 
-        $survey->changeAudience(AudienceType::Subject, [], publicLinkEnabled: false);
+        $survey->changeAudience(AudienceType::Subject, [], publicLinkEnabled: false, hasResponses: false);
     }
 
     public function test_a_public_link_asks_for_an_email_unless_told_otherwise(): void
@@ -198,24 +219,24 @@ final class SurveyTest extends TestCase
     public function test_the_public_link_mode_is_fixed_once_open(): void
     {
         $survey = $this->survey();
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::Open);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false, publicLinkMode: PublicLinkMode::Open);
         $this->assertSame(PublicLinkMode::Open, $survey->publicLinkMode());
 
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false);
         $this->assertSame(PublicLinkMode::Open, $survey->publicLinkMode(), 'Leaving the mode out keeps it.');
 
         $survey->open($this->now);
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::Open);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false, publicLinkMode: PublicLinkMode::Open);
 
         $this->expectException(InvalidSurveyStateException::class);
 
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, publicLinkMode: PublicLinkMode::VerifiedEmail);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false, publicLinkMode: PublicLinkMode::VerifiedEmail);
     }
 
     public function test_an_open_survey_renews_its_public_link(): void
     {
         $survey = $this->survey();
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false);
         $survey->open($this->now, publicToken: 'old-token');
 
         $survey->renewPublicToken('new-token');
@@ -236,7 +257,7 @@ final class SurveyTest extends TestCase
     public function test_a_closed_survey_cannot_renew_its_public_link(): void
     {
         $survey = $this->survey();
-        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true);
+        $survey->changeAudience(AudienceType::AllUsers, [], publicLinkEnabled: true, hasResponses: false);
         $survey->open($this->now, publicToken: 'old-token');
         $survey->close($this->now);
 
