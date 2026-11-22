@@ -110,7 +110,7 @@ El módulo ofrece al contrato de actividad del core (core#774) la fuente `survey
 - Está **abierta o cerrada**. Un borrador nunca salió, y una encuesta en revisión está en pausa hasta que alguien la apruebe (cuenta otra vez al aprobarla).
 - Es de una **cuenta** que existe (desactivada incluida; el core descarta las anonimizadas). Las respuestas de invitados y del enlace público nunca cuentan.
 
-Los tres tipos de encuesta (formulario, sondeo y disponibilidad) cuentan igual. **Solo totales:** que alguien respondiera una encuesta concreta no se enseña a nadie (ni siquiera quién respondió un formulario se ve entre quienes lo recibieron), así que quien consuma esta fuente solo puede enseñar a los demás cuántas encuestas ha respondido una persona («5 encuestas»), nunca cuáles, igual que con `player`, `attendee` o `booker`.
+Los tres tipos de encuesta (formulario, sondeo y disponibilidad) cuentan igual.
 
 **Quién ve el título.** `describe()` relaciona a una persona con una encuesta, así que solo responde a **quien dio la respuesta** (título y enlace a la encuesta) y a quien puede **leer los resultados** (`surveys.view_results`, solo el título). Nadie más: ni quien recibió la encuesta, ni quien solo gestiona encuestas sin ver sus resultados, ni un invitado. Una respuesta que no cuenta no se describe a nadie, tampoco a su propia persona.
 
